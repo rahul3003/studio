@@ -49,7 +49,7 @@ export function LoginForm() {
   // Mock login function
   async function onSubmit(values) {
     // In a real app, you'd call your auth API here
-    console.log(values);
+    console.log("Attempting login with:", values); // Helpful for debugging
     toast({
       title: "Login Attempt",
       description: "Simulating login...",
@@ -64,10 +64,13 @@ export function LoginForm() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      // Store mock auth state (e.g., in localStorage or context)
-      localStorage.setItem("userRole", "admin"); // Mock role
-      localStorage.setItem("userName", "Admin User"); // Mock user name
-      localStorage.setItem("userEmail", values.email); // Mock user email
+      // Store mock auth state
+      localStorage.setItem("userRole", "admin");
+      localStorage.setItem("userName", "Admin User");
+      localStorage.setItem("userEmail", values.email);
+      // Explicitly set userBaseRole for the admin user.
+      // This ensures their base permissions for role switching are correctly established.
+      localStorage.setItem("userBaseRole", "admin"); 
       router.push("/dashboard");
     } else {
       toast({
@@ -75,7 +78,7 @@ export function LoginForm() {
         description: "Invalid email or password.",
         variant: "destructive",
       });
-      form.setError("email", { type: "manual", message: " " }); // Add error to trigger shake or visual feedback
+      form.setError("email", { type: "manual", message: " " }); // Clear message for email, error shown by password
       form.setError("password", { type: "manual", message: "Invalid credentials" });
     }
   }
