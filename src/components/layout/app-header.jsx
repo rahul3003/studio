@@ -2,8 +2,8 @@
 "use client";
 
 import * as React from "react";
+// import { RoleSwitcher } from "@/components/role-switcher"; // Removed RoleSwitcher
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { RoleSwitcher } from "@/components/role-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
@@ -49,9 +49,10 @@ export function AppHeader({ user }) {
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        <RoleSwitcher />
+        {/* <RoleSwitcher /> */} {/* RoleSwitcher removed */}
         <ThemeToggle />
       </div>
     </header>
   );
 }
+

@@ -103,3 +103,4 @@ export function AppSidebar({ user }) {
     </Sidebar>
   );
 }
+

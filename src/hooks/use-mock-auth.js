@@ -14,7 +14,7 @@ import { getRole, ROLE_SWITCH_PERMISSIONS, ROLES } from '@/config/roles';
  * @property {string} name
  * @property {string} email
  * @property {Role} currentRole
- * @property {Role} baseRole - The user's actual role, can't be switched away from if not privileged
+ * @property {Role} baseRole - The user's actual role
  * @property {string} [avatar]
  */
 
@@ -25,30 +25,38 @@ export function useMockAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    // Simulate fetching user data
-    const storedRoleValue = localStorage.getItem("userRole");
+    const storedRoleValue = localStorage.getItem("userRole"); // This might be a previously switched role
     const storedUserName = localStorage.getItem("userName");
     const storedUserEmail = localStorage.getItem("userEmail");
-    const storedBaseRoleValue = localStorage.getItem("userBaseRole") || storedRoleValue; // baseRole defaults to current if not set
+    let storedBaseRoleValue = localStorage.getItem("userBaseRole");
 
-    if (storedRoleValue && storedUserName && storedUserEmail && storedBaseRoleValue) {
-      const currentRole = getRole(storedRoleValue);
+    if (storedRoleValue && storedUserName && storedUserEmail) {
+      if (!storedBaseRoleValue) {
+        // If baseRole isn't explicitly set, assume current storedRole was the base.
+        // This handles users from before baseRole was distinct.
+        storedBaseRoleValue = storedRoleValue;
+        localStorage.setItem("userBaseRole", storedBaseRoleValue);
+      }
+      
       const baseRole = getRole(storedBaseRoleValue);
-      if (currentRole && baseRole) {
+
+      if (baseRole) {
         setUser({
           name: storedUserName,
           email: storedUserEmail,
-          currentRole: currentRole,
+          currentRole: baseRole, // Current role is now always the base role
           baseRole: baseRole,
-          avatar: `https://i.pravatar.cc/150?u=${storedUserEmail}` // Placeholder avatar
+          avatar: `https://i.pravatar.cc/150?u=${storedUserEmail}`
         });
+        // Ensure localStorage reflects that currentRole is baseRole
+        localStorage.setItem("userRole", baseRole.value);
       } else {
-        // Invalid role found, clear storage and redirect
+        // Invalid base role found, clear storage and redirect
+        console.error("Invalid base role found in localStorage:", storedBaseRoleValue);
         localStorage.clear();
         router.push('/login');
       }
     } else {
-       // No user data, redirect to login if not already on login page
        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         router.push('/login');
       }
@@ -65,53 +73,25 @@ export function useMockAuth() {
     router.push('/login');
   }, [router]);
 
+  // Role switching is now disabled/simplified as RoleSwitcher component is removed.
   const switchRole = useCallback((newRoleValue) => {
-    if (user) {
-      const newRole = getRole(newRoleValue);
-      if (newRole) {
-        // Check permissions
-        const canSwitch = ROLE_SWITCH_PERMISSIONS[user.baseRole.value]?.includes(newRoleValue) || user.baseRole.value === newRoleValue;
-        
-        if (canSwitch || user.baseRole.value === 'superadmin' || (user.baseRole.value === 'admin' && ROLES.find(r => r.value === newRoleValue))) {
-           setUser(prevUser => prevUser ? { ...prevUser, currentRole: newRole } : null);
-           localStorage.setItem("userRole", newRole.value);
-           // Persist base role if not already set (e.g. first login)
-           if (!localStorage.getItem("userBaseRole")) {
-             localStorage.setItem("userBaseRole", user.baseRole.value);
-           }
-        } else {
-          console.warn(`User with base role ${user.baseRole.name} cannot switch to ${newRole.name}`);
-          // Optionally, show a toast message for unauthorized switch attempt
-        }
-      }
+    // console.warn("Role switching is disabled. User remains in their base role.");
+    // If an attempt is made to switch, it should not change the currentRole from baseRole.
+    // For robustness, ensure the user object reflects currentRole as baseRole if this is ever called.
+    if (user && user.baseRole.value !== newRoleValue) {
+        // toast or log that switching is not allowed or has no effect
     }
+    // If the newRoleValue is the baseRole, do nothing.
   }, [user]);
 
+  // Available roles for switching is now just the user's base role (effectively no switching).
   const getAvailableRolesForSwitching = useCallback(() => {
-    if (!user) return [];
-    
-    const permittedValues = ROLE_SWITCH_PERMISSIONS[user.baseRole.value] || [];
-    
-    // Superadmin and admin can switch to any role lower than or equal to their base role
-    if (user.baseRole.value === 'superadmin') {
-        return ROLES; // Superadmin can switch to any role
-    }
-    if (user.baseRole.value === 'admin') {
-        // Admin can switch to admin, manager, teamlead, employee
-        return ROLES.filter(r => ['admin', 'manager', 'teamlead', 'employee'].includes(r.value));
-    }
-
-    // For other roles, they can switch to roles defined in ROLE_SWITCH_PERMISSIONS plus their own base role
-    const availableRoles = ROLES.filter(r => permittedValues.includes(r.value) || r.value === user.baseRole.value);
-    
-    // Ensure the base role is always an option if not already included
-    if (!availableRoles.find(r => r.value === user.baseRole.value)) {
-        availableRoles.push(user.baseRole);
-    }
-    
-    return availableRoles.sort((a,b) => ROLES.indexOf(a) - ROLES.indexOf(b)); // Keep original order
+    if (!user || !user.baseRole) return [];
+    // Returns an array containing only the base role, as no switching is effectively possible.
+    return [user.baseRole];
   }, [user]);
 
 
   return { user, loading, logout, switchRole, getAvailableRolesForSwitching };
 }
+
