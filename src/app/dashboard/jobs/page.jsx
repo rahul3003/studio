@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye } from "lucide-react";
+import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { JobForm } from "@/components/job/job-form";
 import { JobCard } from "@/components/job/job-card"; 
@@ -40,6 +40,7 @@ const initialJobs = [
     requirements: "5+ years of experience with React, Next.js, and TypeScript. Strong understanding of HTML, CSS, and JavaScript. Experience with RESTful APIs and version control (Git).",
     postedDate: "2024-07-20",
     status: "Open",
+    applicationLink: "https://example.com/apply/frontend-dev",
   },
   {
     id: "JOB002",
@@ -51,6 +52,7 @@ const initialJobs = [
     requirements: "Bachelor's degree in HR or related field. 3+ years in HR operations. Proficient in HRIS software (e.g., Workday, SAP SuccessFactors). Excellent organizational and communication skills.",
     postedDate: "2024-07-15",
     status: "Open",
+    applicationLink: null,
   },
   {
     id: "JOB003",
@@ -62,6 +64,7 @@ const initialJobs = [
     requirements: "5+ years in product marketing, preferably in SaaS. Proven track record of successful product launches. Strong analytical and strategic thinking skills.",
     postedDate: "2024-06-28",
     status: "Closed",
+    applicationLink: "https://example.com/apply/product-manager",
   },
   {
     id: "JOB004",
@@ -73,6 +76,7 @@ const initialJobs = [
     requirements: "Portfolio showcasing UX design projects. Familiarity with design tools (Figma, Sketch, Adobe XD). Understanding of user-centered design principles. Currently enrolled in or recently graduated from a design program.",
     postedDate: "2024-08-01",
     status: "Open",
+    applicationLink: null,
   },
 ];
 
@@ -147,7 +151,7 @@ export default function JobsPage() {
       setJobs((prevJobs) =>
         prevJobs.filter((job) => job.id !== selectedJob.id)
       );
-      toast({ title: "Job Deleted", description: `"${selectedJob.title}" has been removed.`, variant: "destructive" }); // Changed selectedJob.name to selectedJob.title
+      toast({ title: "Job Deleted", description: `"${selectedJob.title}" has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
   };
@@ -244,9 +248,16 @@ export default function JobsPage() {
                 {selectedJob?.status && <Badge variant={selectedJob.status === 'Open' ? 'default' : 'secondary'}>{selectedJob.status}</Badge>}
              </div>
           </div>
-           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={handleDialogClose}>Close</Button>
-            <Button onClick={() => { handleDialogClose(); handleEditJobOpen(selectedJob); }}>
+           <DialogFooter className="mt-4 flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={handleDialogClose} className="w-full sm:w-auto">Close</Button>
+            {selectedJob?.applicationLink && (
+                <Button asChild className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <a href={selectedJob.applicationLink} target="_blank" rel="noopener noreferrer">
+                        Apply Now <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
+                </Button>
+            )}
+            <Button onClick={() => { handleDialogClose(); handleEditJobOpen(selectedJob); }} className="w-full sm:w-auto">
                 <Edit className="mr-2 h-4 w-4"/> Edit
             </Button>
           </DialogFooter>

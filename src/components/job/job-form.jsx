@@ -33,6 +33,7 @@ const jobFormSchema = z.object({
   location: z.string().min(2, { message: "Location must be at least 2 characters." }).max(100),
   type: z.string().min(1, { message: "Job type is required." }),
   status: z.string().min(1, { message: "Status is required." }),
+  applicationLink: z.string().url({ message: "Please enter a valid URL (e.g., https://example.com)." }).optional().or(z.literal('')),
   description: z.string().min(20, { message: "Description must be at least 20 characters." }).max(2000),
   requirements: z.string().min(10, { message: "Requirements must be at least 10 characters." }).max(2000),
   postedDate: z.date().optional(), // Optional in form, auto-set if not provided
@@ -52,6 +53,7 @@ export function JobForm({
       ? {
           ...initialData,
           postedDate: initialData.postedDate ? parseISO(initialData.postedDate) : undefined,
+          applicationLink: initialData.applicationLink || "",
         }
       : {
           title: "",
@@ -59,6 +61,7 @@ export function JobForm({
           location: "",
           type: "",
           status: statusOptions?.[0] || "", // Default to "Open" or first status
+          applicationLink: "",
           description: "",
           requirements: "",
           postedDate: new Date(), // Default to today for new job
@@ -71,6 +74,7 @@ export function JobForm({
       ? {
           ...initialData,
           postedDate: initialData.postedDate ? parseISO(initialData.postedDate) : undefined,
+          applicationLink: initialData.applicationLink || "",
         }
       : {
           title: "",
@@ -78,17 +82,19 @@ export function JobForm({
           location: "",
           type: "",
           status: statusOptions?.[0] || "",
+          applicationLink: "",
           description: "",
           requirements: "",
           postedDate: new Date(),
         });
-  }, [initialData, form, statusOptions]);
+  }, [initialData, form, departmentOptions, statusOptions, typeOptions]);
 
 
   const handleSubmit = (values) => {
     const submissionData = {
       ...values,
       postedDate: values.postedDate ? format(values.postedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      applicationLink: values.applicationLink || null, // Store empty string as null
     };
     onSubmit(submissionData);
   };
@@ -200,6 +206,20 @@ export function JobForm({
             )}
           />
         </div>
+        
+        <FormField
+          control={form.control}
+          name="applicationLink"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Application Link (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., https://company.com/apply/job123" {...field} value={field.value || ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}
