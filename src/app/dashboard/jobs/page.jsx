@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -146,7 +147,7 @@ export default function JobsPage() {
       setJobs((prevJobs) =>
         prevJobs.filter((job) => job.id !== selectedJob.id)
       );
-      toast({ title: "Job Deleted", description: `"${selectedJob.name}" has been removed.`, variant: "destructive" });
+      toast({ title: "Job Deleted", description: `"${selectedJob.title}" has been removed.`, variant: "destructive" }); // Changed selectedJob.name to selectedJob.title
     }
     handleDialogClose();
   };
