@@ -1,17 +1,16 @@
 
-import { Inter as Geist } from 'next/font/google'; // Using Inter as a common sans-serif, can be replaced by Geist if specifically added
-import { Geist_Mono } from 'next/font/google';
+import { Inter, Roboto_Mono } from 'next/font/google'; // Changed Geist_Mono to Roboto_Mono, and 'Inter as Geist' to 'Inter'
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const fontInter = Inter({ // Renamed from geistSans to fontInter
+  variable: '--font-inter', // Changed variable name to --font-inter
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const fontRobotoMono = Roboto_Mono({ // Replaced geistMono with fontRobotoMono and used Roboto_Mono
+  variable: '--font-roboto-mono', // Changed variable name to --font-roboto-mono
   subsets: ['latin'],
 });
 
@@ -25,7 +24,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body 
+        className={`${fontInter.variable} ${fontRobotoMono.variable} font-sans antialiased`} // Updated font variables
+        suppressHydrationWarning // Added suppressHydrationWarning to body
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
