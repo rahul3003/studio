@@ -9,9 +9,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z, handlebars } from 'genkit'; // Corrected import for handlebars
 import { format } from 'date-fns';
-import { handlebars } from 'genkit/handlebars'; // Added import
 
 const GenerateExperienceLetterInputSchema = z.object({
   employeeName: z.string().describe('The full name of the former employee.'),

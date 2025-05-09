@@ -9,9 +9,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z, handlebars } from 'genkit'; // Corrected import for handlebars
 import { format } from 'date-fns';
-import { handlebars } from 'genkit/handlebars'; // Added import
 
 const PayItemSchema = z.object({
   name: z.string().describe('Name of the earning or deduction item.'),
@@ -148,7 +147,6 @@ Calculated Net Salary: {{{netSalary}}}
             \`<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">{{{item.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency item.amount}}</td></tr>\`
             \`{{/each}}\`
             Ensure that if one side (earnings/deductions) has more items, the other side has corresponding empty cells to maintain table structure. You might need to iterate a combined list or use conditional rendering for this.
-            For simplicity, if allowances and deductions need to be interleaved or perfectly aligned row by row when one list is longer, pre-process them into a single list of rows before passing to Handlebars or ensure the AI generates balanced rows.
             The provided examples above will list all earnings first, then all deductions.
         *   Total Row: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Gross Earnings</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency grossSalary}}</strong></td><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Total Deductions</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency totalDeductions}}</strong></td></tr>\`
     *   \`</table>\`
