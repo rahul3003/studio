@@ -1,5 +1,5 @@
 
-import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings } from "lucide-react";
+import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText } from "lucide-react";
 
 /**
  * @typedef {object} Role
@@ -29,7 +29,7 @@ export const getRole = (value) => ROLES.find(r => r.value === value);
 export const ROLE_SWITCH_PERMISSIONS = {
   superadmin: ["admin", "manager", "teamlead", "employee"],
   admin: ["manager", "teamlead", "employee"],
-  manager: ["employee"],
+  manager: ["teamlead", "employee"], // Manager can also switch to teamlead
   teamlead: ["employee"],
   employee: [],
 };
@@ -52,6 +52,7 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
     { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
     { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
+    { href: "/dashboard/documents", label: "Documents", icon: FileText },
     { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
@@ -64,39 +65,38 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
     { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
     { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
+    { href: "/dashboard/documents", label: "Documents", icon: FileText },
     { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   manager: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/employees", label: "Employees", icon: Users },
-    { href: "/dashboard/departments", label: "Departments", icon: Building2 },
+    // { href: "/dashboard/departments", label: "Departments", icon: Building2 }, // Managers typically don't manage departments
     { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
     { href: "/dashboard/tasks", label: "Tasks", icon: ListTodo },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
-    { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
-    { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
-    { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
+    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt }, // Might manage team reimbursements
+    { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness }, // Might be involved in hiring for their team
+    { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck }, // For their team
+    { href: "/dashboard/documents", label: "Documents", icon: FileText },
+    // { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck }, // Typically not for managers
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  teamlead: [ // Assuming Team Lead has same access as Manager based on prompt
+  teamlead: [ 
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/employees", label: "Employees", icon: Users },
-    { href: "/dashboard/departments", label: "Departments", icon: Building2 },
-    { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-    { href: "/dashboard/tasks", label: "Tasks", icon: ListTodo },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
-    { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
-    { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
-    { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
+    { href: "/dashboard/projects", label: "My Team Projects", icon: FolderKanban },
+    { href: "/dashboard/tasks", label: "My Team Tasks", icon: ListTodo },
+    { href: "/dashboard/attendance", label: "My Team Attendance", icon: CalendarCheck },
+    { href: "/dashboard/my-reimbursements", label: "My Reimbursements", icon: Receipt },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   employee: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/my-projects", label: "My Projects", icon: FolderKanban },
-    { href: "/dashboard/my-tasks", label: "My Tasks", icon: ListTodo },
+    { href: "/dashboard/my-projects", label: "My Projects", icon: FolderKanban }, // Placeholder, could link to user's assigned projects
+    { href: "/dashboard/my-tasks", label: "My Tasks", icon: ListTodo }, // Placeholder, could link to user's assigned tasks
     { href: "/dashboard/my-reimbursements", label: "My Reimbursements", icon: Receipt },
     { href: "/dashboard/my-attendance", label: "My Attendance", icon: CalendarCheck },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
 };
+
