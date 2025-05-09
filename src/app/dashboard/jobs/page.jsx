@@ -22,11 +22,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye, ExternalLink } from "lucide-react";
+import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye, ExternalLink, MapPin, CalendarDays, Briefcase, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { JobForm } from "@/components/job/job-form";
 import { JobCard } from "@/components/job/job-card"; 
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 // Initial mock job data
 const initialJobs = [
@@ -85,6 +86,16 @@ const JOB_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "T
 const JOB_LOCATION_OPTIONS = ["Remote", "On-site", "Hybrid"]; // Simplified, form can allow free text
 const DEPARTMENTS_OPTIONS = ["Technology", "Human Resources", "Marketing", "Sales", "Operations", "Design", "Finance"];
 
+
+const statusBadgeVariant = (status) => {
+  switch (status) {
+    case "Open": return "default";
+    case "Closed": return "secondary";
+    case "Filled": return "outline"; 
+    case "Draft": return "secondary";
+    default: return "secondary";
+  }
+};
 
 export default function JobsPage() {
   const { toast } = useToast();
@@ -232,21 +243,66 @@ export default function JobsPage() {
               {selectedJob?.department} | {selectedJob?.location} | {selectedJob?.type}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+            <div>
+              <h3 className="font-semibold text-lg mb-3">Job Overview</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <div className="flex items-start">
+                  <BriefcaseBusiness className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Department:</span>
+                    <span className="text-muted-foreground ml-1">{selectedJob?.department || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <MapPin className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Location:</span>
+                    <span className="text-muted-foreground ml-1">{selectedJob?.location || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Briefcase className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Type:</span>
+                    <span className="text-muted-foreground ml-1">{selectedJob?.type || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <CalendarDays className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Posted:</span>
+                    <span className="text-muted-foreground ml-1">
+                      {selectedJob?.postedDate ? new Date(selectedJob.postedDate).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start md:col-span-2">
+                   <Info className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Status:</span>
+                    <span className="ml-1">
+                      {selectedJob?.status ? (
+                        <Badge variant={statusBadgeVariant(selectedJob.status)}>
+                          {selectedJob.status}
+                        </Badge>
+                      ) : <span className="text-muted-foreground">N/A</span>}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+            
             <div>
               <h3 className="font-semibold text-lg mb-1">Job Description</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob?.description}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob?.description || 'No description provided.'}</p>
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-1">Requirements</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob?.requirements}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob?.requirements || 'No requirements listed.'}</p>
             </div>
-             <div className="flex items-center justify-between pt-2">
-                <p className="text-xs text-muted-foreground">
-                    Posted: {selectedJob?.postedDate ? new Date(selectedJob.postedDate).toLocaleDateString() : 'N/A'}
-                </p>
-                {selectedJob?.status && <Badge variant={selectedJob.status === 'Open' ? 'default' : 'secondary'}>{selectedJob.status}</Badge>}
-             </div>
           </div>
            <DialogFooter className="mt-4 flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={handleDialogClose} className="w-full sm:w-auto">Close</Button>
@@ -285,3 +341,4 @@ export default function JobsPage() {
     </div>
   );
 }
+
