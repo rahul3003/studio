@@ -7,10 +7,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { EmployeeForm } from "@/components/employee/employee-form";
 
-// Mock employee data
-const employees = [
+// Initial mock employee data
+const initialEmployees = [
   {
     id: "EMP001",
     name: "Alice Wonderland",
@@ -74,12 +95,78 @@ const employees = [
 ];
 
 const statusVariantMap = {
-  Active: "default", // Uses primary theme color
-  "On Leave": "secondary", // Uses secondary theme color (typically grayish)
-  Terminated: "destructive", // Uses destructive theme color (typically red)
+  Active: "default",
+  "On Leave": "secondary",
+  Terminated: "destructive",
 };
 
+const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst"];
+const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product"];
+const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation"];
+
 export default function EmployeesPage() {
+  const { toast } = useToast();
+  const [employees, setEmployees] = React.useState(initialEmployees);
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+
+  const handleAddEmployeeOpen = () => {
+    setSelectedEmployee(null); // Ensure no lingering selected employee for add
+    setIsAddDialogOpen(true);
+  };
+
+  const handleEditEmployeeOpen = (employee) => {
+    setSelectedEmployee(employee);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteEmployeeOpen = (employee) => {
+    setSelectedEmployee(employee);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsAddDialogOpen(false);
+    setIsEditDialogOpen(false);
+    setIsDeleteDialogOpen(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleSaveEmployee = (employeeData) => {
+    if (selectedEmployee && selectedEmployee.id) {
+      // Editing existing employee
+      setEmployees((prevEmployees) =>
+        prevEmployees.map((emp) =>
+          emp.id === selectedEmployee.id ? { ...emp, ...employeeData, avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || selectedEmployee.id}` } : emp
+        )
+      );
+      toast({ title: "Employee Updated", description: `${employeeData.name}'s details have been updated.` });
+    } else {
+      // Adding new employee
+      const newId = `EMP${String(Date.now()).slice(-4)}${String(employees.length + 1).padStart(3, '0')}`;
+      const newEmployee = {
+        ...employeeData,
+        id: newId,
+        avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
+      };
+      setEmployees((prevEmployees) => [newEmployee, ...prevEmployees]);
+      toast({ title: "Employee Added", description: `${employeeData.name} has been added to the system.` });
+    }
+    handleDialogClose();
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedEmployee) {
+      setEmployees((prevEmployees) =>
+        prevEmployees.filter((emp) => emp.id !== selectedEmployee.id)
+      );
+      toast({ title: "Employee Deleted", description: `${selectedEmployee.name} has been removed.`, variant: "destructive" });
+    }
+    handleDialogClose();
+  };
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
@@ -87,10 +174,10 @@ export default function EmployeesPage() {
           <div>
             <CardTitle className="text-3xl">Manage Employees</CardTitle>
             <CardDescription>
-              View, add, and manage employee information within the HRMS portal.
+              View, add, edit, and manage employee information.
             </CardDescription>
           </div>
-          <Button className="w-full md:w-auto">
+          <Button onClick={handleAddEmployeeOpen} className="w-full md:w-auto">
             <PlusCircle className="mr-2 h-5 w-5" />
             Add New Employee
           </Button>
@@ -115,7 +202,7 @@ export default function EmployeesPage() {
                   <TableRow key={employee.id}>
                     <TableCell>
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="person face" />
+                        <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="person face"/>
                         <AvatarFallback>
                           {employee.name
                             .split(" ")
@@ -142,11 +229,21 @@ export default function EmployeesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="mr-1 hover:bg-accent/20">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mr-1 hover:bg-accent/20"
+                        onClick={() => handleEditEmployeeOpen(employee)}
+                      >
                         <Edit className="h-4 w-4 text-primary" />
                         <span className="sr-only">Edit {employee.name}</span>
                       </Button>
-                      <Button variant="ghost" size="icon" className="hover:bg-destructive/20">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-destructive/20"
+                        onClick={() => handleDeleteEmployeeOpen(employee)}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                         <span className="sr-only">Delete {employee.name}</span>
                       </Button>
@@ -163,6 +260,47 @@ export default function EmployeesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add/Edit Employee Dialog */}
+      <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-lg md:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedEmployee ? "Edit Employee" : "Add New Employee"}</DialogTitle>
+            <DialogDescription>
+              {selectedEmployee ? "Update the details of the employee." : "Fill in the details to add a new employee."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <EmployeeForm
+              onSubmit={handleSaveEmployee}
+              initialData={selectedEmployee}
+              onCancel={handleDialogClose}
+              rolesOptions={ROLES_OPTIONS}
+              departmentsOptions={DEPARTMENTS_OPTIONS}
+              statusOptions={STATUS_OPTIONS}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete{" "}
+              <strong>{selectedEmployee?.name}</strong> and remove their data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDialogClose}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
