@@ -9,16 +9,20 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
 import { Loader2, FileText, Copy, Download, Mail } from "lucide-react";
+import html2pdf from 'html2pdf.js';
 
 export default function DocumentsPage() {
   const { toast } = useToast();
   const [generatedLetterHtml, setGeneratedLetterHtml] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("offer-letter");
+  const [candidateNameForFilename, setCandidateNameForFilename] = React.useState("OfferLetter");
+
 
   const handleOfferLetterSubmit = async (data) => {
     setIsLoading(true);
     setGeneratedLetterHtml("");
+    setCandidateNameForFilename(data.candidateName.replace(/ /g, '_') || "OfferLetter");
     try {
       const result = await generateOfferLetter(data);
       if (result && result.offerLetterText) {
@@ -55,11 +59,57 @@ export default function DocumentsPage() {
   };
 
   const handleDownloadPdf = () => {
+    if (!generatedLetterHtml) {
+      toast({
+        title: "No Document",
+        description: "Please generate the offer letter first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const element = document.createElement('div');
+    element.innerHTML = generatedLetterHtml;
+    // Ensure the container div from the HTML string is the element to convert
+    const letterContainer = element.querySelector('.offer-letter-container');
+    
+    if (!letterContainer) {
+        toast({
+            title: "PDF Generation Error",
+            description: "Could not find the main letter container for PDF conversion.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    const opt = {
+      margin:       0.5,
+      filename:     `${candidateNameForFilename}_Offer_Letter.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false }, // Added logging: false
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
     toast({
-      title: "Feature Not Implemented",
-      description: "PDF download functionality is coming soon!",
-      variant: "default",
+      title: "Generating PDF",
+      description: "Your PDF is being prepared for download...",
     });
+
+    html2pdf().from(letterContainer).set(opt).save()
+      .then(() => {
+        toast({
+          title: "PDF Downloaded",
+          description: "The offer letter PDF has been saved.",
+        });
+      })
+      .catch(err => {
+        console.error("Error generating PDF:", err);
+        toast({
+          title: "PDF Generation Failed",
+          description: "An error occurred while generating the PDF. Check console for details.",
+          variant: "destructive",
+        });
+      });
   };
 
   const handleEmailToCandidate = () => {
@@ -107,6 +157,7 @@ export default function DocumentsPage() {
                   {!isLoading && generatedLetterHtml && (
                     <div className="space-y-3">
                       <div 
+                        id="offer-letter-preview-content" // Added ID for easier selection if needed elsewhere
                         className="p-6 border rounded-md bg-white shadow-sm overflow-auto max-h-[70vh] min-h-[400px] prose prose-sm max-w-none dark:bg-slate-900 dark:prose-invert"
                         dangerouslySetInnerHTML={{ __html: generatedLetterHtml }}
                       />
