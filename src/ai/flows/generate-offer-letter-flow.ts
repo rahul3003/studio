@@ -12,7 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit'; // Assuming genkit/z is an alias or genkit exports z directly. If not, adjust to `import {z} from "zod";`
 import { format } from 'date-fns';
 
-export const GenerateOfferLetterInputSchema = z.object({
+const GenerateOfferLetterInputSchema = z.object({
   candidateName: z.string().describe('The full name of the candidate receiving the offer.'),
   positionTitle: z.string().describe('The title of the position being offered.'),
   department: z.string().describe('The department the candidate will be working in.'),
@@ -24,7 +24,7 @@ export const GenerateOfferLetterInputSchema = z.object({
 });
 export type GenerateOfferLetterInput = z.infer<typeof GenerateOfferLetterInputSchema>;
 
-export const GenerateOfferLetterOutputSchema = z.object({
+const GenerateOfferLetterOutputSchema = z.object({
   offerLetterText: z.string().describe('The full text of the generated offer letter.'),
 });
 export type GenerateOfferLetterOutput = z.infer<typeof GenerateOfferLetterOutputSchema>;
@@ -106,3 +106,4 @@ const generateOfferLetterFlow = ai.defineFlow(
     return output;
   }
 );
+
