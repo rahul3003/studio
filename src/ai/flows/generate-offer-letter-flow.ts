@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 
 const GenerateOfferLetterInputSchema = z.object({
   candidateName: z.string().describe('The full name of the candidate receiving the offer.'),
+  candidateEmail: z.string().email().describe("The candidate's email address."),
   positionTitle: z.string().describe('The title of the position being offered.'),
   department: z.string().describe('The department the candidate will be working in.'),
   startDate: z.string().describe("The candidate's proposed start date, formatted as 'MMMM d, yyyy'."),
@@ -117,4 +118,3 @@ const generateOfferLetterFlow = ai.defineFlow(
     return output;
   }
 );
-

@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 
 const offerLetterFormSchema = z.object({
   candidateName: z.string().min(2, { message: "Candidate name must be at least 2 characters." }),
+  candidateEmail: z.string().email({ message: "Please enter a valid email address for the candidate." }),
   positionTitle: z.string().min(3, { message: "Position title must be at least 3 characters." }),
   department: z.string().min(2, { message: "Department must be at least 2 characters." }),
   startDate: z.date({ required_error: "Start date is required." }),
@@ -40,6 +41,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
     resolver: zodResolver(offerLetterFormSchema),
     defaultValues: {
       candidateName: "",
+      candidateEmail: "",
       positionTitle: "",
       department: "",
       startDate: undefined,
@@ -70,6 +72,19 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
               <FormLabel>Candidate Name</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Jane Doe" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="candidateEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Candidate Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="e.g., jane.doe@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

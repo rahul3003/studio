@@ -8,6 +8,7 @@ import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
+import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow";
 import { Loader2, FileText, Copy, Download, Mail } from "lucide-react";
 import html2pdf from 'html2pdf.js';
 
@@ -15,14 +16,17 @@ export default function DocumentsPage() {
   const { toast } = useToast();
   const [generatedLetterHtml, setGeneratedLetterHtml] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isEmailing, setIsEmailing] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("offer-letter");
-  const [candidateNameForFilename, setCandidateNameForFilename] = React.useState("OfferLetter");
+  
+  // Store submitted form data to use for emailing
+  const [currentOfferData, setCurrentOfferData] = React.useState(null);
 
 
   const handleOfferLetterSubmit = async (data) => {
     setIsLoading(true);
     setGeneratedLetterHtml("");
-    setCandidateNameForFilename(data.candidateName.replace(/ /g, '_') || "OfferLetter");
+    setCurrentOfferData(data); // Store all submitted data
     try {
       const result = await generateOfferLetter(data);
       if (result && result.offerLetterText) {
@@ -59,7 +63,7 @@ export default function DocumentsPage() {
   };
 
   const handleDownloadPdf = () => {
-    if (!generatedLetterHtml) {
+    if (!generatedLetterHtml || !currentOfferData) {
       toast({
         title: "No Document",
         description: "Please generate the offer letter first.",
@@ -70,7 +74,6 @@ export default function DocumentsPage() {
 
     const element = document.createElement('div');
     element.innerHTML = generatedLetterHtml;
-    // Ensure the container div from the HTML string is the element to convert
     const letterContainer = element.querySelector('.offer-letter-container');
     
     if (!letterContainer) {
@@ -81,12 +84,14 @@ export default function DocumentsPage() {
         });
         return;
     }
+    
+    const candidateNameForFilename = currentOfferData.candidateName.replace(/ /g, '_') || "OfferLetter";
 
     const opt = {
       margin:       0.5,
       filename:     `${candidateNameForFilename}_Offer_Letter.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false }, // Added logging: false
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
@@ -112,12 +117,43 @@ export default function DocumentsPage() {
       });
   };
 
-  const handleEmailToCandidate = () => {
-     toast({
-      title: "Feature Not Implemented",
-      description: "Emailing functionality is coming soon!",
-      variant: "default",
-    });
+  const handleEmailToCandidate = async () => {
+    if (!generatedLetterHtml || !currentOfferData || !currentOfferData.candidateEmail) {
+      toast({
+        title: "Cannot Send Email",
+        description: "Please generate the offer letter and ensure candidate email is provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEmailing(true);
+    try {
+      const emailInput = {
+        candidateEmail: currentOfferData.candidateEmail,
+        candidateName: currentOfferData.candidateName,
+        offerLetterHtml: generatedLetterHtml,
+        companyName: currentOfferData.companyName,
+      };
+      const result = await sendOfferLetterEmail(emailInput);
+      if (result.success) {
+        toast({
+          title: "Email Sent (Mock)",
+          description: result.message,
+        });
+      } else {
+        throw new Error(result.message || "Failed to send email.");
+      }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Email Sending Failed",
+        description: error.message || "Could not send the email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEmailing(false);
+    }
   };
 
   return (
@@ -157,22 +193,22 @@ export default function DocumentsPage() {
                   {!isLoading && generatedLetterHtml && (
                     <div className="space-y-3">
                       <div 
-                        id="offer-letter-preview-content" // Added ID for easier selection if needed elsewhere
+                        id="offer-letter-preview-content"
                         className="p-6 border rounded-md bg-white shadow-sm overflow-auto max-h-[70vh] min-h-[400px] prose prose-sm max-w-none dark:bg-slate-900 dark:prose-invert"
                         dangerouslySetInnerHTML={{ __html: generatedLetterHtml }}
                       />
                       <div className="flex flex-wrap gap-2 pt-2">
-                        <Button onClick={handleCopyToClipboard} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading}>
+                        <Button onClick={handleCopyToClipboard} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading || isEmailing}>
                           <Copy className="mr-2 h-4 w-4" />
                           Copy HTML
                         </Button>
-                        <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading}>
+                        <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading || isEmailing}>
                           <Download className="mr-2 h-4 w-4" />
                           Download PDF
                         </Button>
-                        <Button onClick={handleEmailToCandidate} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading}>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Email to Candidate
+                        <Button onClick={handleEmailToCandidate} variant="outline" size="sm" disabled={!generatedLetterHtml || isLoading || isEmailing || !currentOfferData?.candidateEmail}>
+                          {isEmailing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                          {isEmailing ? "Sending..." : "Email to Candidate"}
                         </Button>
                       </div>
                     </div>
