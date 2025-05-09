@@ -62,7 +62,7 @@ Offer Expiry Date: {{{offerExpiryDate}}}
 
 **Instructions for the HTML Letter:**
 1.  **Overall Structure:**
-    *   The entire letter should be wrapped in a \`<div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; line-height: 1.6;">\`
+    *   The entire letter should be wrapped in a \`<div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6;">\`
     *   Use standard HTML tags: \`<p>\`, \`<h2>\`, \`<h3>\`, \`<strong>\`, \`<em>\`, \`<ul>\`, \`<li>\`.
 2.  **Header:**
     *   Include a company logo placeholder at the top. Use: \`<img src="https://picsum.photos/150/50?grayscale" alt="Company Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 50px;" data-ai-hint="company logo" />\`
