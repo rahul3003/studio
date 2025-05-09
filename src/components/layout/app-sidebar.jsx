@@ -14,21 +14,34 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, LayoutDashboard, Users, Shield, Rocket } from "lucide-react";
+import { 
+  LogOut, 
+  Settings, 
+  LayoutDashboard, 
+  Users, 
+  ShieldCheck, // Changed from Shield to ShieldCheck to match ROLE_NAV_CONFIG
+  Rocket,
+  Building2,
+  FolderKanban,
+  ListTodo,
+  Receipt,
+  BriefcaseBusiness,
+  CalendarCheck
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMockAuth } from "@/hooks/use-mock-auth";
-
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/employees", label: "Employees", icon: Users },
-  { href: "/dashboard/roles", label: "Roles & Permissions", icon: Shield },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-];
+import { ROLE_NAV_CONFIG } from "@/config/roles";
 
 export function AppSidebar({ user }) {
   const pathname = usePathname();
   const { logout } = useMockAuth();
+
+  const navItemsForRole = React.useMemo(() => {
+    if (user && user.currentRole && user.currentRole.value) {
+      return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || []; // Fallback to employee or empty
+    }
+    return [];
+  }, [user]);
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -42,7 +55,7 @@ export function AppSidebar({ user }) {
       </SidebarHeader>
       <SidebarContent className="flex-1 p-2">
         <SidebarMenu>
-          {navItems.map((item) => (
+          {navItemsForRole.map((item) => (
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
                 <SidebarMenuButton
@@ -65,9 +78,9 @@ export function AppSidebar({ user }) {
       <SidebarFooter className="p-3">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={user?.avatar} alt={user?.name} data-ai-hint="user avatar"/>
             <AvatarFallback>
-              {user.name
+              {user?.name
                 ? user.name
                     .split(" ")
                     .map((n) => n[0])
@@ -77,8 +90,8 @@ export function AppSidebar({ user }) {
             </AvatarFallback>
           </Avatar>
           <div className="group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-medium text-sidebar-foreground">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
+            <p className="text-sm font-medium text-sidebar-foreground">{user?.name}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
           <Button
             variant="ghost"
@@ -103,4 +116,3 @@ export function AppSidebar({ user }) {
     </Sidebar>
   );
 }
-
