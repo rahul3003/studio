@@ -27,12 +27,12 @@ export interface SendEmailParams {
 export async function sendEmail(params: SendEmailParams): Promise<{ success: boolean; message: string }> {
   const { to, subject, htmlBody } = params;
 
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error("Email service misconfiguration: Missing SMTP environment variables (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS).");
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_FROM) {
+    console.error("Email service misconfiguration: Missing one or more required SMTP environment variables (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM).");
     return { success: false, message: "Email service is not configured. Please contact administrator." };
   }
   
-  const fromAddress = params.from || process.env.EMAIL_FROM || "HRMS Portal <noreply@example.com>";
+  const fromAddress = params.from || process.env.EMAIL_FROM; // EMAIL_FROM is now guaranteed by the check above.
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -60,8 +60,9 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     console.log("SMTP Connection verified. Attempting to send email...");
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully: %s", info.messageId);
-    // console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info)); // Uncomment if using ethereal.email for testing
-    return { success: true, message: `Email successfully sent to ${to}.` };
+    // For testing with services like Ethereal:
+    // console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    return { success: true, message: `Email successfully sent to ${to}. Message ID: ${info.messageId}` };
   } catch (error) {
     console.error("Error sending email:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while sending the email.";
