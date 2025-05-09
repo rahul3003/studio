@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 const taskFormSchema = z.object({
   name: z.string().min(3, { message: "Task name must be at least 3 characters." }).max(100, { message: "Task name cannot exceed 100 characters." }),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500, { message: "Description cannot exceed 500 characters." }),
+  projectName: z.string().min(1, { message: "Project name is required." }),
   assignee: z.string().min(1, { message: "Assignee is required." }),
   dueDate: z.date({ required_error: "Due date is required." }),
   priority: z.string().min(1, { message: "Priority is required." }),
@@ -42,6 +43,7 @@ export function TaskForm({
   initialData,
   onCancel,
   assigneeOptions,
+  projectOptions, // Added projectOptions prop
   statusOptions,
   priorityOptions,
 }) {
@@ -56,6 +58,7 @@ export function TaskForm({
       : {
           name: "",
           description: "",
+          projectName: "", // Added projectName
           assignee: "",
           dueDate: undefined,
           priority: priorityOptions?.[1] || "", // Default to Medium or first option
@@ -105,6 +108,30 @@ export function TaskForm({
             </FormItem>
           )}
         />
+        <FormField
+            control={form.control}
+            name="projectName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Project Name</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {projectOptions.map((project) => (
+                      <SelectItem key={project} value={project}>
+                        {project}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -204,3 +231,4 @@ export function TaskForm({
     </Form>
   );
 }
+

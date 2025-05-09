@@ -34,6 +34,7 @@ const initialTasks = [
     name: "Design Homepage UI",
     description: "Create wireframes and mockups for the new homepage.",
     assignee: "Charlie Chaplin", // UX Designer
+    projectName: "HRMS Portal Development",
     dueDate: "2024-09-15",
     priority: "High",
     status: "In Progress",
@@ -44,6 +45,7 @@ const initialTasks = [
     name: "Develop Login API",
     description: "Implement backend API for user authentication.",
     assignee: "Alice Wonderland", // Software Engineer
+    projectName: "HRMS Portal Development",
     dueDate: "2024-08-30",
     priority: "Urgent",
     status: "To Do",
@@ -54,6 +56,7 @@ const initialTasks = [
     name: "Plan Q4 Marketing Strategy",
     description: "Outline marketing initiatives for the fourth quarter.",
     assignee: "Fiona Gallagher", // Sales Executive (could be Marketing Manager)
+    projectName: "Marketing Campaign Q3",
     dueDate: "2024-10-01",
     priority: "Medium",
     status: "Planning",
@@ -64,6 +67,7 @@ const initialTasks = [
     name: "Client Onboarding Documentation",
     description: "Prepare documentation for new client onboarding process.",
     assignee: "Diana Prince", // HR Specialist
+    projectName: "Office Renovation", // Example, might not be directly related
     dueDate: "2024-09-05",
     priority: "Medium",
     status: "Completed",
@@ -74,6 +78,7 @@ const initialTasks = [
     name: "Fix Payment Gateway Bug",
     description: "Investigate and resolve reported bug in payment processing.",
     assignee: "Edward Scissorhands", // Frontend Developer
+    projectName: "New Website Launch",
     dueDate: "2024-08-25",
     priority: "High",
     status: "Blocked",
@@ -94,6 +99,16 @@ const MOCK_EMPLOYEES_FOR_ASSIGNEE = [
     "Admin User"
 ];
 
+const MOCK_PROJECT_OPTIONS = [
+    "HRMS Portal Development",
+    "Marketing Campaign Q3",
+    "Office Renovation",
+    "New Website Launch",
+    "Mobile App Development",
+    "General Tasks",
+];
+
+
 const TASK_STATUS_OPTIONS = ["To Do", "In Progress", "Planning", "Blocked", "Completed", "Cancelled"];
 const TASK_PRIORITY_OPTIONS = ["Low", "Medium", "High", "Urgent"];
 
@@ -102,14 +117,14 @@ const statusVariantMap = {
   "In Progress": "default",
   Planning: "outline",
   Blocked: "destructive",
-  Completed: "default", // Consider a 'success' variant or style
+  Completed: "default", 
   Cancelled: "destructive",
 };
 
 const priorityVariantMap = {
   Low: "secondary",
   Medium: "default",
-  High: "outline", // Consider a 'warning' or 'primary' variant if more emphasis needed
+  High: "outline", 
   Urgent: "destructive",
 };
 
@@ -202,6 +217,7 @@ export default function TasksPage() {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Project Name</TableHead>
                   <TableHead>Assignee</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Priority</TableHead>
@@ -214,6 +230,7 @@ export default function TasksPage() {
                   <TableRow key={task.id}>
                     <TableCell className="font-medium">{task.id}</TableCell>
                     <TableCell>{task.name}</TableCell>
+                    <TableCell>{task.projectName}</TableCell>
                     <TableCell>{task.assignee}</TableCell>
                     <TableCell>
                       {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-US", {
@@ -278,6 +295,7 @@ export default function TasksPage() {
               initialData={selectedTask}
               onCancel={handleDialogClose}
               assigneeOptions={MOCK_EMPLOYEES_FOR_ASSIGNEE}
+              projectOptions={MOCK_PROJECT_OPTIONS}
               statusOptions={TASK_STATUS_OPTIONS}
               priorityOptions={TASK_PRIORITY_OPTIONS}
             />
