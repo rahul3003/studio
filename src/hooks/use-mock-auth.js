@@ -84,8 +84,7 @@ export function useMockAuth() {
       if (newRole && (newRoleValue === user.baseRole.value || allowedSwitches.includes(newRoleValue))) {
         setUser(prevUser => ({ ...prevUser, currentRole: newRole }));
         localStorage.setItem("userRole", newRole.value); // Save switched role
-        // Optionally, refresh or navigate to reflect role change
-        // router.refresh(); // Or router.push('/dashboard');
+        router.refresh(); // Refresh the current route to ensure UI consistency
       } else {
         console.warn(`Role switch to ${newRoleValue} not allowed for base role ${user.baseRole.value}`);
       }
