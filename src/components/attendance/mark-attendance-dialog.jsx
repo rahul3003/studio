@@ -29,17 +29,20 @@ export function MarkAttendanceDialog({
   currentAttendance,
   onSave,
   statusOptions = ["Present", "Absent", "Leave"], // Default options
+  userName, // Added userName prop
 }) {
   const [status, setStatus] = React.useState(currentAttendance?.status || statusOptions[0]);
   const [notes, setNotes] = React.useState(currentAttendance?.notes || "");
 
   React.useEffect(() => {
-    if (currentAttendance) {
-      setStatus(currentAttendance.status || statusOptions[0]);
-      setNotes(currentAttendance.notes || "");
-    } else {
-      setStatus(statusOptions[0]);
-      setNotes("");
+    if (isOpen) { // Only update state when dialog opens or currentAttendance changes
+        if (currentAttendance) {
+            setStatus(currentAttendance.status || statusOptions[0]);
+            setNotes(currentAttendance.notes || "");
+        } else {
+            setStatus(statusOptions[0]);
+            setNotes("");
+        }
     }
   }, [currentAttendance, isOpen, statusOptions]);
 
@@ -53,7 +56,7 @@ export function MarkAttendanceDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Mark Attendance</DialogTitle>
+          <DialogTitle>Mark Attendance {userName ? `for ${userName}` : ""}</DialogTitle>
           <DialogDescription>
             Update attendance for {format(selectedDate, "PPP")}.
           </DialogDescription>
@@ -97,5 +100,3 @@ export function MarkAttendanceDialog({
     </Dialog>
   );
 }
-
-    
