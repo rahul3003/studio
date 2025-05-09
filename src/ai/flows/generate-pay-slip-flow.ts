@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { format } from 'date-fns';
+import { handlebars } from 'genkit/handlebars'; // Added import
 
 const PayItemSchema = z.object({
   name: z.string().describe('Name of the earning or deduction item.'),
@@ -138,11 +139,17 @@ Calculated Net Salary: {{{netSalary}}}
     *   Table Body:
         *   Row for Basic Salary: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">Basic Salary</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency basicSalary}}</td><td></td><td></td></tr>\`
         *   Dynamically parse \`{{{allowancesStr}}}\` and \`{{{deductionsStr}}}\`. Each line like "Name: Amount" should become a table row.
-            Example for allowances, assuming a helper 'parsePayItems' exists and returns an array of {name, amount} objects:
+            Example for allowances, using the 'parsePayItems' helper that returns an array of {name, amount} objects:
             \`{{#each (parsePayItems allowancesStr) as |item|}}\`
             \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">{{{item.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency item.amount}}</td><td></td><td></td></tr>\`
             \`{{/each}}\`
-            Similarly for deductions in the third and fourth columns. If one side has more items, the other side should have empty cells. Balance rows.
+            Example for deductions:
+            \`{{#each (parsePayItems deductionsStr) as |item|}}\`
+            \`<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">{{{item.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency item.amount}}</td></tr>\`
+            \`{{/each}}\`
+            Ensure that if one side (earnings/deductions) has more items, the other side has corresponding empty cells to maintain table structure. You might need to iterate a combined list or use conditional rendering for this.
+            For simplicity, if allowances and deductions need to be interleaved or perfectly aligned row by row when one list is longer, pre-process them into a single list of rows before passing to Handlebars or ensure the AI generates balanced rows.
+            The provided examples above will list all earnings first, then all deductions.
         *   Total Row: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Gross Earnings</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency grossSalary}}</strong></td><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Total Deductions</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency totalDeductions}}</strong></td></tr>\`
     *   \`</table>\`
 5.  **Net Pay Section:**
@@ -151,29 +158,28 @@ Calculated Net Salary: {{{netSalary}}}
     *   \`</div>\`
 6.  **Footer:**
     *   \`<p style="font-size: 0.75em; color: #6c757d; text-align: center; margin-top: 25px;">This is a system-generated pay slip and does not require a signature. Generated on: {{{currentDate}}}</p>\`
-7.  **Monetary Formatting:** All monetary values MUST be formatted to two decimal places.
+7.  **Monetary Formatting:** All monetary values MUST be formatted to two decimal places using the 'formatCurrency' helper.
 8.  **Content Focus:** Generate **only the HTML string** for the pay slip, starting with the outer \`<div>\`.
-
-Helper 'parsePayItems' should take a string like "Housing: 100\\nTravel: 50" and turn it into an array of objects like [{name: "Housing", amount: 100}, {name: "Travel", amount: 50}].
-Helper 'formatCurrency' should take a number and return it as a string with two decimal places (e.g., 1234.5 becomes "1234.50").
 
 The final output must be a single, complete HTML string.
 `,
-helpers: {
-    formatCurrency: (num) => (typeof num === 'number' ? num.toFixed(2) : '0.00'),
-    parsePayItems: (str) => {
-      if (!str) return [];
-      return str.split('\n').map(line => {
-        const parts = line.split(':');
-        if (parts.length === 2) {
-          const name = parts[0].trim();
-          const amount = parseFloat(parts[1].trim());
-          return { name, amount: isNaN(amount) ? 0 : amount };
-        }
-        return null;
-      }).filter(item => item !== null);
-    },
-  }
+  customizers: [
+    handlebars.helpers({
+      formatCurrency: (num) => (typeof num === 'number' ? num.toFixed(2) : '0.00'),
+      parsePayItems: (str) => {
+        if (!str) return [];
+        return str.split('\n').map(line => {
+          const parts = line.split(':');
+          if (parts.length === 2) {
+            const name = parts[0].trim();
+            const amount = parseFloat(parts[1].trim());
+            return { name, amount: isNaN(amount) ? 0 : amount };
+          }
+          return null;
+        }).filter(item => item !== null && item.name !== ""); // Ensure item and name are valid
+      },
+    })
+  ]
 });
 
 const generatePaySlipFlow = ai.defineFlow(
@@ -196,3 +202,4 @@ const generatePaySlipFlow = ai.defineFlow(
     return { paySlipHtml: output.paySlipHtml };
   }
 );
+

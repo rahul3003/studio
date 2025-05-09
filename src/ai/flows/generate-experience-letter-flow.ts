@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { format } from 'date-fns';
+import { handlebars } from 'genkit/handlebars'; // Added import
 
 const GenerateExperienceLetterInputSchema = z.object({
   employeeName: z.string().describe('The full name of the former employee.'),
@@ -116,12 +117,14 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
-helpers: {
-    splitLines: (str) => str.split('\\n').map(s => s.trim()).filter(s => s),
-    startsWith: (str, prefix) => str.startsWith(prefix),
-    substring: (str, start) => str.substring(start),
-    contains: (str, substr) => str.includes(substr),
-}
+  customizers: [
+    handlebars.helpers({
+      splitLines: (str) => str.split('\n').map(s => s.trim()).filter(s => s),
+      startsWith: (str, prefix) => str.startsWith(prefix),
+      substring: (str, start) => str.substring(start),
+      contains: (str, substr) => str.includes(substr),
+    })
+  ]
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(
@@ -138,3 +141,4 @@ const generateExperienceLetterFlow = ai.defineFlow(
     return { experienceLetterHtml: output.experienceLetterHtml };
   }
 );
+
