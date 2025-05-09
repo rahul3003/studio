@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Flow for sending a generated offer letter via email.
@@ -12,7 +11,7 @@ import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/services/emailService';
 import { z } from 'genkit';
 
-export const SendOfferLetterEmailInputSchema = z.object({
+const SendOfferLetterEmailInputSchema = z.object({
   candidateEmail: z.string().email().describe("The recipient's email address."),
   candidateName: z.string().describe("The candidate's full name."),
   offerLetterHtml: z.string().describe("The HTML content of the offer letter."),
@@ -20,7 +19,7 @@ export const SendOfferLetterEmailInputSchema = z.object({
 });
 export type SendOfferLetterEmailInput = z.infer<typeof SendOfferLetterEmailInputSchema>;
 
-export const SendOfferLetterEmailOutputSchema = z.object({
+const SendOfferLetterEmailOutputSchema = z.object({
   success: z.boolean().describe("Whether the email was sent successfully."),
   message: z.string().describe("A message indicating the result of the email sending attempt."),
 });
