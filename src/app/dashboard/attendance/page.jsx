@@ -115,8 +115,6 @@ export default function AttendancePage() {
   
   const handleMonthSelect = (month) => {
     setCurrentDate(month);
-    // For daily view, selecting a month in the popover should reflect in the main calendar
-    // For weekly/monthly, it sets the context for that view
   };
 
 
@@ -143,7 +141,7 @@ export default function AttendancePage() {
 
 
   const getDisplayPeriod = () => {
-    if (viewMode === "daily") return format(currentDate, "MMMM yyyy");
+    if (viewMode === "daily") return format(currentDate, "MMMM yyyy"); // For calendar, month is good
     if (viewMode === "weekly") {
       const start = startOfWeek(currentDate, { weekStartsOn: 1 });
       const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -176,14 +174,6 @@ export default function AttendancePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={viewMode} onValueChange={setViewMode} className="mb-6">
-            <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={handlePrev}>
@@ -220,69 +210,77 @@ export default function AttendancePage() {
             <p className="text-lg font-semibold text-primary">{getDisplayPeriod()}</p>
           </div>
 
-          <TabsContent value="daily" className={viewMode === 'daily' ? 'block' : 'hidden'}>
-            <div className="rounded-md border p-4">
-               <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(day) => {
-                  if (day) {
-                    setSelectedDate(day);
-                    handleOpenMarkAttendanceDialog(day);
-                  }
-                }}
-                month={currentDate}
-                onMonthChange={setCurrentDate}
-                modifiers={modifiers}
-                modifiersClassNames={modifierClassNames}
-                className="p-0"
-                classNames={{
-                    day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
-                    day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
-                 }}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="weekly" className={viewMode === 'weekly' ? 'block' : 'hidden'}>
-             <WeeklyView 
-                currentDate={currentDate} 
-                attendanceRecords={attendanceRecords} 
-                onDayClick={handleOpenMarkAttendanceDialog}
-                statusConfig={statusConfig}
-              />
-          </TabsContent>
-
-          <TabsContent value="monthly" className={viewMode === 'monthly' ? 'block' : 'hidden'}>
-             <div className="rounded-md border p-4">
+          <Tabs value={viewMode} onValueChange={setViewMode} className="mb-6">
+            <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+              <TabsTrigger value="daily">Daily</TabsTrigger>
+              <TabsTrigger value="weekly">Weekly</TabsTrigger>
+              <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            </TabsList>
+          
+            <TabsContent value="daily">
+              <div className="rounded-md border p-4">
                 <Calendar
-                    mode="month" // This makes it show the full month, good for overview
-                    month={currentDate}
-                    onMonthChange={setCurrentDate}
-                    modifiers={modifiers}
-                    modifiersClassNames={modifierClassNames}
-                    onDayClick={(day) => { // Allow clicking on a day to mark attendance
-                        if (day && isSameMonth(day, currentDate)) {
-                             setSelectedDate(day);
-                             handleOpenMarkAttendanceDialog(day);
-                        }
-                    }}
-                    className="p-0"
-                    classNames={{
-                        day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
-                        day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
-                    }}
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(day) => {
+                    if (day) {
+                      setSelectedDate(day);
+                      handleOpenMarkAttendanceDialog(day);
+                    }
+                  }}
+                  month={currentDate}
+                  onMonthChange={setCurrentDate}
+                  modifiers={modifiers}
+                  modifiersClassNames={modifierClassNames}
+                  className="p-0"
+                  classNames={{
+                      day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
+                      day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
+                  }}
                 />
-             </div>
-             <MonthlySummary currentDate={currentDate} attendanceRecords={attendanceRecords} statusConfig={statusConfig} />
-          </TabsContent>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="weekly">
+              <WeeklyView 
+                  currentDate={currentDate} 
+                  attendanceRecords={attendanceRecords} 
+                  onDayClick={handleOpenMarkAttendanceDialog}
+                  statusConfig={statusConfig}
+                />
+            </TabsContent>
+
+            <TabsContent value="monthly">
+              <div className="rounded-md border p-4">
+                  <Calendar
+                      mode="month" 
+                      month={currentDate}
+                      onMonthChange={setCurrentDate}
+                      modifiers={modifiers}
+                      modifiersClassNames={modifierClassNames}
+                      onDayClick={(day) => { 
+                          if (day && isSameMonth(day, currentDate)) {
+                              setSelectedDate(day);
+                              handleOpenMarkAttendanceDialog(day);
+                          }
+                      }}
+                      className="p-0"
+                      classNames={{
+                          day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
+                          day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
+                      }}
+                  />
+              </div>
+              <MonthlySummary currentDate={currentDate} attendanceRecords={attendanceRecords} statusConfig={statusConfig} />
+            </TabsContent>
+          </Tabs>
           
           <div className="mt-6 pt-4 border-t">
             <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Legend:</h4>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {legendItems.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
-                  <span className={`h-3 w-3 rounded-full inline-block ${item.className.split(' ')[0]}`}></span> {/* Use only the rdp-day_status class for bg */}
+                  <span className={`h-3 w-3 rounded-full inline-block ${item.className.split(' ')[0]}`}></span>
                   <span className="text-xs">{item.label}</span>
                 </div>
               ))}
@@ -299,11 +297,9 @@ export default function AttendancePage() {
           selectedDate={dayToMarkAttendance}
           currentAttendance={attendanceRecords[format(dayToMarkAttendance, "yyyy-MM-dd")]}
           onSave={handleSaveAttendance}
-          statusOptions={Object.keys(statusConfig).filter(s => s !== "Default" && s !== "Holiday")} // Users typically don't mark "Holiday"
+          statusOptions={Object.keys(statusConfig).filter(s => s !== "Default" && s !== "Holiday")}
         />
       )}
     </div>
   );
 }
-
-    
