@@ -9,14 +9,14 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit'; // Assuming genkit/z is an alias or genkit exports z directly. If not, adjust to `import {z} from "zod";`
+import { z } from 'genkit'; 
 import { format } from 'date-fns';
 
 const GenerateOfferLetterInputSchema = z.object({
   candidateName: z.string().describe('The full name of the candidate receiving the offer.'),
   positionTitle: z.string().describe('The title of the position being offered.'),
   department: z.string().describe('The department the candidate will be working in.'),
-  startDate: z.string().describe("The candidate's proposed start date, formatted as 'MMMM d, yyyy પ્રિય."),
+  startDate: z.string().describe("The candidate's proposed start date, formatted as 'MMMM d, yyyy'."),
   salary: z.string().describe('The offered salary and any other compensation details (e.g., "$75,000 per annum plus standard benefits").'),
   reportingManager: z.string().describe('The name of the person the candidate will report to.'),
   offerExpiryDate: z.string().describe("The date by which the candidate must accept the offer, formatted as 'MMMM d, yyyy'."),
@@ -25,7 +25,7 @@ const GenerateOfferLetterInputSchema = z.object({
 export type GenerateOfferLetterInput = z.infer<typeof GenerateOfferLetterInputSchema>;
 
 const GenerateOfferLetterOutputSchema = z.object({
-  offerLetterText: z.string().describe('The full text of the generated offer letter.'),
+  offerLetterText: z.string().describe('The full HTML text of the generated offer letter.'),
 });
 export type GenerateOfferLetterOutput = z.infer<typeof GenerateOfferLetterOutputSchema>;
 
@@ -41,14 +41,14 @@ export async function generateOfferLetter(input: GenerateOfferLetterInput): Prom
 
 const generateOfferLetterPrompt = ai.definePrompt({
   name: 'generateOfferLetterPrompt',
-  input: { schema: GenerateOfferLetterInputSchema.extend({ currentDate: z.string() }) }, // currentDate added here
+  input: { schema: GenerateOfferLetterInputSchema.extend({ currentDate: z.string() }) }, 
   output: { schema: GenerateOfferLetterOutputSchema },
   prompt: `You are an expert HR assistant responsible for drafting formal and professional job offer letters.
-Generate a comprehensive offer letter using the details provided below.
+Generate a comprehensive offer letter **as an HTML document string**. The letter should be visually appealing and well-structured.
 
 **Company Information:**
 Company Name: {{{companyName}}}
-Company Address: (Assume a standard placeholder like "123 Innovation Drive, Tech City, ST 12345" if not provided. You can make one up if needed.)
+(Assume Company Address: "123 Innovation Drive, Tech City, ST 12345" or similar if not explicitly provided in other inputs)
 Date of Offer: {{{currentDate}}}
 
 **Candidate and Offer Details:**
@@ -60,35 +60,40 @@ Proposed Start Date: {{{startDate}}}
 Salary and Compensation: {{{salary}}}
 Offer Expiry Date: {{{offerExpiryDate}}}
 
-**Instructions for the Letter:**
-1.  **Structure:** The letter should be well-structured with clear paragraphs. Include:
-    *   Salutation (e.g., "Dear {{{candidateName}}},")
-    *   Opening: Clearly state the offer of employment for the specified position. Express enthusiasm.
-    *   Position Details: Briefly describe the role and responsibilities (you can make this generic based on the position title if not detailed). Mention the department and reporting manager.
-    *   Start Date: Clearly state the proposed start date.
-    *   Compensation: Detail the salary. Mention if other benefits are standard (e.g., "eligible for our standard benefits package").
-    *   Contingencies (Optional but good practice): You may include a brief, standard clause if applicable, such as "This offer is contingent upon successful completion of background checks and verification of work eligibility." (Use general phrasing).
-    *   Acceptance: Explain how the candidate can accept the offer (e.g., "To accept this offer, please sign and return this letter by {{{offerExpiryDate}}}.")
-    *   Closing: Professional closing (e.g., "We are excited about the possibility of you joining our team...").
-    *   Signature Block: For "{{{companyName}}}", with a placeholder for "Hiring Manager" or "HR Department".
+**Instructions for the HTML Letter:**
+1.  **Overall Structure:**
+    *   The entire letter should be wrapped in a \`<div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; line-height: 1.6;">\`
+    *   Use standard HTML tags: \`<p>\`, \`<h2>\`, \`<h3>\`, \`<strong>\`, \`<em>\`, \`<ul>\`, \`<li>\`.
+2.  **Header:**
+    *   Include a company logo placeholder at the top. Use: \`<img src="https://picsum.photos/150/50?grayscale" alt="Company Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 50px;" data-ai-hint="company logo" />\`
+    *   Company Name: \`<h1 style="font-size: 1.8em; color: #333; margin-bottom: 5px;">{{{companyName}}}</h1>\`
+    *   Company Address (placeholder): \`<p style="margin-bottom: 15px; font-size: 0.9em; color: #555;">123 Innovation Drive, Tech City, ST 12345</p>\`
+    *   Date of Offer: \`<p style="text-align: right; margin-bottom: 20px;"><strong>Date:</strong> {{{currentDate}}}</p>\`
+3.  **Salutation:** E.g., \`<p style="margin-top: 20px; margin-bottom: 15px;">Dear {{{candidateName}}},</p>\`
+4.  **Body Paragraphs:** Use \`<p>\` tags for paragraphs. Use \`<strong>\` for emphasis on key terms.
+    *   **Opening:** Clearly state the offer of employment. Express enthusiasm.
+        Example: \`<p>Following our recent discussions, we are delighted to extend an offer of employment to you for the position of <strong>{{{positionTitle}}}</strong> at <strong>{{{companyName}}}</strong>.</p>\`
+    *   **Position Details:** Briefly describe the role. Mention department and reporting manager.
+        Create a section with a heading like \`<h3 style="font-size: 1.1em; color: #444; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Offer Details</h3>\`
+        Include: \`<p><strong>Position Title:</strong> {{{positionTitle}}}</p>\`, etc.
+    *   **Start Date:** Clearly state the proposed start date.
+    *   **Compensation:** Detail the salary. Mention standard benefits.
+        Create a section with a heading like \`<h3 style="font-size: 1.1em; color: #444; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Compensation & Benefits</h3>\`
+    *   **Contingencies (Optional but good practice):** Include a standard clause if applicable (e.g., background checks).
+    *   **Acceptance:** Explain how to accept and the deadline.
+        Example: \`<p>To accept this offer, please sign and return this letter by <strong>{{{offerExpiryDate}}}</strong>. You can reply to this email with your signed acceptance.</p>\`
+5.  **Closing:** Professional closing.
+    Example: \`<p style="margin-top: 25px;">We are very excited about the possibility of you joining our team and look forward to welcoming you to <strong>{{{companyName}}}</strong>.</p>\`
+6.  **Signature Block:**
+    \`<p style="margin-top: 30px;">Sincerely,</p>\`
+    \`<p style="margin-top: 20px; font-weight: bold;">The Hiring Team</p>\`
+    \`<p style="font-size: 0.95em;">{{{companyName}}}</p>\`
+7.  **Styling:**
+    *   Use inline styles modestly for structure and emphasis (margins, font-weights, simple borders for section heads).
+    *   Ensure good readability and a professional, modern look.
+8.  **Content Focus:** Generate **only the HTML string** for the offer letter itself, starting with the outer \`<div>\` and ending with its closing \`</div>\`. Do not include any commentary, markdown, or other text outside this HTML string.
 
-2.  **Tone:** Maintain a professional, welcoming, and enthusiastic tone throughout the letter.
-3.  **Formatting:** Use standard business letter formatting. Ensure proper grammar, spelling, and punctuation.
-4.  **Content Focus:** Generate only the text of the offer letter itself. Do not include any other commentary or introductory phrases before or after the letter content.
-
-Ensure the final output is just the offer letter text.
-Example of desired opening:
-"Dear {{{candidateName}}},
-
-Following our recent discussions, we are delighted to extend an offer of employment to you for the position of {{{positionTitle}}} at {{{companyName}}}."
-
-Example of desired closing:
-"We look forward to welcoming you to {{{companyName}}}.
-
-Sincerely,
-
-The Hiring Team
-{{{companyName}}}"
+The final output must be a single, complete HTML string.
 `,
 });
 
@@ -100,8 +105,14 @@ const generateOfferLetterFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await generateOfferLetterPrompt(input);
-    if (!output) {
-        throw new Error("AI failed to generate an offer letter.");
+    if (!output || !output.offerLetterText) {
+        throw new Error("AI failed to generate an offer letter or returned empty content.");
+    }
+    // Ensure the output is a string and looks like HTML
+    if (typeof output.offerLetterText !== 'string' || !output.offerLetterText.trim().startsWith('<div')) {
+        console.warn("AI output might not be valid HTML:", output.offerLetterText);
+        // Depending on strictness, you might throw an error here or try to wrap it
+        // For now, we'll assume the AI mostly follows instructions.
     }
     return output;
   }
