@@ -2,12 +2,13 @@
 "use client";
 
 import * as React from "react";
-// import { RoleSwitcher } from "@/components/role-switcher"; // Removed RoleSwitcher
+import { RoleSwitcher } from "@/components/role-switcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
 import Link from "next/link";
+import { useMockAuth } from "@/hooks/use-mock-auth";
 
 
 function getBreadcrumbs(pathname) {
@@ -21,9 +22,14 @@ function getBreadcrumbs(pathname) {
 }
 
 
-export function AppHeader({ user }) {
+export function AppHeader({ user: passedUser }) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
+  const { user: authUser } = useMockAuth(); // Use user from hook for role checking
+
+  const user = passedUser || authUser;
+
+  const canSwitchRoles = user && user.currentRole && ['superadmin', 'admin', 'manager'].includes(user.currentRole.value);
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -49,7 +55,7 @@ export function AppHeader({ user }) {
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        {/* <RoleSwitcher /> */} {/* RoleSwitcher removed */}
+        {canSwitchRoles && <RoleSwitcher />}
         <ThemeToggle />
       </div>
     </header>
