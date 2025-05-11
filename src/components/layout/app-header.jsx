@@ -25,11 +25,13 @@ function getBreadcrumbs(pathname) {
 export function AppHeader({ user: passedUser }) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
-  const { user: authUser } = useMockAuth(); // Use user from hook for role checking
+  const { user: authUser } = useMockAuth(); 
 
   const user = passedUser || authUser;
 
-  const canSwitchRoles = user && user.currentRole && ['superadmin', 'admin', 'manager'].includes(user.currentRole.value);
+  // Updated logic: Role switcher is available if the baseRole is NOT employee.
+  // The actual roles they can switch to are then determined by ROLE_SWITCH_PERMISSIONS.
+  const canSwitchRoles = user && user.baseRole && user.baseRole.value !== 'employee';
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
