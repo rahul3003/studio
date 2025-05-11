@@ -5,7 +5,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns"; // Added parseISO
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 const employeeFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
-  role: z.string().min(1, { message: "Role is required." }),
+  role: z.string().min(1, { message: "Job Title/Role is required." }), // This field represents Job Title
+  designation: z.string().min(1, { message: "Designation is required." }), // New field for Designation
   department: z.string().min(1, { message: "Department is required." }),
   joinDate: z.date({ required_error: "Join date is required." }),
   status: z.string().min(1, { message: "Status is required." }),
@@ -40,7 +41,8 @@ export function EmployeeForm({
   onSubmit,
   initialData,
   onCancel,
-  rolesOptions,
+  rolesOptions, // For Job Title/Role
+  designationOptions, // For Designation
   departmentsOptions,
   statusOptions,
 }) {
@@ -50,17 +52,35 @@ export function EmployeeForm({
     defaultValues: initialData
       ? {
           ...initialData,
-          joinDate: initialData.joinDate ? new Date(initialData.joinDate) : undefined,
+          joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
         }
       : {
           name: "",
           email: "",
           role: "",
+          designation: "",
           department: "",
           joinDate: undefined,
           status: "Active",
         },
   });
+  
+  React.useEffect(() => {
+    form.reset(initialData
+      ? {
+          ...initialData,
+          joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
+        }
+      : {
+          name: "",
+          email: "",
+          role: "",
+          designation: "",
+          department: "",
+          joinDate: undefined,
+          status: "Active",
+        });
+  }, [initialData, form]);
 
   const handleSubmit = (values) => {
     onSubmit({
@@ -104,11 +124,11 @@ export function EmployeeForm({
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>Job Title / Role</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder="Select a job title/role" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -123,6 +143,32 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="designation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Designation</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a designation" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {designationOptions.map((designation) => (
+                      <SelectItem key={designation} value={designation}>
+                        {designation}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
             name="department"
@@ -147,8 +193,6 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
             name="joinDate"
@@ -160,7 +204,9 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
-          <FormField
+        </div>
+        
+        <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
@@ -184,7 +230,6 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
-        </div>
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel

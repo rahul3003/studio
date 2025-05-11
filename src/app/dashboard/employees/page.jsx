@@ -11,10 +11,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -26,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users as UsersIcon } from "lucide-react"; // Renamed Users to UsersIcon
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeForm } from "@/components/employee/employee-form";
 
@@ -37,7 +35,8 @@ const initialEmployees = [
     name: "Alice Wonderland",
     email: "alice.wonderland@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=alice",
-    role: "Software Engineer",
+    role: "Software Engineer", // This is the Job Title/Primary Function
+    designation: "Senior",   // This is the new Designation field
     department: "Technology",
     status: "Active",
     joinDate: "2022-08-15",
@@ -48,6 +47,7 @@ const initialEmployees = [
     email: "bob.builder@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=bob",
     role: "Project Manager",
+    designation: "Lead",
     department: "Operations",
     status: "Active",
     joinDate: "2021-05-20",
@@ -58,6 +58,7 @@ const initialEmployees = [
     email: "charlie.chaplin@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=charlie",
     role: "UX Designer",
+    designation: "Junior",
     department: "Design",
     status: "On Leave",
     joinDate: "2023-01-10",
@@ -68,6 +69,7 @@ const initialEmployees = [
     email: "diana.prince@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=diana",
     role: "HR Specialist",
+    designation: "Staff",
     department: "Human Resources",
     status: "Active",
     joinDate: "2020-03-01",
@@ -78,6 +80,7 @@ const initialEmployees = [
     email: "edward.hands@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=edward",
     role: "Frontend Developer",
+    designation: "Associate",
     department: "Technology",
     status: "Terminated",
     joinDate: "2022-11-01",
@@ -88,6 +91,7 @@ const initialEmployees = [
     email: "fiona.gallagher@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=fiona",
     role: "Sales Executive",
+    designation: "Senior",
     department: "Sales",
     status: "Active",
     joinDate: "2023-06-22",
@@ -100,9 +104,10 @@ const statusVariantMap = {
   Terminated: "destructive",
 };
 
-const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst"];
-const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product"];
-const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation"];
+const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst"];
+const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior", "Associate", "Staff", "Senior", "Lead", "Principal", "Manager", "Director"];
+const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance"];
+const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
 
 export default function EmployeesPage() {
   const { toast } = useToast();
@@ -113,7 +118,7 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = React.useState(null);
 
   const handleAddEmployeeOpen = () => {
-    setSelectedEmployee(null); // Ensure no lingering selected employee for add
+    setSelectedEmployee(null); 
     setIsAddDialogOpen(true);
   };
 
@@ -172,7 +177,10 @@ export default function EmployeesPage() {
       <Card className="shadow-lg">
         <CardHeader className="flex flex-col gap-y-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-3xl">Manage Employees</CardTitle>
+            <div className="flex items-center gap-2">
+                <UsersIcon className="h-8 w-8 text-primary" />
+                <CardTitle className="text-3xl">Manage Employees</CardTitle>
+            </div>
             <CardDescription>
               View, add, edit, and manage employee information.
             </CardDescription>
@@ -190,7 +198,8 @@ export default function EmployeesPage() {
                   <TableHead className="w-[80px]">Avatar</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Job Title</TableHead>
+                  <TableHead>Designation</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -214,7 +223,8 @@ export default function EmployeesPage() {
                     </TableCell>
                     <TableCell className="font-medium">{employee.name}</TableCell>
                     <TableCell>{employee.email}</TableCell>
-                    <TableCell>{employee.role}</TableCell>
+                    <TableCell>{employee.role}</TableCell> 
+                    <TableCell>{employee.designation}</TableCell>
                     <TableCell>{employee.department}</TableCell>
                     <TableCell>
                       {new Date(employee.joinDate).toLocaleDateString("en-US", {
@@ -270,12 +280,13 @@ export default function EmployeesPage() {
               {selectedEmployee ? "Update the details of the employee." : "Fill in the details to add a new employee."}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
             <EmployeeForm
               onSubmit={handleSaveEmployee}
               initialData={selectedEmployee}
               onCancel={handleDialogClose}
-              rolesOptions={ROLES_OPTIONS}
+              rolesOptions={ROLES_OPTIONS} 
+              designationOptions={DESIGNATION_OPTIONS}
               departmentsOptions={DEPARTMENTS_OPTIONS}
               statusOptions={STATUS_OPTIONS}
             />
