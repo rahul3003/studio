@@ -19,14 +19,15 @@ import {
   Settings, 
   LayoutDashboard, 
   Users, 
-  ShieldCheck, // Changed from Shield to ShieldCheck to match ROLE_NAV_CONFIG
+  ShieldCheck,
   Rocket,
   Building2,
   FolderKanban,
   ListTodo,
   Receipt,
   BriefcaseBusiness,
-  CalendarCheck
+  CalendarCheck,
+  FileText
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMockAuth } from "@/hooks/use-mock-auth";
@@ -38,13 +39,13 @@ export function AppSidebar({ user }) {
 
   const navItemsForRole = React.useMemo(() => {
     if (user && user.currentRole && user.currentRole.value) {
-      return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || []; // Fallback to employee or empty
+      return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || [];
     }
     return [];
   }, [user]);
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
           <Rocket className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />

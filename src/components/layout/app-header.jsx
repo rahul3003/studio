@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -24,18 +25,19 @@ function getBreadcrumbs(pathname) {
 export function AppHeader({ user: passedUser }) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
-  const { user: authUser } = useMockAuth(); 
+  const { user: authUser, loading: authLoading } = useMockAuth(); 
 
   const user = passedUser || authUser;
+  const loading = authLoading;
 
-  // Updated logic: Role switcher is available if the baseRole is NOT employee.
-  // The actual roles they can switch to are then determined by ROLE_SWITCH_PERMISSIONS.
-  const canSwitchRoles = user && user.baseRole && user.baseRole.value !== 'employee';
+
+  // Role switcher is available if the baseRole is NOT employee AND not loading.
+  const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-2">
-        <SidebarTrigger /> {/* Removed md:hidden to make it always visible */}
+        <SidebarTrigger />
         <nav className="hidden md:flex items-center gap-2 text-sm font-medium">
           <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
             <Home className="h-4 w-4" />
@@ -62,4 +64,3 @@ export function AppHeader({ user: passedUser }) {
     </header>
   );
 }
-

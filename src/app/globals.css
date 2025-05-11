@@ -48,8 +48,8 @@ body {
     --sidebar-foreground: 236 20% 25%; /* Dark grayish blue */
     --sidebar-primary: 236 63% 30%; /* Deep Blue for active/primary items */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 0 0% 92%; /* Very light gray for hover */
-    --sidebar-accent-foreground: 236 63% 30%; /* Deep Blue text on hover */
+    --sidebar-accent: 210 100% 97%; /* Light blueish for hover/active */
+    --sidebar-accent-foreground: 210 80% 45%; /* Medium blue text for hover/active */
     --sidebar-border: 0 0% 85%; /* Border for sidebar elements */
     --sidebar-ring: 236 63% 40%; /* Focus ring for sidebar */
   }
@@ -94,8 +94,8 @@ body {
     --sidebar-foreground: 0 0% 95%; /* Light text */
     --sidebar-primary: 236 70% 70%; /* Lighter Deep Blue */
     --sidebar-primary-foreground: 236 63% 15%; /* Dark blue text */
-    --sidebar-accent: 240 5% 18%; /* Slightly lighter dark gray for hover */
-    --sidebar-accent-foreground: 0 0% 98%; /* White text on hover */
+    --sidebar-accent: 220 15% 25%; /* Muted blueish dark gray for hover/active */
+    --sidebar-accent-foreground: 210 80% 85%; /* Light blue text for hover/active */
     --sidebar-border: 240 4% 12%;
     --sidebar-ring: 236 70% 60%;
   }
