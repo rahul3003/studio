@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -55,16 +54,22 @@ export function RoleSwitcher() {
         {availableRoles.map((role) => {
           const Icon = role.icon;
           const isCurrentRole = user.currentRole.value === role.value;
+          const isBaseRole = user.baseRole.value === role.value;
           return (
             <DropdownMenuItem
               key={role.value}
               onClick={() => handleRoleSwitch(role)}
               disabled={isCurrentRole}
-              className="cursor-pointer"
+              className="cursor-pointer justify-between"
             >
-              <Icon className="mr-2 h-4 w-4" />
-              <span>{role.name}</span>
-              {isCurrentRole && <Check className="ml-auto h-4 w-4" />}
+              <div className="flex items-center">
+                <Icon className="mr-2 h-4 w-4" />
+                <span>{role.name}</span>
+                {isBaseRole && (
+                  <span className="ml-2 text-xs font-semibold text-primary">(Base)</span>
+                )}
+              </div>
+              {isCurrentRole && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
           );
         })}
