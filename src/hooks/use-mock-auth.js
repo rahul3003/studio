@@ -24,7 +24,8 @@ export function useMockAuth() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
+  const loadUserFromStorage = useCallback(() => {
+    setLoading(true);
     const storedRoleValue = localStorage.getItem("userRole");
     const storedUserName = localStorage.getItem("userName");
     const storedUserEmail = localStorage.getItem("userEmail");
@@ -32,18 +33,13 @@ export function useMockAuth() {
 
     if (storedUserName && storedUserEmail) {
       if (!storedBaseRoleValue) {
-        // If baseRole isn't explicitly set (e.g. first login or older session),
-        // set it to a default or determine from email (e.g., 'admin' for admin@example.com)
-        // For this mock, we'll default to 'employee' if not admin, or use the storedRole if available
         storedBaseRoleValue = storedUserEmail === "admin@example.com" ? "admin" : (storedRoleValue || "employee");
         localStorage.setItem("userBaseRole", storedBaseRoleValue);
       }
       
       const baseRole = getRole(storedBaseRoleValue);
-      // The currentRole should be the one actively stored, or default to baseRole if nothing specific is set
       const currentRoleValue = storedRoleValue || storedBaseRoleValue;
       const currentRole = getRole(currentRoleValue);
-
 
       if (baseRole && currentRole) {
         setUser({
@@ -53,20 +49,48 @@ export function useMockAuth() {
           baseRole: baseRole,
           avatar: `https://i.pravatar.cc/150?u=${storedUserEmail}`
         });
-        // Ensure localStorage reflects the current role
-        localStorage.setItem("userRole", currentRole.value);
+        // Ensure localStorage reflects the current role for consistency
+        if (localStorage.getItem("userRole") !== currentRole.value) {
+          localStorage.setItem("userRole", currentRole.value);
+        }
       } else {
         console.error("Invalid base or current role found in localStorage:", storedBaseRoleValue, currentRoleValue);
+        setUser(null); 
         localStorage.clear();
-        router.push('/login');
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+          router.push('/login');
+        }
       }
     } else {
+       setUser(null); 
        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         router.push('/login');
       }
     }
     setLoading(false);
-  }, [router]);
+  }, [router]); // router dependency for navigation
+
+  useEffect(() => {
+    loadUserFromStorage(); // Initial load
+
+    const handleAuthRoleChanged = () => {
+      loadUserFromStorage();
+    };
+
+    const handleStorageChange = (event) => {
+      if (["userRole", "userName", "userEmail", "userBaseRole"].includes(event.key) || event.key === null) {
+        loadUserFromStorage();
+      }
+    };
+
+    window.addEventListener('authRoleChanged', handleAuthRoleChanged);
+    window.addEventListener('storage', handleStorageChange); // For cross-tab sync
+
+    return () => {
+      window.removeEventListener('authRoleChanged', handleAuthRoleChanged);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadUserFromStorage]); // loadUserFromStorage is memoized, so this effect runs once to set up listeners
 
   const logout = useCallback(() => {
     localStorage.removeItem("userRole");
@@ -74,17 +98,25 @@ export function useMockAuth() {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userBaseRole");
     setUser(null);
+    window.dispatchEvent(new CustomEvent('authRoleChanged')); // Notify other instances about logout
     router.push('/login');
   }, [router]);
 
   const switchRole = useCallback((newRoleValue) => {
+    // Current user state is available via closure from the hook instance itself
+    // No need to pass `currentUser` as argument.
     if (user && user.baseRole) {
       const newRole = getRole(newRoleValue);
       const allowedSwitches = ROLE_SWITCH_PERMISSIONS[user.baseRole.value] || [];
       if (newRole && (newRoleValue === user.baseRole.value || allowedSwitches.includes(newRoleValue))) {
+        // Update localStorage first
+        localStorage.setItem("userRole", newRole.value);
+        // Update this instance's state
         setUser(prevUser => ({ ...prevUser, currentRole: newRole }));
-        localStorage.setItem("userRole", newRole.value); // Save switched role
-        router.refresh(); // Refresh the current route to ensure UI consistency
+        // Dispatch event for other instances in the same tab
+        window.dispatchEvent(new CustomEvent('authRoleChanged'));
+        // Refresh server components if needed
+        router.refresh(); 
       } else {
         console.warn(`Role switch to ${newRoleValue} not allowed for base role ${user.baseRole.value}`);
       }
@@ -97,14 +129,11 @@ export function useMockAuth() {
     const baseRoleValue = user.baseRole.value;
     const allowedSwitchValues = ROLE_SWITCH_PERMISSIONS[baseRoleValue] || [];
     
-    // The user can always "switch" to their base role
-    const availableRoleValues = [baseRoleValue, ...allowedSwitchValues];
+    const availableRoleValues = Array.from(new Set([baseRoleValue, ...allowedSwitchValues]));
     
-    // Get the full role objects for these values
     return ROLES.filter(role => availableRoleValues.includes(role.value));
   }, [user]);
 
 
   return { user, loading, logout, switchRole, getAvailableRolesForSwitching };
 }
-
