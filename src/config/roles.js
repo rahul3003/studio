@@ -84,9 +84,9 @@ export const ROLE_NAV_CONFIG = {
   ],
   teamlead: [ 
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/projects", label: "My Team Projects", icon: FolderKanban },
-    { href: "/dashboard/tasks", label: "My Team Tasks", icon: ListTodo },
-    { href: "/dashboard/attendance", label: "My Team Attendance", icon: CalendarCheck },
+    { href: "/dashboard/projects", label: "Team Projects", icon: FolderKanban }, // Links to generic /projects, page should filter
+    { href: "/dashboard/tasks", label: "Team Tasks", icon: ListTodo }, // Links to generic /tasks, page should filter
+    { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck }, // Links to generic /attendance, page should filter
     { href: "/dashboard/my-reimbursements", label: "My Reimbursements", icon: Receipt },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
