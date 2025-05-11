@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -36,7 +35,7 @@ export function AppHeader({ user: passedUser }) {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="md:hidden" />
+        <SidebarTrigger /> {/* Removed md:hidden to make it always visible */}
         <nav className="hidden md:flex items-center gap-2 text-sm font-medium">
           <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
             <Home className="h-4 w-4" />
