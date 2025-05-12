@@ -37,33 +37,62 @@ const nominateRewardSchema = z.object({
   nominee: z.string().min(1, { message: "Please select an employee to nominate." }),
   points: z.preprocess(
     val => parseInt(String(val), 10),
-    z.number().min(10, { message: "Minimum 10 points." }).max(500, {message: "Maximum 500 points."})
-  ),
-  reason: z.string().min(20, { message: "Reason must be at least 20 characters." }).max(500, {message: "Reason cannot exceed 500 characters."}),
+    z.number().min(5, { message: "Minimum 5 points." }).max(500, {message: "Maximum 500 points."})
+  ).refine(val => val % 5 === 0, { message: "Points must be in multiples of 5."}),
+  reasonCategory: z.string().min(1, { message: "Please select a reason category." }),
+  feedbackText: z.string().min(20, { message: "Feedback must be at least 20 characters." }).max(500, {message: "Feedback cannot exceed 500 characters."}),
 });
 
-export function NominateRewardDialog({ isOpen, onClose, onSubmit, employeeList = [] }) {
+
+export function NominateRewardDialog({ 
+    isOpen, 
+    onClose, 
+    onSubmit, 
+    employeeList = [], 
+    rewardCategories = [],
+    currentUser,
+    availablePointsToShare
+}) {
   const form = useForm({
     resolver: zodResolver(nominateRewardSchema),
     defaultValues: {
       nominee: "",
       points: "",
-      reason: "",
+      reasonCategory: "",
+      feedbackText: "",
     },
   });
 
+  React.useEffect(() => {
+    if(isOpen) {
+        form.reset({ // Reset form when dialog opens
+            nominee: "",
+            points: "",
+            reasonCategory: "",
+            feedbackText: "",
+        });
+    }
+  }, [isOpen, form]);
+
   const handleSubmit = (values) => {
+    if(parseInt(values.points, 10) > availablePointsToShare) {
+        form.setError("points", {
+            type: "manual",
+            message: `You can only share up to ${availablePointsToShare} points this month.`
+        });
+        return;
+    }
     onSubmit(values);
-    form.reset(); // Reset form after submission
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nominate for Reward</DialogTitle>
+          <DialogTitle>Reward Someone</DialogTitle>
           <DialogDescription>
-            Recognize a colleague for their hard work and contributions.
+            Award points to a colleague for their contributions. Awarded by: {currentUser}.
+            Available points to share: {availablePointsToShare}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -73,7 +102,7 @@ export function NominateRewardDialog({ isOpen, onClose, onSubmit, employeeList =
               name="nominee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Employee</FormLabel>
+                  <FormLabel>Award Points To</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -81,8 +110,8 @@ export function NominateRewardDialog({ isOpen, onClose, onSubmit, employeeList =
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {employeeList.map(emp => (
-                        <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                      {employeeList.map(empName => (
+                        <SelectItem key={empName} value={empName}>{empName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -95,9 +124,9 @@ export function NominateRewardDialog({ isOpen, onClose, onSubmit, employeeList =
               name="points"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reward Points (10-500)</FormLabel>
+                  <FormLabel>Number of Points (Multiples of 5)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 100" {...field} />
+                    <Input type="number" placeholder="e.g., 50" {...field} step="5" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -105,13 +134,35 @@ export function NominateRewardDialog({ isOpen, onClose, onSubmit, employeeList =
             />
             <FormField
               control={form.control}
-              name="reason"
+              name="reasonCategory"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reason for Nomination</FormLabel>
+                  <FormLabel>Why (Reason Category)</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a reason category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {rewardCategories.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="feedbackText"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your Feedback/Comment</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe why this person deserves recognition."
+                      placeholder="Describe why this person deserves recognition for the selected category."
                       className="resize-none"
                       rows={4}
                       {...field}
