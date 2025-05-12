@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a professional pay slip using AI.
@@ -183,7 +182,6 @@ Calculated Net Salary: {{{netSalary}}}
 
 The final output must be a single, complete HTML string.
 `,
-  // Removed customizers option as helpers are registered globally
 });
 
 const generatePaySlipFlow = ai.defineFlow(
