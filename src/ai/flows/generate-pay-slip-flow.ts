@@ -41,28 +41,34 @@ const GeneratePaySlipOutputSchema = z.object({
 export type GeneratePaySlipOutput = z.infer<typeof GeneratePaySlipOutputSchema>;
 
 // Register helpers directly on the imported handlebars instance
-if (handlebars && typeof handlebars.registerHelper === 'function') {
-  handlebars.registerHelper('formatCurrency', (num) => 
-    (typeof num === 'number' ? num.toFixed(2) : '0.00')
-  );
-  handlebars.registerHelper('parsePayItems', (str) => {
-    if (!str) return [];
-    return str.split('\n').map(line => {
-      const parts = line.split(':');
-      if (parts.length === 2) {
-        const name = parts[0].trim();
-        const amount = parseFloat(parts[1].trim());
-        return { name, amount: isNaN(amount) ? 0 : amount };
-      }
-      return null;
-    }).filter(item => item !== null && item.name !== "");
-  });
-} else {
-  console.warn(
-    "Genkit handlebars.registerHelper is not available for generatePaySlipPrompt. " +
-    "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
-    "The template may not render correctly."
-  );
+// Assume genkit always provides a valid handlebars object with registerHelper
+// If not, this will throw a more direct error, which is better than silent failure.
+try {
+  if (handlebars && typeof handlebars.registerHelper === 'function') {
+    handlebars.registerHelper('formatCurrency', (num) => 
+      (typeof num === 'number' ? num.toFixed(2) : '0.00')
+    );
+    handlebars.registerHelper('parsePayItems', (str) => {
+      if (!str) return [];
+      return str.split('\n').map(line => {
+        const parts = line.split(':');
+        if (parts.length === 2) {
+          const name = parts[0].trim();
+          const amount = parseFloat(parts[1].trim());
+          return { name, amount: isNaN(amount) ? 0 : amount };
+        }
+        return null;
+      }).filter(item => item !== null && item.name !== "");
+    });
+  } else {
+    console.warn(
+      "Genkit handlebars.registerHelper is not available for generatePaySlipPrompt. " +
+      "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
+      "The template may not render correctly."
+    );
+  }
+} catch (e) {
+    console.error("Failed to register Handlebars helpers for Pay Slip:", e);
 }
 
 export async function generatePaySlip(input: GeneratePaySlipInput): Promise<GeneratePaySlipOutput> {

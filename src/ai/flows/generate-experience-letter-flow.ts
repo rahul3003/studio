@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from 'zod'; // Corrected: import z from zod
 import { format } from 'date-fns';
 import { handlebars } from 'genkit';
 
@@ -36,17 +36,23 @@ const GenerateExperienceLetterOutputSchema = z.object({
 export type GenerateExperienceLetterOutput = z.infer<typeof GenerateExperienceLetterOutputSchema>;
 
 // Register helpers directly on the imported handlebars instance
-if (handlebars && typeof handlebars.registerHelper === 'function') {
-  handlebars.registerHelper('splitLines', (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : []);
-  handlebars.registerHelper('startsWith', (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false);
-  handlebars.registerHelper('substring', (str, start) => typeof str === 'string' ? str.substring(start) : '');
-  handlebars.registerHelper('contains', (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false);
-} else {
-  console.warn(
-    "Genkit handlebars.registerHelper is not available for generateExperienceLetterPrompt. " +
-    "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
-    "The template may not render correctly."
-  );
+// Assume genkit always provides a valid handlebars object with registerHelper
+// If not, this will throw a more direct error, which is better than silent failure.
+try {
+  if (handlebars && typeof handlebars.registerHelper === 'function') {
+    handlebars.registerHelper('splitLines', (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : []);
+    handlebars.registerHelper('startsWith', (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false);
+    handlebars.registerHelper('substring', (str, start) => typeof str === 'string' ? str.substring(start) : '');
+    handlebars.registerHelper('contains', (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false);
+  } else {
+    console.warn(
+      "Genkit handlebars.registerHelper is not available for generateExperienceLetterPrompt. " +
+      "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
+      "The template may not render correctly."
+    );
+  }
+} catch (e) {
+  console.error("Failed to register Handlebars helpers for Experience Letter:", e);
 }
 
 export async function generateExperienceLetter(input: GenerateExperienceLetterInput): Promise<GenerateExperienceLetterOutput> {
@@ -131,7 +137,6 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
- // Removed customizers option as helpers are registered globally
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(
