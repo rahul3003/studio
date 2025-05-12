@@ -18,17 +18,11 @@ import { LogOut, Settings, Rocket, LogOut as LogOutIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore"; 
 import { ROLE_NAV_CONFIG } from "@/config/roles";
-// import { useAttendanceStore } from "@/store/attendanceStore"; // No longer directly needed here for button logic
-// import { format } from "date-fns"; // No longer needed here for button logic
 
 export function AppSidebar({ onCheckoutClick, showCheckoutButton }) { 
   const pathname = usePathname();
   const { user, logout } = useAuthStore(); 
   const { state: sidebarState, isMobile } = useSidebar(); 
-  // const { getAttendanceForUserAndDate } = useAttendanceStore(); // Not directly used here anymore
-
-  // const [showCheckoutButtonInSidebar, setShowCheckoutButtonInSidebar] = React.useState(false); // Managed by prop
-
 
   const navItemsForRole = React.useMemo(() => {
     if (user && user.currentRole && user.currentRole.value) {
@@ -37,18 +31,14 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton }) {
     return [];
   }, [user]);
 
-  // The logic for showing the checkout button is now primarily handled in DashboardLayout
-  // and passed via the `showCheckoutButton` prop.
-  // Example of specific sidebar logic (if needed, e.g., only if collapsed):
   const shouldDisplayCheckoutInSidebar = showCheckoutButton && (sidebarState === 'collapsed' && !isMobile);
 
-
-  const getTooltipContent = (label) => {
+  const getTooltipLabelForButton = React.useCallback((label) => {
     if (isMobile || sidebarState === "expanded") {
       return null; 
     }
     return label;
-  };
+  }, [isMobile, sidebarState]);
 
   return (
     <Sidebar 
@@ -66,28 +56,38 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton }) {
       </SidebarHeader>
       <SidebarContent className="flex-1 p-2">
         <SidebarMenu>
-          {navItemsForRole.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <Link href={item.href} legacyBehavior passHref>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
-                  tooltip={getTooltipContent(item.label) ? { children: item.label, side: "right", align: "center" } : undefined}
-                  className="justify-start"
-                >
-                  <a>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ))}
+          {navItemsForRole.map((item) => {
+            const tooltipLabel = getTooltipLabelForButton(item.label);
+            const tooltipConfig = React.useMemo(() => {
+              if (tooltipLabel) {
+                return { children: tooltipLabel, side: "right", align: "center" };
+              }
+              return undefined;
+            }, [tooltipLabel]);
+
+            return (
+              <SidebarMenuItem key={item.href}>
+                <Link href={item.href} legacyBehavior passHref>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
+                    tooltip={tooltipConfig}
+                    className="justify-start"
+                  >
+                    <a>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            );
+          })}
            {shouldDisplayCheckoutInSidebar && ( 
             <SidebarMenuItem>
                  <SidebarMenuButton
                     onClick={onCheckoutClick}
-                    tooltip={getTooltipContent("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
+                    tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
                     className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
                  >
                     <LogOutIcon />
@@ -100,7 +100,7 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton }) {
               <SidebarMenuButton
                 asChild
                 isActive={pathname === "/dashboard/settings"}
-                tooltip={getTooltipContent("Settings") ? {children: "Settings", side: "right", align: "center"} : undefined}
+                tooltip={getTooltipLabelForButton("Settings") ? {children: "Settings", side: "right", align: "center"} : undefined}
                 className="justify-start"
                 >
                 <a>
