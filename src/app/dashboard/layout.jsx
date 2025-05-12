@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import * as React from "react";
@@ -22,7 +21,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const user = useAuthStore(state => state.user);
-  const loading = useAuthStore(state => state.loading); // authIsLoading
+  const loading = useAuthStore(state => state.loading); 
   const authStoreLogout = useAuthStore(state => state.logout);
 
   const storeInitializeProfile = useProfileStore(state => state.initializeProfileForUser);
@@ -39,14 +38,12 @@ export default function DashboardLayout({
   const [currentAttendanceNotes, setCurrentAttendanceNotes] = React.useState("");
   const [showCheckoutButton, setShowCheckoutButton] = React.useState(false);
 
-  // Memoize initializeProfile to ensure stable reference if needed, though Zustand actions are typically stable.
   const initializeProfile = React.useCallback((userData) => {
     storeInitializeProfile(userData);
   }, [storeInitializeProfile]);
 
 
   React.useEffect(() => {
-    // Initialize profile only when user is loaded and not in auth loading state
     if (user && user.email && !loading) {
       if (!profileData || !profileData.personal || profileData.personal.companyEmail !== user.email) {
         initializeProfile(user);
@@ -119,19 +116,16 @@ export default function DashboardLayout({
     setShowCheckoutButton(false); 
   }, [user, markEveningCheckout, toast]);
 
-  const handleLogout = () => {
+  const handleLogout = React.useCallback(() => {
     authStoreLogout();
     router.push('/login');
-  };
+  }, [authStoreLogout, router]);
 
 
   if (loading || (!user && typeof window !== 'undefined' && window.location.pathname !== '/login')) { 
-    // If still loading, or no user and not on login page, show skeleton or redirect.
-    // The redirect to /login should be handled by useMockAuth or similar hook if not loading and no user.
-    // Here, we primarily show skeleton during the loading phase.
     if (typeof window !== 'undefined' && window.location.pathname !== '/login' && !user && !loading) {
-        router.push('/login'); // Ensure redirect if not loading and no user.
-        return null; // Prevent rendering children during redirect.
+        router.push('/login'); 
+        return null; 
     }
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -144,16 +138,8 @@ export default function DashboardLayout({
     );
   }
   
-  // If user is null and we are on a protected route (not /login), redirecting should occur.
-  // This might be better handled in a dedicated auth guard component or higher up.
-  // For now, the check above tries to manage it.
-
   if (!user) {
-    // This case implies loading is false, but user is still null.
-    // This should ideally not happen on protected routes if redirection logic is correct.
-    // If on /login, LoginForm handles it.
-    // If on other routes, it means redirection failed or is pending.
-    return null; // Or a more specific loading/redirecting indicator.
+    return null; 
   }
   
   return (
