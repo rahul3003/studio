@@ -1,8 +1,6 @@
-
 "use client";
 
 import * as React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,77 +24,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2, FolderKanban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ProjectForm } from "@/components/project/project-form"; // New component for project form
-
-// Initial mock project data with Indian context
-const initialProjects = [
-  {
-    id: "PROJ001",
-    name: "HRMS Portal Development",
-    description: "Build a comprehensive Human Resource Management System portal for PESU Venture Labs.",
-    projectManager: "Rohan Mehra",
-    startDate: "2024-01-10",
-    endDate: "2024-12-31",
-    status: "In Progress",
-    teamMembers: "Priya Sharma, Aisha Khan, Suresh Kumar",
-  },
-  {
-    id: "PROJ002",
-    name: "Marketing Campaign Q3 2024",
-    description: "Launch new marketing campaign for the Q3 product line.",
-    projectManager: "Deepika Rao", // Product Owner can manage marketing projects
-    startDate: "2024-07-01",
-    endDate: "2024-09-30",
-    status: "Planning",
-    teamMembers: "Sunita Reddy, Arjun Patel",
-  },
-  {
-    id: "PROJ003",
-    name: "Bengaluru Office Expansion",
-    description: "Oversee the expansion and setup of the new office floor.",
-    projectManager: "Vikram Singh", // HR can manage office admin projects
-    startDate: "2024-05-15",
-    endDate: "2024-08-15",
-    status: "Completed",
-    teamMembers: "Rohan Mehra", // Project Manager involved in infra
-  },
-  {
-    id: "PROJ004",
-    name: "PESU VL Website Revamp",
-    description: "Design and launch the new corporate website for PESU Venture Labs.",
-    projectManager: "Priya Sharma", // Senior Developer can lead tech projects
-    startDate: "2024-03-01",
-    endDate: "2024-10-30",
-    status: "On Hold",
-    teamMembers: "Aisha Khan, Suresh Kumar",
-  },
-  {
-    id: "PROJ005",
-    name: "Campus Recruitment App",
-    description: "Develop a mobile application for streamlining campus recruitment drives.",
-    projectManager: "Vikram Singh", // HR Specialist managing recruitment tool
-    startDate: "2024-02-15",
-    endDate: "2024-11-20",
-    status: "Cancelled",
-    teamMembers: "Priya Sharma, Rohan Mehra",
-  },
-];
+import { ProjectForm } from "@/components/project/project-form";
+import { useProjectStore } from "@/store/projectStore"; // Import the store
+import { useEmployeeStore } from "@/store/employeeStore"; // To get employee names for PM dropdown
 
 const PROJECT_STATUS_OPTIONS = ["Planning", "In Progress", "Completed", "On Hold", "Cancelled"];
-const MOCK_EMPLOYEES_FOR_PM = [ // Updated with Indian names
-    "Priya Sharma",
-    "Rohan Mehra",
-    "Aisha Khan",
-    "Vikram Singh",
-    "Suresh Kumar",
-    "Sunita Reddy",
-    "Arjun Patel",
-    "Meera Iyer",
-    "Imran Ahmed",
-    "Deepika Rao",
-    "Admin User"
-];
-
 
 const statusVariantMap = {
   Planning: "secondary",
@@ -108,11 +40,25 @@ const statusVariantMap = {
 
 export default function ProjectsPage() {
   const { toast } = useToast();
-  const [projects, setProjects] = React.useState(initialProjects);
+  // Use Zustand stores
+  const projects = useProjectStore((state) => state.projects);
+  const addProject = useProjectStore((state) => state.addProject);
+  const updateProject = useProjectStore((state) => state.updateProject);
+  const deleteProject = useProjectStore((state) => state.deleteProject);
+  const initializeProjects = useProjectStore((state) => state._initializeProjects);
+
+  const employees = useEmployeeStore((state) => state.employees);
+  const MOCK_EMPLOYEES_FOR_PM = employees.map(emp => emp.name);
+
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedProject, setSelectedProject] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeProjects(); // Ensure store is initialized
+  }, [initializeProjects]);
 
   const handleAddProjectOpen = () => {
     setSelectedProject(null);
@@ -139,11 +85,7 @@ export default function ProjectsPage() {
   const handleSaveProject = (projectData) => {
     if (selectedProject && selectedProject.id) {
       // Editing existing project
-      setProjects((prevProjects) =>
-        prevProjects.map((proj) =>
-          proj.id === selectedProject.id ? { ...proj, ...projectData } : proj
-        )
-      );
+      updateProject({ ...projectData, id: selectedProject.id });
       toast({ title: "Project Updated", description: `"${projectData.name}" details have been updated.` });
     } else {
       // Adding new project
@@ -152,7 +94,7 @@ export default function ProjectsPage() {
         ...projectData,
         id: newId,
       };
-      setProjects((prevProjects) => [newProject, ...prevProjects]);
+      addProject(newProject);
       toast({ title: "Project Added", description: `"${projectData.name}" has been added.` });
     }
     handleDialogClose();
@@ -160,9 +102,7 @@ export default function ProjectsPage() {
 
   const handleConfirmDelete = () => {
     if (selectedProject) {
-      setProjects((prevProjects) =>
-        prevProjects.filter((proj) => proj.id !== selectedProject.id)
-      );
+      deleteProject(selectedProject.id);
       toast({ title: "Project Deleted", description: `"${selectedProject.name}" has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -207,12 +147,12 @@ export default function ProjectsPage() {
                     <TableCell>{project.name}</TableCell>
                     <TableCell>{project.projectManager}</TableCell>
                     <TableCell>
-                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", {
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>
                     <TableCell>
-                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", {
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>
@@ -254,7 +194,6 @@ export default function ProjectsPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Project Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -269,13 +208,12 @@ export default function ProjectsPage() {
               initialData={selectedProject}
               onCancel={handleDialogClose}
               statusOptions={PROJECT_STATUS_OPTIONS}
-              employeeOptions={MOCK_EMPLOYEES_FOR_PM}
+              employeeOptions={MOCK_EMPLOYEES_FOR_PM.length > 0 ? MOCK_EMPLOYEES_FOR_PM : ["Default PM"]}
             />
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>

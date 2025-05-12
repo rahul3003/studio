@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -28,64 +27,12 @@ import { JobForm } from "@/components/job/job-form";
 import { JobCard } from "@/components/job/job-card"; 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-
-// Initial mock job data
-const initialJobs = [
-  {
-    id: "JOB001",
-    title: "Senior Frontend Developer",
-    department: "Technology",
-    location: "Remote",
-    type: "Full-time",
-    description: "Join our dynamic team to build cutting-edge user interfaces with modern web technologies. You will be responsible for developing and maintaining web applications, collaborating with UI/UX designers and backend developers.",
-    requirements: "5+ years of experience with React, Next.js, and TypeScript. Strong understanding of HTML, CSS, and JavaScript. Experience with RESTful APIs and version control (Git).",
-    postedDate: "2024-07-20",
-    status: "Open",
-    applicationLink: "https://example.com/apply/frontend-dev",
-  },
-  {
-    id: "JOB002",
-    title: "HR Operations Specialist",
-    department: "Human Resources",
-    location: "New York, NY (Hybrid)",
-    type: "Full-time",
-    description: "We are seeking an HR Operations Specialist to manage HRIS, payroll, benefits administration, and ensure compliance with labor regulations. This role involves process improvement and supporting HR projects.",
-    requirements: "Bachelor's degree in HR or related field. 3+ years in HR operations. Proficient in HRIS software (e.g., Workday, SAP SuccessFactors). Excellent organizational and communication skills.",
-    postedDate: "2024-07-15",
-    status: "Open",
-    applicationLink: null,
-  },
-  {
-    id: "JOB003",
-    title: "Product Marketing Manager",
-    department: "Marketing",
-    location: "San Francisco, CA (On-site)",
-    type: "Full-time",
-    description: "Drive the go-to-market strategy for our new product line. Conduct market research, develop product positioning, and create compelling marketing collateral.",
-    requirements: "5+ years in product marketing, preferably in SaaS. Proven track record of successful product launches. Strong analytical and strategic thinking skills.",
-    postedDate: "2024-06-28",
-    status: "Closed",
-    applicationLink: "https://example.com/apply/product-manager",
-  },
-  {
-    id: "JOB004",
-    title: "Junior UX Designer",
-    department: "Design",
-    location: "Remote",
-    type: "Internship",
-    description: "Exciting internship opportunity for a budding UX designer. Work on real-world projects, create wireframes, prototypes, and conduct user research under the guidance of senior designers.",
-    requirements: "Portfolio showcasing UX design projects. Familiarity with design tools (Figma, Sketch, Adobe XD). Understanding of user-centered design principles. Currently enrolled in or recently graduated from a design program.",
-    postedDate: "2024-08-01",
-    status: "Open",
-    applicationLink: null,
-  },
-];
+import { useJobStore } from "@/store/jobStore"; // Import job store
+import { useDepartmentStore } from "@/store/departmentStore"; // For department options
 
 const JOB_STATUS_OPTIONS = ["Open", "Closed", "Filled", "Draft"];
 const JOB_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "Temporary"];
-const JOB_LOCATION_OPTIONS = ["Remote", "On-site", "Hybrid"]; // Simplified, form can allow free text
-const DEPARTMENTS_OPTIONS = ["Technology", "Human Resources", "Marketing", "Sales", "Operations", "Design", "Finance"];
-
+// JOB_LOCATION_OPTIONS can be free text, or pre-defined if desired
 
 const statusBadgeVariant = (status) => {
   switch (status) {
@@ -99,12 +46,25 @@ const statusBadgeVariant = (status) => {
 
 export default function JobsPage() {
   const { toast } = useToast();
-  const [jobs, setJobs] = React.useState(initialJobs);
+  // Use Zustand stores
+  const jobs = useJobStore((state) => state.jobs);
+  const addJob = useJobStore((state) => state.addJob);
+  const updateJob = useJobStore((state) => state.updateJob);
+  const deleteJob = useJobStore((state) => state.deleteJob);
+  const initializeJobs = useJobStore((state) => state._initializeJobs);
+
+  const departments = useDepartmentStore((state) => state.departments);
+  const DEPARTMENTS_OPTIONS = departments.map(dept => dept.name);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
   const [selectedJob, setSelectedJob] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeJobs(); // Ensure store is initialized
+  }, [initializeJobs]);
 
   const handleAddJobOpen = () => {
     setSelectedJob(null);
@@ -137,11 +97,7 @@ export default function JobsPage() {
   const handleSaveJob = (jobData) => {
     if (selectedJob && selectedJob.id) {
       // Editing existing job
-      setJobs((prevJobs) =>
-        prevJobs.map((job) =>
-          job.id === selectedJob.id ? { ...job, ...jobData } : job
-        )
-      );
+      updateJob({ ...jobData, id: selectedJob.id });
       toast({ title: "Job Updated", description: `"${jobData.title}" has been updated.` });
     } else {
       // Adding new job
@@ -149,9 +105,9 @@ export default function JobsPage() {
       const newJob = {
         ...jobData,
         id: newId,
-        postedDate: jobData.postedDate || new Date().toISOString().split('T')[0], // Auto-set postedDate if not provided
+        postedDate: jobData.postedDate || new Date().toISOString().split('T')[0],
       };
-      setJobs((prevJobs) => [newJob, ...prevJobs]);
+      addJob(newJob);
       toast({ title: "Job Posted", description: `"${jobData.title}" has been added.` });
     }
     handleDialogClose();
@@ -159,9 +115,7 @@ export default function JobsPage() {
 
   const handleConfirmDelete = () => {
     if (selectedJob) {
-      setJobs((prevJobs) =>
-        prevJobs.filter((job) => job.id !== selectedJob.id)
-      );
+      deleteJob(selectedJob.id);
       toast({ title: "Job Deleted", description: `"${selectedJob.title}" has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -212,7 +166,6 @@ export default function JobsPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Job Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl lg:max-w-3xl">
           <DialogHeader>
@@ -226,7 +179,7 @@ export default function JobsPage() {
               onSubmit={handleSaveJob}
               initialData={selectedJob}
               onCancel={handleDialogClose}
-              departmentOptions={DEPARTMENTS_OPTIONS}
+              departmentOptions={DEPARTMENTS_OPTIONS.length > 0 ? DEPARTMENTS_OPTIONS : ["Default Department"]}
               statusOptions={JOB_STATUS_OPTIONS}
               typeOptions={JOB_TYPE_OPTIONS}
             />
@@ -234,7 +187,6 @@ export default function JobsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* View Job Details Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl lg:max-w-3xl">
           <DialogHeader>
@@ -320,7 +272,6 @@ export default function JobsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -341,4 +292,3 @@ export default function JobsPage() {
     </div>
   );
 }
-

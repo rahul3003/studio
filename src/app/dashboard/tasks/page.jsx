@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -26,90 +25,9 @@ import {
 import { PlusCircle, Edit, Trash2, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm } from "@/components/task/task-form";
-
-// Initial mock task data with Indian context
-const initialTasks = [
-  {
-    id: "TASK001",
-    name: "Design Homepage UI for HRMS",
-    description: "Create wireframes and mockups for the new HRMS portal homepage.",
-    assignee: "Aisha Khan", 
-    projectName: "HRMS Portal Development",
-    dueDate: "2024-09-15",
-    priority: "High",
-    status: "In Progress",
-    creationDate: "2024-08-01",
-  },
-  {
-    id: "TASK002",
-    name: "Develop Authentication API",
-    description: "Implement backend API for user login and registration for HRMS.",
-    assignee: "Priya Sharma", 
-    projectName: "HRMS Portal Development",
-    dueDate: "2024-08-30",
-    priority: "Urgent",
-    status: "To Do",
-    creationDate: "2024-08-05",
-  },
-  {
-    id: "TASK003",
-    name: "Plan Diwali Marketing Campaign",
-    description: "Outline marketing initiatives for the upcoming Diwali festive season.",
-    assignee: "Sunita Reddy", 
-    projectName: "Marketing Campaign Q3 2024", // Changed from Q3 to Q4 to align with Diwali
-    dueDate: "2024-10-01",
-    priority: "Medium",
-    status: "Planning",
-    creationDate: "2024-08-10",
-  },
-  {
-    id: "TASK004",
-    name: "New Joiner Onboarding Kit",
-    description: "Prepare and update the onboarding documentation for new employees.",
-    assignee: "Vikram Singh", 
-    projectName: "Bengaluru Office Expansion", // Can be a general HR task
-    dueDate: "2024-09-05",
-    priority: "Medium",
-    status: "Completed",
-    creationDate: "2024-07-20",
-  },
-  {
-    id: "TASK005",
-    name: "Fix UPI Payment Gateway Bug",
-    description: "Investigate and resolve reported bug in UPI payment processing on website.",
-    assignee: "Suresh Kumar", 
-    projectName: "PESU VL Website Revamp",
-    dueDate: "2024-08-25",
-    priority: "High",
-    status: "Blocked",
-    creationDate: "2024-08-12",
-  },
-];
-
-const MOCK_EMPLOYEES_FOR_ASSIGNEE = [ // Updated with Indian names
-    "Priya Sharma",
-    "Rohan Mehra",
-    "Aisha Khan",
-    "Vikram Singh",
-    "Suresh Kumar",
-    "Sunita Reddy",
-    "Arjun Patel",
-    "Meera Iyer",
-    "Imran Ahmed",
-    "Deepika Rao",
-    "Admin User"
-];
-
-const MOCK_PROJECT_OPTIONS = [ // Updated with Indian context project names
-    "HRMS Portal Development",
-    "Marketing Campaign Q3 2024",
-    "Bengaluru Office Expansion",
-    "PESU VL Website Revamp",
-    "Campus Recruitment App",
-    "General Admin Tasks",
-    "Client Project Alpha",
-];
-
+import { useTaskStore } from "@/store/taskStore"; // Import task store
+import { useEmployeeStore } from "@/store/employeeStore"; // For assignee options
+import { useProjectStore } from "@/store/projectStore"; // For project options
 
 const TASK_STATUS_OPTIONS = ["To Do", "In Progress", "Planning", "Blocked", "Completed", "Cancelled"];
 const TASK_PRIORITY_OPTIONS = ["Low", "Medium", "High", "Urgent"];
@@ -133,11 +51,28 @@ const priorityVariantMap = {
 
 export default function TasksPage() {
   const { toast } = useToast();
-  const [tasks, setTasks] = React.useState(initialTasks);
+  // Use Zustand stores
+  const tasks = useTaskStore((state) => state.tasks);
+  const addTask = useTaskStore((state) => state.addTask);
+  const updateTask = useTaskStore((state) => state.updateTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const initializeTasks = useTaskStore((state) => state._initializeTasks);
+
+  const employees = useEmployeeStore((state) => state.employees);
+  const MOCK_EMPLOYEES_FOR_ASSIGNEE = employees.map(emp => emp.name);
+
+  const projects = useProjectStore((state) => state.projects);
+  const MOCK_PROJECT_OPTIONS = projects.map(proj => proj.name);
+
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedTask, setSelectedTask] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeTasks(); // Ensure store is initialized
+  }, [initializeTasks]);
 
   const handleAddTaskOpen = () => {
     setSelectedTask(null);
@@ -164,11 +99,7 @@ export default function TasksPage() {
   const handleSaveTask = (taskData) => {
     if (selectedTask && selectedTask.id) {
       // Editing existing task
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === selectedTask.id ? { ...task, ...taskData } : task
-        )
-      );
+      updateTask({ ...taskData, id: selectedTask.id });
       toast({ title: "Task Updated", description: `"${taskData.name}" details have been updated.` });
     } else {
       // Adding new task
@@ -178,7 +109,7 @@ export default function TasksPage() {
         id: newId,
         creationDate: new Date().toISOString().split('T')[0],
       };
-      setTasks((prevTasks) => [newTask, ...prevTasks]);
+      addTask(newTask);
       toast({ title: "Task Added", description: `"${taskData.name}" has been created.` });
     }
     handleDialogClose();
@@ -186,9 +117,7 @@ export default function TasksPage() {
 
   const handleConfirmDelete = () => {
     if (selectedTask) {
-      setTasks((prevTasks) =>
-        prevTasks.filter((task) => task.id !== selectedTask.id)
-      );
+      deleteTask(selectedTask.id);
       toast({ title: "Task Deleted", description: `"${selectedTask.name}" has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -235,7 +164,7 @@ export default function TasksPage() {
                     <TableCell>{task.projectName}</TableCell>
                     <TableCell>{task.assignee}</TableCell>
                     <TableCell>
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
+                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-IN", {
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>
@@ -282,7 +211,6 @@ export default function TasksPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Task Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -296,8 +224,8 @@ export default function TasksPage() {
               onSubmit={handleSaveTask}
               initialData={selectedTask}
               onCancel={handleDialogClose}
-              assigneeOptions={MOCK_EMPLOYEES_FOR_ASSIGNEE}
-              projectOptions={MOCK_PROJECT_OPTIONS}
+              assigneeOptions={MOCK_EMPLOYEES_FOR_ASSIGNEE.length > 0 ? MOCK_EMPLOYEES_FOR_ASSIGNEE : ["Default Assignee"]}
+              projectOptions={MOCK_PROJECT_OPTIONS.length > 0 ? MOCK_PROJECT_OPTIONS : ["Default Project"]}
               statusOptions={TASK_STATUS_OPTIONS}
               priorityOptions={TASK_PRIORITY_OPTIONS}
             />
@@ -305,7 +233,6 @@ export default function TasksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -326,4 +253,3 @@ export default function TasksPage() {
     </div>
   );
 }
-

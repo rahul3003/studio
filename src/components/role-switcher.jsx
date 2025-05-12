@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -12,11 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Check } from "lucide-react";
-import { useMockAuth } from "@/hooks/use-mock-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore"; // Import auth store
 
 export function RoleSwitcher() {
-  const { user, switchRole, getAvailableRolesForSwitching, loading } = useMockAuth();
+  const { user, switchRole, getAvailableRolesForSwitching, loading } = useAuthStore(); // Use store
   const { toast } = useToast();
   const [availableRoles, setAvailableRoles] = React.useState([]);
 
@@ -26,17 +25,14 @@ export function RoleSwitcher() {
     }
   }, [user, getAvailableRolesForSwitching]);
 
-  // Don't show switcher if loading, no user, or user is base employee
-  if (loading || !user || user.baseRole.value === 'employee') {
+  if (loading || !user || (user.baseRole && user.baseRole.value === 'employee')) {
     return null;
   }
 
-  // Don't show if there are no roles to switch to (besides the current one, implicitly the base role for employees)
-  if (availableRoles.length <= 1 && user.baseRole.value !== 'superadmin') { // Superadmin should always see it even if only 1 option temporarily
-     // Allow Manager, HR, Accounts to switch back to Employee even if that's the only option
-     const canSwitchToBase = availableRoles.some(r => r.value === user.baseRole.value);
-     const canSwitchToEmployee = availableRoles.some(r => r.value === 'employee');
-     if (!(canSwitchToBase && canSwitchToEmployee && availableRoles.length > 0)) {
+  const effectiveAvailableRoles = getAvailableRolesForSwitching();
+  if (effectiveAvailableRoles.length <= 1 && user.baseRole.value !== 'superadmin') {
+     const canSwitchToEmployee = effectiveAvailableRoles.some(r => r.value === 'employee');
+     if (!canSwitchToEmployee) { // Only hide if "employee" isn't an option (for manager, hr, accounts to switch back)
         return null;
      }
   }
@@ -48,7 +44,11 @@ export function RoleSwitcher() {
       title: "Role Switched",
       description: `You are now acting as ${role.name}.`,
     });
+    // Trigger a custom event that AppSidebar can listen to to re-render
+    window.dispatchEvent(new CustomEvent('authChanged'));
   };
+
+  if (!user || !user.currentRole) return null; // Ensure user and currentRole are defined
 
   const CurrentRoleIcon = user.currentRole.icon;
 
@@ -64,7 +64,7 @@ export function RoleSwitcher() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Switch Role</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {availableRoles.map((role) => {
+        {effectiveAvailableRoles.map((role) => {
           const Icon = role.icon;
           const isCurrentRole = user.currentRole.value === role.value;
           const isBaseRole = user.baseRole.value === role.value;

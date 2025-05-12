@@ -1,25 +1,34 @@
-
-"use client"; // This layout uses client-side hooks for auth state
+"use client"; 
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useMockAuth } from "@/hooks/use-mock-auth"; // This now uses useAuthStore
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/store/authStore"; // Directly use for initial hydration check
+import { useProfileStore } from "@/store/profileStore";
+
 
 export default function DashboardLayout({
   children,
 }) {
-  const { user, loading } = useMockAuth();
+  const { user, loading } = useMockAuth(); // useMockAuth handles redirection and user state from store
   const router = useRouter();
+  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
+  const profileData = useProfileStore(state => state.profileData);
 
+  // Effect to initialize profile store when auth user changes
   React.useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
+      initializeProfile(user);
+    } else if (!user && profileData) {
+      // Optional: Clear profile data if user logs out
+      // initializeProfile(null); // Or a specific action to clear profile
     }
-  }, [user, loading, router]);
+  }, [user, initializeProfile, profileData]);
+
 
   if (loading || !user) {
     return (
@@ -32,7 +41,8 @@ export default function DashboardLayout({
       </div>
     );
   }
-
+  
+  // If user is loaded and available
   return (
     <SidebarProvider defaultOpen>
       <AppSidebar user={user} />

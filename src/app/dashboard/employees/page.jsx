@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -24,11 +23,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, Users as UsersIcon } from "lucide-react"; // Renamed Users to UsersIcon
+import { PlusCircle, Edit, Trash2, Users as UsersIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeForm } from "@/components/employee/employee-form";
+import { useEmployeeStore } from "@/store/employeeStore"; // Import the store
 
-// Initial mock employee data with Indian context
+// Initial mock employee data (used to seed the store if it's empty)
 export const initialEmployees = [
   {
     id: "EMP001",
@@ -152,7 +152,7 @@ export const initialEmployees = [
   },
    {
     id: "EMP011",
-    name: "Admin User", // Keep one generic Admin for testing
+    name: "Admin User", 
     email: "admin@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=admin.user",
     role: "System Administrator",
@@ -177,11 +177,22 @@ const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resign
 
 export default function EmployeesPage() {
   const { toast } = useToast();
-  const [employees, setEmployees] = React.useState(initialEmployees);
+  // Use Zustand store
+  const employees = useEmployeeStore((state) => state.employees);
+  const addEmployee = useEmployeeStore((state) => state.addEmployee);
+  const updateEmployee = useEmployeeStore((state) => state.updateEmployee);
+  const deleteEmployee = useEmployeeStore((state) => state.deleteEmployee);
+  const initializeEmployees = useEmployeeStore((state) => state._initializeEmployees);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+  
+  React.useEffect(() => {
+    initializeEmployees(); // Ensure store is initialized with mock data if empty
+  }, [initializeEmployees]);
+
 
   const handleAddEmployeeOpen = () => {
     setSelectedEmployee(null); 
@@ -208,11 +219,7 @@ export default function EmployeesPage() {
   const handleSaveEmployee = (employeeData) => {
     if (selectedEmployee && selectedEmployee.id) {
       // Editing existing employee
-      setEmployees((prevEmployees) =>
-        prevEmployees.map((emp) =>
-          emp.id === selectedEmployee.id ? { ...emp, ...employeeData, avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || selectedEmployee.id}` } : emp
-        )
-      );
+      updateEmployee({ ...employeeData, avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || selectedEmployee.id}` });
       toast({ title: "Employee Updated", description: `${employeeData.name}'s details have been updated.` });
     } else {
       // Adding new employee
@@ -223,7 +230,7 @@ export default function EmployeesPage() {
         avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
         gender: employeeData.gender || "Other", 
       };
-      setEmployees((prevEmployees) => [newEmployee, ...prevEmployees]);
+      addEmployee(newEmployee);
       toast({ title: "Employee Added", description: `${employeeData.name} has been added to the system.` });
     }
     handleDialogClose();
@@ -231,9 +238,7 @@ export default function EmployeesPage() {
 
   const handleConfirmDelete = () => {
     if (selectedEmployee) {
-      setEmployees((prevEmployees) =>
-        prevEmployees.filter((emp) => emp.id !== selectedEmployee.id)
-      );
+      deleteEmployee(selectedEmployee.id);
       toast({ title: "Employee Deleted", description: `${selectedEmployee.name} has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -296,7 +301,7 @@ export default function EmployeesPage() {
                     <TableCell>{employee.department}</TableCell>
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
-                      {new Date(employee.joinDate).toLocaleDateString("en-IN", { // Changed to en-IN locale
+                      {new Date(employee.joinDate).toLocaleDateString("en-IN", {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
@@ -340,7 +345,6 @@ export default function EmployeesPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Employee Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -363,7 +367,6 @@ export default function EmployeesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -384,4 +387,3 @@ export default function EmployeesPage() {
     </div>
   );
 }
-

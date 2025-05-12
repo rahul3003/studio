@@ -1,38 +1,31 @@
-
 "use client";
 
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuthStore } from "@/store/authStore";
+import { useProfileStore } from "@/store/profileStore";
 import { DollarSign } from "lucide-react";
 
-// Mock data relevant to this page - Indian context
-const mockRemunerationData = {
-  payChanges: [
-    { effectiveDate: "2024-04-01", percentageIncrease: "12%", salaryPostIncrease: "₹ 9,52,000 p.a.", reason: "Annual Performance Review" },
-    { effectiveDate: "2023-04-01", percentageIncrease: "10%", salaryPostIncrease: "₹ 8,50,000 p.a.", reason: "Promotion to Senior Role" },
-    { effectiveDate: "2022-08-15", percentageIncrease: "N/A (Joined)", salaryPostIncrease: "₹ 7,50,000 p.a.", reason: "Initial Offer" },
-  ],
-  breakup: {
-    annualSalary: "₹ 9,52,000",
-    monthlyGrossSalary: "₹ 79,333",
-    deductions: {
-        providentFund: "₹ 2,500 (Employee Contribution)",
-        professionalTax: "₹ 200",
-        incomeTax: "₹ 5,500 (Approx. TDS)",
-    },
-    netMonthlySalary: "₹ 71,133 (Approx.)",
-  },
-};
 
 export default function RemunerationPage() {
-  const { user, loading: authLoading } = useMockAuth();
+  const { user, loading: authLoading } = useAuthStore();
+  const profileData = useProfileStore((state) => state.profileData);
+  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
+  
+  React.useEffect(() => {
+    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
+      initializeProfile(user);
+    }
+  }, [user, profileData, initializeProfile]);
 
-  if (authLoading || !user) {
+
+  if (authLoading || !user || !profileData || !profileData.remuneration) {
     return <div>Loading remuneration details...</div>;
   }
+  
+  const remunerationData = profileData.remuneration;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -53,7 +46,7 @@ export default function RemunerationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockRemunerationData.payChanges.map(item => (
+              {remunerationData.payChanges.map(item => (
                 <TableRow key={item.effectiveDate}>
                   <TableCell>{new Date(item.effectiveDate).toLocaleDateString('en-IN')}</TableCell>
                   <TableCell>{item.percentageIncrease}</TableCell>
@@ -66,17 +59,17 @@ export default function RemunerationPage() {
           <Separator className="my-6" />
           <h3 className="font-semibold text-lg mb-2">Current Salary Breakup (Monthly)</h3>
           <div className="space-y-2 text-sm">
-            <p><strong>Annual CTC (Cost to Company):</strong> {mockRemunerationData.breakup.annualSalary}</p>
-            <p><strong>Monthly Gross Salary:</strong> {mockRemunerationData.breakup.monthlyGrossSalary}</p>
+            <p><strong>Annual CTC (Cost to Company):</strong> {remunerationData.breakup.annualSalary}</p>
+            <p><strong>Monthly Gross Salary:</strong> {remunerationData.breakup.monthlyGrossSalary}</p>
             <div className="pl-4 border-l-2 border-muted">
                 <p className="font-medium mt-1">Deductions:</p>
                 <ul className="list-disc list-inside ml-4 text-muted-foreground">
-                    <li>Provident Fund (PF): {mockRemunerationData.breakup.deductions.providentFund}</li>
-                    <li>Professional Tax (PT): {mockRemunerationData.breakup.deductions.professionalTax}</li>
-                    <li>Income Tax (TDS): {mockRemunerationData.breakup.deductions.incomeTax}</li>
+                    <li>Provident Fund (PF): {remunerationData.breakup.deductions.providentFund}</li>
+                    <li>Professional Tax (PT): {remunerationData.breakup.deductions.professionalTax}</li>
+                    <li>Income Tax (TDS): {remunerationData.breakup.deductions.incomeTax}</li>
                 </ul>
             </div>
-            <p className="font-semibold mt-2"><strong>Net Monthly Salary (Take Home):</strong> {mockRemunerationData.breakup.netMonthlySalary}</p>
+            <p className="font-semibold mt-2"><strong>Net Monthly Salary (Take Home):</strong> {remunerationData.breakup.netMonthlySalary}</p>
           </div>
         </CardContent>
       </Card>

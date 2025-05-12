@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -8,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
 import Link from "next/link";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuthStore } from "@/store/authStore"; // Import the auth store
 
 
 function getBreadcrumbs(pathname) {
@@ -22,16 +21,11 @@ function getBreadcrumbs(pathname) {
 }
 
 
-export function AppHeader({ user: passedUser }) {
+export function AppHeader() { // Removed user prop
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
-  const { user: authUser, loading: authLoading } = useMockAuth(); 
+  const { user, loading } = useAuthStore(); // Get user from store
 
-  const user = passedUser || authUser;
-  const loading = authLoading;
-
-
-  // Role switcher is available if the baseRole is NOT employee AND not loading.
   const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
 
   return (

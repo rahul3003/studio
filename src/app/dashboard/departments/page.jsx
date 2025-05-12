@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -24,54 +23,27 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DepartmentForm } from "@/components/department/department-form"; // New component
-
-// Initial mock department data
-const initialDepartments = [
-  {
-    id: "DEPT001",
-    name: "Technology",
-    head: "Dr. Emily Carter",
-    description: "Responsible for software development and IT infrastructure.",
-    creationDate: "2022-01-15",
-  },
-  {
-    id: "DEPT002",
-    name: "Human Resources",
-    head: "Michael Chen",
-    description: "Manages employee relations, recruitment, and benefits.",
-    creationDate: "2021-03-20",
-  },
-  {
-    id: "DEPT003",
-    name: "Marketing",
-    head: "Sophia Rodriguez",
-    description: "Oversees product promotion, advertising, and market research.",
-    creationDate: "2022-06-10",
-  },
-  {
-    id: "DEPT004",
-    name: "Sales",
-    head: "David Miller",
-    description: "Focuses on customer acquisition and revenue generation.",
-    creationDate: "2020-11-01",
-  },
-  {
-    id: "DEPT005",
-    name: "Operations",
-    head: "Jessica Lee",
-    description: "Manages daily business operations and process optimization.",
-    creationDate: "2023-02-28",
-  },
-];
+import { DepartmentForm } from "@/components/department/department-form";
+import { useDepartmentStore } from "@/store/departmentStore"; // Import the store
 
 export default function DepartmentsPage() {
   const { toast } = useToast();
-  const [departments, setDepartments] = React.useState(initialDepartments);
+  // Use Zustand store
+  const departments = useDepartmentStore((state) => state.departments);
+  const addDepartment = useDepartmentStore((state) => state.addDepartment);
+  const updateDepartment = useDepartmentStore((state) => state.updateDepartment);
+  const deleteDepartment = useDepartmentStore((state) => state.deleteDepartment);
+  const initializeDepartments = useDepartmentStore((state) => state._initializeDepartments);
+
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedDepartment, setSelectedDepartment] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeDepartments(); // Ensure store is initialized
+  }, [initializeDepartments]);
 
   const handleAddDepartmentOpen = () => {
     setSelectedDepartment(null);
@@ -98,11 +70,7 @@ export default function DepartmentsPage() {
   const handleSaveDepartment = (departmentData) => {
     if (selectedDepartment && selectedDepartment.id) {
       // Editing existing department
-      setDepartments((prevDepartments) =>
-        prevDepartments.map((dept) =>
-          dept.id === selectedDepartment.id ? { ...dept, ...departmentData } : dept
-        )
-      );
+      updateDepartment({ ...departmentData, id: selectedDepartment.id });
       toast({ title: "Department Updated", description: `${departmentData.name}'s details have been updated.` });
     } else {
       // Adding new department
@@ -110,9 +78,9 @@ export default function DepartmentsPage() {
       const newDepartment = {
         ...departmentData,
         id: newId,
-        creationDate: new Date().toISOString().split('T')[0], // Set creation date to today
+        creationDate: new Date().toISOString().split('T')[0], 
       };
-      setDepartments((prevDepartments) => [newDepartment, ...prevDepartments]);
+      addDepartment(newDepartment);
       toast({ title: "Department Added", description: `${departmentData.name} has been added.` });
     }
     handleDialogClose();
@@ -120,9 +88,7 @@ export default function DepartmentsPage() {
 
   const handleConfirmDelete = () => {
     if (selectedDepartment) {
-      setDepartments((prevDepartments) =>
-        prevDepartments.filter((dept) => dept.id !== selectedDepartment.id)
-      );
+      deleteDepartment(selectedDepartment.id);
       toast({ title: "Department Deleted", description: `${selectedDepartment.name} has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -206,7 +172,6 @@ export default function DepartmentsPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Department Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -225,7 +190,6 @@ export default function DepartmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>

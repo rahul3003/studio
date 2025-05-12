@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -25,82 +24,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2, Receipt, FileText, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ReimbursementForm } from "@/components/reimbursement/reimbursement-form"; // New component
+import { ReimbursementForm } from "@/components/reimbursement/reimbursement-form";
+import { useReimbursementStore } from "@/store/reimbursementStore"; // Import store
+import { useEmployeeStore } from "@/store/employeeStore"; // For employee names
 
-// Initial mock reimbursement data with Indian context
-const initialReimbursements = [
-  {
-    id: "REIM001",
-    employeeName: "Priya Sharma",
-    amount: 5500.50,
-    currency: "INR",
-    description: "Client dinner meeting in Mumbai",
-    submissionDate: "2024-07-15",
-    status: "Approved",
-    fileName: "dinner_receipt_mumbai.pdf",
-    reasonForRejection: null,
-  },
-  {
-    id: "REIM002",
-    employeeName: "Rohan Mehra",
-    amount: 8500.00,
-    currency: "INR",
-    description: "Project software purchase",
-    submissionDate: "2024-07-20",
-    status: "Pending",
-    fileName: "software_invoice.jpg",
-    reasonForRejection: null,
-  },
-  {
-    id: "REIM003",
-    employeeName: "Aisha Khan",
-    amount: 1250.00,
-    currency: "INR",
-    description: "Taxi fare for design conference",
-    submissionDate: "2024-07-22",
-    status: "Paid",
-    fileName: "taxi_fare_conf.png",
-    reasonForRejection: null,
-  },
-  {
-    id: "REIM004",
-    employeeName: "Vikram Singh",
-    amount: 15000.00,
-    currency: "INR",
-    description: "Team building activity expenses",
-    submissionDate: "2024-07-25",
-    status: "Rejected",
-    reasonForRejection: "Exceeded quarterly budget for team activities.",
-    fileName: null,
-  },
-  {
-    id: "REIM005",
-    employeeName: "Suresh Kumar",
-    amount: 3500.75,
-    currency: "INR",
-    description: "Team lunch (Tech Department)",
-    submissionDate: "2024-07-28",
-    status: "Pending",
-    fileName: "team_lunch_tech.docx",
-    reasonForRejection: null,
-  },
-];
-
-const MOCK_EMPLOYEES_FOR_REIMBURSEMENT = [ // Updated with Indian names
-    "Priya Sharma",
-    "Rohan Mehra",
-    "Aisha Khan",
-    "Vikram Singh",
-    "Suresh Kumar",
-    "Sunita Reddy",
-    "Arjun Patel",
-    "Meera Iyer",
-    "Imran Ahmed",
-    "Deepika Rao",
-    "Admin User"
-];
-
-const CURRENCY_OPTIONS = ["INR", "USD", "EUR", "GBP", "JPY"]; // INR prioritized
+const CURRENCY_OPTIONS = ["INR", "USD", "EUR", "GBP", "JPY"];
 const REIMBURSEMENT_STATUS_OPTIONS = ["Pending", "Approved", "Rejected", "Paid"];
 
 const statusVariantMap = {
@@ -112,11 +40,25 @@ const statusVariantMap = {
 
 export default function ReimbursementsPage() {
   const { toast } = useToast();
-  const [reimbursements, setReimbursements] = React.useState(initialReimbursements);
+  // Use Zustand stores
+  const reimbursements = useReimbursementStore((state) => state.reimbursements);
+  const addReimbursement = useReimbursementStore((state) => state.addReimbursement);
+  const updateReimbursement = useReimbursementStore((state) => state.updateReimbursement);
+  const deleteReimbursement = useReimbursementStore((state) => state.deleteReimbursement);
+  const initializeReimbursements = useReimbursementStore((state) => state._initializeReimbursements);
+
+  const employees = useEmployeeStore((state) => state.employees);
+  const MOCK_EMPLOYEES_FOR_REIMBURSEMENT = employees.map(emp => emp.name);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedReimbursement, setSelectedReimbursement] = React.useState(null);
+
+  React.useEffect(() => {
+    initializeReimbursements(); // Ensure store is initialized
+  }, [initializeReimbursements]);
+
 
   const handleAddReimbursementOpen = () => {
     setSelectedReimbursement(null);
@@ -143,11 +85,7 @@ export default function ReimbursementsPage() {
   const handleSaveReimbursement = (reimbursementData) => {
     if (selectedReimbursement && selectedReimbursement.id) {
       // Editing existing reimbursement
-      setReimbursements((prevReimbursements) =>
-        prevReimbursements.map((reimb) =>
-          reimb.id === selectedReimbursement.id ? { ...reimb, ...reimbursementData } : reimb
-        )
-      );
+      updateReimbursement({ ...reimbursementData, id: selectedReimbursement.id });
       toast({ title: "Reimbursement Updated", description: `Details for reimbursement ID ${selectedReimbursement.id} have been updated.` });
     } else {
       // Adding new reimbursement
@@ -156,7 +94,7 @@ export default function ReimbursementsPage() {
         ...reimbursementData,
         id: newId,
       };
-      setReimbursements((prevReimbursements) => [newReimbursement, ...prevReimbursements]);
+      addReimbursement(newReimbursement);
       toast({ title: "Reimbursement Added", description: `New reimbursement (ID: ${newId}) has been submitted.` });
     }
     handleDialogClose();
@@ -164,9 +102,7 @@ export default function ReimbursementsPage() {
 
   const handleConfirmDelete = () => {
     if (selectedReimbursement) {
-      setReimbursements((prevReimbursements) =>
-        prevReimbursements.filter((reimb) => reimb.id !== selectedReimbursement.id)
-      );
+      deleteReimbursement(selectedReimbursement.id);
       toast({ title: "Reimbursement Deleted", description: `Reimbursement ID ${selectedReimbursement.id} has been removed.`, variant: "destructive" });
     }
     handleDialogClose();
@@ -215,7 +151,7 @@ export default function ReimbursementsPage() {
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{reimbursement.description}</TableCell>
                     <TableCell>
-                      {new Date(reimbursement.submissionDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
+                      {new Date(reimbursement.submissionDate).toLocaleDateString("en-IN", {
                         year: "numeric", month: "short", day: "numeric",
                       })}
                     </TableCell>
@@ -275,7 +211,6 @@ export default function ReimbursementsPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Reimbursement Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -289,7 +224,7 @@ export default function ReimbursementsPage() {
               onSubmit={handleSaveReimbursement}
               initialData={selectedReimbursement}
               onCancel={handleDialogClose}
-              employeeOptions={MOCK_EMPLOYEES_FOR_REIMBURSEMENT}
+              employeeOptions={MOCK_EMPLOYEES_FOR_REIMBURSEMENT.length > 0 ? MOCK_EMPLOYEES_FOR_REIMBURSEMENT : ["Default Employee"]}
               currencyOptions={CURRENCY_OPTIONS}
               statusOptions={REIMBURSEMENT_STATUS_OPTIONS}
             />
@@ -297,7 +232,6 @@ export default function ReimbursementsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>

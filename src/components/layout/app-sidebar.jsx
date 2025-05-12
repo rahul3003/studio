@@ -1,6 +1,5 @@
-
 "use client";
-import * as React from "react"; // Added import for React
+import * as React from "react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -11,31 +10,20 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
+  useSidebar, // Import useSidebar
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { 
-  LogOut, 
-  Settings, 
-  LayoutDashboard, 
-  Users, 
-  ShieldCheck,
-  Rocket,
-  Building2,
-  FolderKanban,
-  ListTodo,
-  Receipt,
-  BriefcaseBusiness,
-  CalendarCheck,
-  FileText
-} from "lucide-react";
+import { LogOut, Settings, Rocket } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuthStore } from "@/store/authStore"; // Import auth store
 import { ROLE_NAV_CONFIG } from "@/config/roles";
 
-export function AppSidebar({ user }) {
+export function AppSidebar() { // Removed user prop
   const pathname = usePathname();
-  const { logout } = useMockAuth();
+  const { user, logout } = useAuthStore(); // Get user and logout from store
+  const { state: sidebarState, isMobile } = useSidebar(); // Get sidebar state
+
 
   const navItemsForRole = React.useMemo(() => {
     if (user && user.currentRole && user.currentRole.value) {
@@ -44,8 +32,15 @@ export function AppSidebar({ user }) {
     return [];
   }, [user]);
 
+  const getTooltipContent = (label) => {
+    if (isMobile || sidebarState === "expanded") {
+      return null; // No tooltip if sidebar is expanded or on mobile
+    }
+    return label;
+  };
+
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} variant="inset">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
           <Rocket className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
@@ -62,7 +57,7 @@ export function AppSidebar({ user }) {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
-                  tooltip={{ children: item.label, side: "right", align: "center" }}
+                  tooltip={getTooltipContent(item.label) ? { children: item.label, side: "right", align: "center" } : undefined}
                   className="justify-start"
                 >
                   <a>
@@ -73,6 +68,22 @@ export function AppSidebar({ user }) {
               </Link>
             </SidebarMenuItem>
           ))}
+           {/* Settings always available */}
+          <SidebarMenuItem>
+            <Link href="/dashboard/settings" legacyBehavior passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/dashboard/settings"}
+                tooltip={getTooltipContent("Settings") ? {children: "Settings", side: "right", align: "center"} : undefined}
+                className="justify-start"
+                >
+                <a>
+                  <Settings />
+                  <span>Settings</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />
@@ -117,4 +128,3 @@ export function AppSidebar({ user }) {
     </Sidebar>
   );
 }
-

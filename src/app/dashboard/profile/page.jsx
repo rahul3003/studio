@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,7 +5,6 @@ import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMockAuth } from "@/hooks/use-mock-auth";
 import { PersonalInformationEditDialog } from "@/components/profile/personal-information-edit-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,8 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogTrigger,
+  DialogTrigger, // DialogDescription removed as it wasn't used for some Dialogs
 } from "@/components/ui/dialog";
 
 import {
@@ -36,7 +33,7 @@ import {
   Edit3,
   Award,
   DollarSign,
-  FileText as FileTextIcon, // Renamed to avoid conflict with React's FileText
+  FileText as FileTextIcon,
   Eye,
   ShieldCheck,
   Download,
@@ -44,86 +41,20 @@ import {
   Gift
 } from "lucide-react";
 
-const initialMockProfileData = {
-  personal: {
-    name: "Priya Sharma",
-    phone: "+91 98765 43210",
-    address: "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034",
-    companyEmail: "priya.sharma@pesuventurelabs.com",
-    personalEmail: "priya.personal@example.com",
-    profilePhotoUrl: "https://i.pravatar.cc/150?u=priya.sharma",
-    profilePhotoFileName: "", // For "uploaded" photo name
-    idProofFileName: "Aadhaar_PriyaSharma.pdf",
-    addressProofFileName: "ElectricityBill_PriyaSharma.pdf",
-    city: "Bengaluru"
-  },
-  secondaryData: {
-    joiningDate: "2022-08-15",
-    department: "Technology",
-    currentPosition: "Senior Software Engineer",
-    currentRemuneration: "₹ 9,52,000 p.a.",
-    leaveBalance: { annual: 15, sick: 8, totalAnnual: 20, totalSick: 10 },
-    managerName: "Rohan Mehra",
-    managerDepartment: "Technology",
-  },
-  rewards: {
-    pointsAvailable: 1250,
-    pointsReceived: 500,
-    pointsValue: "₹ 125.00",
-    nominationHistory: [
-      { id: 1, to: "Rohan Mehra", points: 100, date: "2024-06-15", approvedBy: "Priya Sharma", approvedOn: "2024-06-16", reason: "Excellent project management on HRMS portal." },
-    ],
-  },
-  attendance: {
-    summary: [
-      { year: 2024, month: "July", present: 20, leaves: 1, sickLeaves: 0 },
-      { year: 2024, month: "June", present: 22, leaves: 0, sickLeaves: 0 },
-    ],
-  },
-  remuneration: {
-    payChanges: [
-      { effectiveDate: "2024-04-01", percentageIncrease: "12%", salaryPostIncrease: "₹ 9,52,000 p.a.", reason: "Annual Performance Review" },
-      { effectiveDate: "2023-04-01", percentageIncrease: "10%", salaryPostIncrease: "₹ 8,50,000 p.a.", reason: "Promotion to Senior Role" },
-    ],
-    breakup: {
-      annualSalary: "₹ 9,52,000",
-      monthlyGrossSalary: "₹ 79,333",
-      deductions: { providentFund: "₹ 2,500", professionalTax: "₹ 200", incomeTax: "₹ 5,500 (Approx. TDS)" },
-      netMonthlySalary: "₹ 71,133 (Approx.)",
-    },
-  },
-  reports: {
-    ndaPath: "/documents/NDA_JohnDoe.pdf",
-    form16Path: "/documents/Form16_JohnDoe_2023.pdf",
-    digitalIdImage: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png", 
-  },
-  holidays: {
-    companyHolidays: [
-      { date: "2024-01-01", name: "New Year's Day" },
-      { date: "2024-01-26", name: "Republic Day" },
-      { date: "2024-08-15", name: "Independence Day" },
-      { date: "2024-10-02", name: "Gandhi Jayanti" },
-      { date: "2024-10-31", name: "Diwali" },
-      { date: "2024-12-25", name: "Christmas" },
-    ],
-    restrictedHolidays: [
-      { date: "2024-03-25", name: "Holi (RH)" },
-      { date: "2024-09-07", name: "Ganesh Chaturthi (RH)" },
-    ]
-  },
-  companyName: "PESU Venture Labs"
-};
+import { useAuthStore } from "@/store/authStore";
+import { useProfileStore, DUMMY_EMPLOYEE_LIST_FOR_NOMINATION } from "@/store/profileStore";
 
-// Dummy employee list for nomination dialog
-const DUMMY_EMPLOYEE_LIST = [
-  { name: "Priya Sharma" }, { name: "Rohan Mehra" }, { name: "Aisha Khan" },
-  { name: "Vikram Singh" }, { name: "Suresh Kumar" }, { name: "Sunita Reddy" },
-];
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useMockAuth();
+  const { user, loading: authLoading } = useAuthStore();
   const { toast } = useToast();
-  const [profileData, setProfileData] = React.useState(initialMockProfileData);
+  
+  const profileData = useProfileStore((state) => state.profileData);
+  const updatePersonalInformation = useProfileStore((state) => state.updatePersonalInformation);
+  const applyLeaveInStore = useProfileStore((state) => state.applyLeave);
+  const addNominationInStore = useProfileStore((state) => state.addNomination);
+  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
+
 
   const [isEditPersonalOpen, setIsEditPersonalOpen] = React.useState(false);
   const [isApplyLeaveOpen, setIsApplyLeaveOpen] = React.useState(false);
@@ -132,67 +63,31 @@ export default function ProfilePage() {
   const [isVerificationLetterOpen, setIsVerificationLetterOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (user) {
-      // Simulate fetching more complete profile data for the logged-in user
-      // In a real app, this would be an API call based on user.id or email
-      const userSpecificData = {
-        ...initialMockProfileData, // Start with base mock
-        personal: {
-          ...initialMockProfileData.personal,
-          name: user.name,
-          companyEmail: user.email,
-          profilePhotoUrl: user.avatar || initialMockProfileData.personal.profilePhotoUrl,
-          // Assume other personal details might be specific for a real fetch
-          phone: user.name === "Priya Sharma" ? "+91 98765 43210" : "+91 88888 77777", 
-          address: user.name === "Priya Sharma" ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
-          city: user.name === "Priya Sharma" ? "Bengaluru" : "New Delhi",
-          idProofFileName: user.name === "Priya Sharma" ? "Aadhaar_PriyaSharma.pdf" : "PAN_Card_RohanMehra.pdf",
-          addressProofFileName: user.name === "Priya Sharma" ? "ElectricityBill_PriyaSharma.pdf" : "Passport_RohanMehra.pdf",
-        },
-        secondaryData: {
-            ...initialMockProfileData.secondaryData,
-            currentPosition: user.currentRole?.name === "Employee" ? "Software Engineer" : user.currentRole?.name || "Employee", // Adjust based on actual role if needed
-            managerName: user.name === "Priya Sharma" ? "Rohan Mehra" : "Anita Singh"
-        }
-      };
-      setProfileData(userSpecificData);
+    // Initialize or update profileData when user from authStore changes
+    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
+      initializeProfile(user);
     }
-  }, [user]);
+  }, [user, profileData, initializeProfile]);
 
-  if (authLoading || !user) {
+
+  if (authLoading || !user || !profileData || !profileData.personal) { // Added check for profileData.personal
     return <div>Loading profile...</div>;
   }
 
   const handleSavePersonalInformation = (data) => {
-    setProfileData(prevData => ({
-      ...prevData,
-      personal: {
-        ...prevData.personal,
-        name: data.name,
-        phone: data.phone,
-        address: data.address,
-        city: data.city,
-        personalEmail: data.personalEmail,
-        profilePhotoUrl: data.profilePhotoUrl || prevData.personal.profilePhotoUrl, // Keep old if new is empty
-        profilePhotoFileName: data.profilePhotoFileName || prevData.personal.profilePhotoFileName,
-        idProofFileName: data.idProofFileName || prevData.personal.idProofFileName,
-        addressProofFileName: data.addressProofFileName || prevData.personal.addressProofFileName,
-      }
-    }));
+    updatePersonalInformation(data);
     toast({ title: "Personal Information Updated", description: "Your details have been saved." });
     setIsEditPersonalOpen(false);
   };
 
   const handleApplyLeave = (data) => {
-    console.log("Leave application:", data);
+    applyLeaveInStore(data); // Call store action
     toast({ title: "Leave Applied", description: `Your leave request from ${data.startDate} to ${data.endDate} has been submitted.` });
     setIsApplyLeaveOpen(false);
   };
 
   const handleNominateReward = (data) => {
-    console.log("Reward nomination:", data);
     const newNomination = {
-        id: profileData.rewards.nominationHistory.length + 1,
         to: data.nominee,
         points: data.points,
         date: new Date().toISOString().split('T')[0],
@@ -200,30 +95,24 @@ export default function ProfilePage() {
         approvedOn: new Date().toISOString().split('T')[0],
         reason: data.reason,
     };
-    setProfileData(prev => ({
-        ...prev,
-        rewards: {
-            ...prev.rewards,
-            nominationHistory: [newNomination, ...prev.rewards.nominationHistory]
-        }
-    }));
+    addNominationInStore(newNomination); // Call store action
     toast({ title: "Nomination Submitted", description: `You have nominated ${data.nominee} for ${data.points} points.` });
     setIsNominateRewardOpen(false);
   };
 
   const handleDownloadSalarySlip = (data) => {
-    console.log("Download salary slip for:", data);
+    console.log("Download salary slip for:", data); // Mock action
     toast({ title: "Salary Slip Download", description: `Preparing salary slip for ${data.month} ${data.year}. (Mock download)` });
     setIsDownloadSalarySlipOpen(false);
   };
 
   const handleRequestVerificationLetter = (data) => {
-    console.log("Verification letter request:", data);
+    console.log("Verification letter request:", data); // Mock action
     toast({ title: "Request Submitted", description: `Your request for a verification letter has been submitted. Purpose: ${data.purpose}` });
     setIsVerificationLetterOpen(false);
   };
   
-  const availableEmployeesForNomination = DUMMY_EMPLOYEE_LIST
+  const availableEmployeesForNomination = DUMMY_EMPLOYEE_LIST_FOR_NOMINATION
     .map(e => e.name)
     .filter(name => name !== user.name);
 
@@ -244,7 +133,6 @@ export default function ProfilePage() {
         </CardHeader>
       </Card>
 
-      {/* Personal Information */}
       <Card>
         <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle className="flex items-center gap-2 text-xl"><UserCircle2 /> Primary Data</CardTitle>
@@ -266,7 +154,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Secondary Data */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Briefcase /> Secondary Data</CardTitle>
@@ -280,7 +167,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Rewards Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Award /> Rewards</CardTitle>
@@ -321,7 +207,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Attendance Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><CalendarCheck /> Attendance Overview</CardTitle>
@@ -343,7 +228,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Remuneration History */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><DollarSign /> Remuneration History</CardTitle>
@@ -378,7 +262,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Reports Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><FileTextIcon /> Reports & Documents</CardTitle>
@@ -412,14 +295,13 @@ export default function ProfilePage() {
                 <Image src={profileData.reports.digitalIdImage} alt="Digital ID Card" width={300} height={180} className="rounded-lg border shadow-md object-contain" data-ai-hint="ID card company" />
                 <p className="mt-4 text-lg font-semibold">{user.name}</p>
                 <p className="text-sm text-muted-foreground">{profileData.secondaryData.currentPosition}</p>
-                <p className="text-xs text-muted-foreground">Employee ID: EMP{user.email.substring(0,3).toUpperCase()}001</p> {/* Mock ID */}
+                <p className="text-xs text-muted-foreground">Employee ID: EMP{user.email.substring(0,3).toUpperCase()}001</p>
               </div>
             </DialogContent>
           </Dialog>
         </CardContent>
       </Card>
       
-      {/* Holiday List Section */}
       <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl"><CalendarDays /> Company Holiday List 2024</CardTitle>
@@ -429,15 +311,13 @@ export default function ProfilePage() {
             <ul className="list-disc list-inside space-y-1 text-sm mb-4">
                 {profileData.holidays.companyHolidays.map(h => <li key={h.name}>{new Date(h.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}: {h.name}</li>)}
             </ul>
-            <h4 className="font-semibold text-md mb-2">Restricted Holidays (Choose 2):</h4>
+            <h4 className="font-semibold text-md mb-2">Restricted Holidays (Choose any 2):</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
                 {profileData.holidays.restrictedHolidays.map(h => <li key={h.name}>{new Date(h.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}: {h.name}</li>)}
             </ul>
         </CardContent>
       </Card>
 
-
-      {/* Dialogs */}
       {isEditPersonalOpen && <PersonalInformationEditDialog isOpen={isEditPersonalOpen} onClose={() => setIsEditPersonalOpen(false)} initialData={profileData.personal} onSubmit={handleSavePersonalInformation} />}
       <ApplyLeaveDialog isOpen={isApplyLeaveOpen} onClose={() => setIsApplyLeaveOpen(false)} onSubmit={handleApplyLeave} />
       <NominateRewardDialog isOpen={isNominateRewardOpen} onClose={() => setIsNominateRewardOpen(false)} onSubmit={handleNominateReward} employeeList={availableEmployeesForNomination} />
@@ -446,6 +326,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-    

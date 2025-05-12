@@ -1,53 +1,55 @@
-
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // CardFooter removed
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { NominateRewardDialog } from "@/components/profile/nominate-reward-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuthStore } from "@/store/authStore";
+import { useProfileStore, DUMMY_EMPLOYEE_LIST_FOR_NOMINATION } from "@/store/profileStore";
 import { Award, Gift } from "lucide-react";
-
-// Mock data relevant to this page - Indian context
-const mockRewardsData = {
-  pointsAvailable: 1250,
-  pointsReceived: 500,
-  pointsValue: "₹ 125.00", // Assuming 1 point = ₹0.10
-  nominationHistory: [
-    { id: 1, to: "Rohan Mehra", points: 100, date: "2024-06-15", approvedBy: "Priya Sharma", approvedOn: "2024-06-16", reason: "Excellent project management on HRMS portal." },
-    { id: 2, to: "Aisha Khan", points: 50, date: "2024-05-20", approvedBy: "Priya Sharma", approvedOn: "2024-05-21", reason: "Great teamwork and UI designs for Q2." },
-  ],
-};
-
-const DUMMY_EMPLOYEE_LIST = [ // Updated with Indian names
-  { name: "Priya Sharma" }, { name: "Rohan Mehra" }, { name: "Aisha Khan" },
-  { name: "Vikram Singh" }, { name: "Suresh Kumar" }, { name: "Sunita Reddy" },
-  { name: "Arjun Patel" }, { name: "Meera Iyer" }, { name: "Imran Ahmed" }, { name: "Deepika Rao" },
-];
 
 
 export default function RewardsPage() {
   const { toast } = useToast();
-  const { user, loading: authLoading } = useMockAuth();
+  const { user, loading: authLoading } = useAuthStore();
+  const profileData = useProfileStore((state) => state.profileData);
+  const addNominationInStore = useProfileStore((state) => state.addNomination);
+  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
+
   const [isNominateRewardOpen, setIsNominateRewardOpen] = React.useState(false);
 
-  if (authLoading || !user) {
+  React.useEffect(() => {
+    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
+      initializeProfile(user);
+    }
+  }, [user, profileData, initializeProfile]);
+
+  if (authLoading || !user || !profileData || !profileData.rewards) {
     return <div>Loading rewards...</div>;
   }
 
   const handleNominateReward = (data) => {
-    console.log("Reward nomination:", data);
-    // Add to mockRewardsData.nominationHistory or call an API
+    const newNomination = {
+        to: data.nominee,
+        points: data.points,
+        date: new Date().toISOString().split('T')[0],
+        approvedBy: user.name,
+        approvedOn: new Date().toISOString().split('T')[0],
+        reason: data.reason,
+    };
+    addNominationInStore(newNomination);
     toast({ title: "Nomination Submitted", description: `You have nominated ${data.nominee} for ${data.points} points.` });
     setIsNominateRewardOpen(false);
   };
   
-  const availableEmployeesForNomination = DUMMY_EMPLOYEE_LIST
+  const availableEmployeesForNomination = DUMMY_EMPLOYEE_LIST_FOR_NOMINATION
     .map(e => e.name)
     .filter(name => name !== user.name);
+  
+  const rewardsData = profileData.rewards;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -66,15 +68,15 @@ export default function RewardsPage() {
             <TabsContent value="my_rewards" className="pt-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <Card className="pt-6 pb-4">
-                  <CardTitle className="text-3xl">{mockRewardsData.pointsAvailable}</CardTitle>
+                  <CardTitle className="text-3xl">{rewardsData.pointsAvailable}</CardTitle>
                   <CardDescription>Points Available</CardDescription>
                 </Card>
                 <Card className="pt-6 pb-4">
-                  <CardTitle className="text-3xl">{mockRewardsData.pointsReceived}</CardTitle>
+                  <CardTitle className="text-3xl">{rewardsData.pointsReceived}</CardTitle>
                   <CardDescription>Points Received (Lifetime)</CardDescription>
                 </Card>
                 <Card className="pt-6 pb-4">
-                  <CardTitle className="text-3xl">{mockRewardsData.pointsValue}</CardTitle>
+                  <CardTitle className="text-3xl">{rewardsData.pointsValue}</CardTitle>
                   <CardDescription>Approx. Value</CardDescription>
                 </Card>
               </div>
@@ -85,7 +87,7 @@ export default function RewardsPage() {
             </TabsContent>
             <TabsContent value="history" className="pt-6">
               <h3 className="font-semibold mb-2 text-lg">My Nomination History:</h3>
-              {mockRewardsData.nominationHistory.length > 0 ? (
+              {rewardsData.nominationHistory.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -96,7 +98,7 @@ export default function RewardsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockRewardsData.nominationHistory.map(item => (
+                    {rewardsData.nominationHistory.map(item => (
                       <TableRow key={item.id}>
                         <TableCell>{item.to}</TableCell>
                         <TableCell>{item.points}</TableCell>
