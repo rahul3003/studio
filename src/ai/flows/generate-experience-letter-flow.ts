@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional experience letter using AI.
@@ -34,30 +35,26 @@ const GenerateExperienceLetterOutputSchema = z.object({
 });
 export type GenerateExperienceLetterOutput = z.infer<typeof GenerateExperienceLetterOutputSchema>;
 
+// Register helpers directly on the imported handlebars instance
+if (handlebars && typeof handlebars.registerHelper === 'function') {
+  handlebars.registerHelper('splitLines', (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : []);
+  handlebars.registerHelper('startsWith', (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false);
+  handlebars.registerHelper('substring', (str, start) => typeof str === 'string' ? str.substring(start) : '');
+  handlebars.registerHelper('contains', (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false);
+} else {
+  console.warn(
+    "Genkit handlebars.registerHelper is not available for generateExperienceLetterPrompt. " +
+    "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
+    "The template may not render correctly."
+  );
+}
+
 export async function generateExperienceLetter(input: GenerateExperienceLetterInput): Promise<GenerateExperienceLetterOutput> {
   const enrichedInput = {
     ...input,
     issueDate: format(new Date(), "MMMM d, yyyy"),
   };
   return generateExperienceLetterFlow(enrichedInput);
-}
-
-const customizersForExperienceLetter = [];
-if (handlebars && typeof handlebars.helpers === 'function') {
-  customizersForExperienceLetter.push(
-    handlebars.helpers({
-      splitLines: (str) => str.split('\n').map(s => s.trim()).filter(s => s),
-      startsWith: (str, prefix) => str.startsWith(prefix),
-      substring: (str, start) => str.substring(start),
-      contains: (str, substr) => str.includes(substr),
-    })
-  );
-} else {
-  console.warn(
-    "Genkit handlebars.helpers is not available for generateExperienceLetterPrompt. " +
-    "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
-    "The template may not render correctly."
-  );
 }
 
 const generateExperienceLetterPrompt = ai.definePrompt({
@@ -134,7 +131,7 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
-  customizers: customizersForExperienceLetter
+ // Removed customizers option as helpers are registered globally
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(

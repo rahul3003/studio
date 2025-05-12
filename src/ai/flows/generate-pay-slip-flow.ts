@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional pay slip using AI.
@@ -40,6 +41,31 @@ const GeneratePaySlipOutputSchema = z.object({
 });
 export type GeneratePaySlipOutput = z.infer<typeof GeneratePaySlipOutputSchema>;
 
+// Register helpers directly on the imported handlebars instance
+if (handlebars && typeof handlebars.registerHelper === 'function') {
+  handlebars.registerHelper('formatCurrency', (num) => 
+    (typeof num === 'number' ? num.toFixed(2) : '0.00')
+  );
+  handlebars.registerHelper('parsePayItems', (str) => {
+    if (!str) return [];
+    return str.split('\n').map(line => {
+      const parts = line.split(':');
+      if (parts.length === 2) {
+        const name = parts[0].trim();
+        const amount = parseFloat(parts[1].trim());
+        return { name, amount: isNaN(amount) ? 0 : amount };
+      }
+      return null;
+    }).filter(item => item !== null && item.name !== "");
+  });
+} else {
+  console.warn(
+    "Genkit handlebars.registerHelper is not available for generatePaySlipPrompt. " +
+    "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
+    "The template may not render correctly."
+  );
+}
+
 export async function generatePaySlip(input: GeneratePaySlipInput): Promise<GeneratePaySlipOutput> {
   let totalAllowances = 0;
   if (input.allowancesStr) {
@@ -76,33 +102,6 @@ export async function generatePaySlip(input: GeneratePaySlipInput): Promise<Gene
     companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?random&t=${Date.now()}`
   };
   return generatePaySlipFlow(enrichedInput);
-}
-
-const customizersForPaySlip = [];
-if (handlebars && typeof handlebars.helpers === 'function') {
-  customizersForPaySlip.push(
-    handlebars.helpers({
-      formatCurrency: (num) => (typeof num === 'number' ? num.toFixed(2) : '0.00'),
-      parsePayItems: (str) => {
-        if (!str) return [];
-        return str.split('\n').map(line => {
-          const parts = line.split(':');
-          if (parts.length === 2) {
-            const name = parts[0].trim();
-            const amount = parseFloat(parts[1].trim());
-            return { name, amount: isNaN(amount) ? 0 : amount };
-          }
-          return null;
-        }).filter(item => item !== null && item.name !== "");
-      },
-    })
-  );
-} else {
-  console.warn(
-    "Genkit handlebars.helpers is not available for generatePaySlipPrompt. " +
-    "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
-    "The template may not render correctly."
-  );
 }
 
 const generatePaySlipPrompt = ai.definePrompt({
@@ -184,7 +183,7 @@ Calculated Net Salary: {{{netSalary}}}
 
 The final output must be a single, complete HTML string.
 `,
-  customizers: customizersForPaySlip
+  // Removed customizers option as helpers are registered globally
 });
 
 const generatePaySlipFlow = ai.defineFlow(
