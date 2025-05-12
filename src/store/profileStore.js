@@ -74,19 +74,23 @@ const initialMockProfileData = {
 export const useProfileStore = create(
   persist(
     (set, get) => ({
-      profileData: initialMockProfileData, // Initialize with mock data
+      profileData: initialMockProfileData, 
       
       updatePersonalInformation: (newData) =>
-        set((state) => ({
-          profileData: {
-            ...state.profileData,
-            personal: {
-              ...state.profileData.personal,
-              ...newData,
-              profilePhotoUrl: newData.profilePhotoUrl || state.profileData.personal.profilePhotoUrl,
+        set((state) => {
+          // Ensure all fields from newData are applied, including potentially empty strings for optional fields
+          const updatedPersonal = {
+            ...state.profileData.personal,
+            ...newData,
+            profilePhotoUrl: newData.profilePhotoUrl || state.profileData.personal.profilePhotoUrl, // Keep old if new is empty
+          };
+          return {
+            profileData: {
+              ...state.profileData,
+              personal: updatedPersonal,
             },
-          },
-        })),
+          };
+        }),
 
       applyLeave: (leaveData) =>
         set((state) => ({
@@ -126,27 +130,25 @@ export const useProfileStore = create(
           return;
         }
         const userSpecificProfile = {
-          ...initialMockProfileData, // Start with a deep copy of the mock
+          ...initialMockProfileData, 
           personal: {
-            ...initialMockProfileData.personal, // Deep copy personal
+            ...initialMockProfileData.personal, 
             name: authUser.name,
             companyEmail: authUser.email,
             profilePhotoUrl: authUser.avatar || initialMockProfileData.personal.profilePhotoUrl,
-            // More specific mock data based on a known user for consistency
-            phone: authUser.email === "priya.sharma@pesuventurelabs.com" ? "+91 98765 43210" : "+91 88888 77777", 
-            address: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
-            city: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Bengaluru" : "New Delhi",
-            idProofFileName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Aadhaar_PriyaSharma.pdf" : "PAN_Card_OtherUser.pdf",
-            addressProofFileName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "ElectricityBill_PriyaSharma.pdf" : "Passport_OtherUser.pdf",
+            personalEmail: authUser.email.includes("priya") ? "priya.personal@example.com" : `user.${authUser.name.split(" ")[0].toLowerCase()}@personal.com`,
+            phone: authUser.email.includes("priya") ? "+91 98765 43210" : "+91 88888 77777", 
+            address: authUser.email.includes("priya") ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
+            city: authUser.email.includes("priya") ? "Bengaluru" : "New Delhi",
+            idProofFileName: authUser.email.includes("priya") ? "Aadhaar_PriyaSharma.pdf" : "PAN_Card_OtherUser.pdf",
+            addressProofFileName: authUser.email.includes("priya") ? "ElectricityBill_PriyaSharma.pdf" : "Passport_OtherUser.pdf",
           },
            secondaryData: {
-            ...initialMockProfileData.secondaryData, // Deep copy secondary
+            ...initialMockProfileData.secondaryData, 
             currentPosition: authUser.currentRole?.name || "Employee",
-            managerName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Rohan Mehra" : "Anita Singh",
-            department: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Technology" : "Marketing",
+            managerName: authUser.email.includes("priya") ? "Rohan Mehra" : "Anita Singh",
+            department: authUser.email.includes("priya") ? "Technology" : "Marketing",
           },
-          // Keep other parts like rewards, attendance, remuneration, reports, holidays, companyName as they are from initialMock
-          // unless they also need to be user-specific.
           rewards: {...initialMockProfileData.rewards},
           attendance: {...initialMockProfileData.attendance},
           remuneration: {...initialMockProfileData.remuneration},
@@ -163,11 +165,14 @@ export const useProfileStore = create(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
             console.error("Failed to rehydrate profile store", error);
-            state.profileData = initialMockProfileData;
+            if (state) state.profileData = initialMockProfileData; // Attempt to reset if state object exists
+            else useProfileStore.setState({ profileData: initialMockProfileData }); // Force reset if state is null
         } else if (!state || !state.profileData || !state.profileData.personal || !state.profileData.personal.name) {
           console.log("Rehydrating profile store: store empty or invalid, using initial mock data.");
           if (state) {
             state.profileData = initialMockProfileData;
+          } else {
+            useProfileStore.setState({ profileData: initialMockProfileData });
           }
         }
       }
@@ -175,9 +180,9 @@ export const useProfileStore = create(
   )
 );
 
-// Redundant client-side initialization block removed.
 
 export const DUMMY_EMPLOYEE_LIST_FOR_NOMINATION = [
   { name: "Priya Sharma" }, { name: "Rohan Mehra" }, { name: "Aisha Khan" },
   { name: "Vikram Singh" }, { name: "Suresh Kumar" }, { name: "Sunita Reddy" },
 ];
+

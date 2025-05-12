@@ -33,11 +33,12 @@ const personalInfoSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format. (e.g., +919876543210)" }),
   address: z.string().min(10, { message: "Address must be at least 10 characters." }),
+  personalEmail: z.string().email({ message: "Invalid personal email address." }).optional().or(z.literal('')),
   profilePhotoUrl: z.string().url({ message: "Invalid URL. Leave blank if uploading a new photo." }).optional().or(z.literal('')),
-  // These will store filenames from file inputs
   profilePhotoFileName: z.string().optional().or(z.literal('')),
   idProofFileName: z.string().optional().or(z.literal('')),
   addressProofFileName: z.string().optional().or(z.literal('')),
+  city: z.string().min(2, {message: "City name must be at least 2 characters."}).optional().or(z.literal('')),
 });
 
 export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initialData }) {
@@ -48,10 +49,12 @@ export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initi
       name: initialData?.name || "",
       phone: initialData?.phone || "",
       address: initialData?.address || "",
+      personalEmail: initialData?.personalEmail || "",
       profilePhotoUrl: initialData?.profilePhotoUrl || "",
       profilePhotoFileName: initialData?.profilePhotoFileName || "",
       idProofFileName: initialData?.idProofFileName || "",
       addressProofFileName: initialData?.addressProofFileName || "",
+      city: initialData?.city || "",
     },
   });
 
@@ -65,10 +68,12 @@ export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initi
         name: initialData.name,
         phone: initialData.phone,
         address: initialData.address,
+        personalEmail: initialData.personalEmail || "",
         profilePhotoUrl: initialData.profilePhotoUrl || "",
         profilePhotoFileName: initialData.profilePhotoFileName || "",
         idProofFileName: initialData.idProofFileName || "",
         addressProofFileName: initialData.addressProofFileName || "",
+        city: initialData.city || "",
       });
     }
   }, [initialData, form]);
@@ -79,7 +84,6 @@ export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initi
       form.setValue(fieldName, file.name, { shouldValidate: true });
       toast({ title: "File Selected", description: `${file.name} (mock upload)` });
     } else {
-      // If user cancels, reset to initial value if it existed
       form.setValue(fieldName, initialData?.[fieldName] || "", { shouldValidate: true });
     }
   };
@@ -125,6 +129,19 @@ export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initi
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="personalEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Personal Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="priya.personal@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="phone"
@@ -151,6 +168,19 @@ export function PersonalInformationEditDialog({ isOpen, onClose, onSubmit, initi
                       rows={3}
                       {...field}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Bengaluru" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

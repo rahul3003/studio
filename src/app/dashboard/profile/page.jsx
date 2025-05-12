@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -18,7 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger, // DialogDescription removed as it wasn't used for some Dialogs
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 import {
@@ -63,14 +64,13 @@ export default function ProfilePage() {
   const [isVerificationLetterOpen, setIsVerificationLetterOpen] = React.useState(false);
 
   React.useEffect(() => {
-    // Initialize or update profileData when user from authStore changes
     if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
       initializeProfile(user);
     }
   }, [user, profileData, initializeProfile]);
 
 
-  if (authLoading || !user || !profileData || !profileData.personal) { // Added check for profileData.personal
+  if (authLoading || !user || !profileData || !profileData.personal) { 
     return <div>Loading profile...</div>;
   }
 
@@ -81,7 +81,7 @@ export default function ProfilePage() {
   };
 
   const handleApplyLeave = (data) => {
-    applyLeaveInStore(data); // Call store action
+    applyLeaveInStore(data); 
     toast({ title: "Leave Applied", description: `Your leave request from ${data.startDate} to ${data.endDate} has been submitted.` });
     setIsApplyLeaveOpen(false);
   };
@@ -91,23 +91,23 @@ export default function ProfilePage() {
         to: data.nominee,
         points: data.points,
         date: new Date().toISOString().split('T')[0],
-        approvedBy: user.name, // Self-approved for mock
+        approvedBy: user.name, 
         approvedOn: new Date().toISOString().split('T')[0],
         reason: data.reason,
     };
-    addNominationInStore(newNomination); // Call store action
+    addNominationInStore(newNomination); 
     toast({ title: "Nomination Submitted", description: `You have nominated ${data.nominee} for ${data.points} points.` });
     setIsNominateRewardOpen(false);
   };
 
   const handleDownloadSalarySlip = (data) => {
-    console.log("Download salary slip for:", data); // Mock action
+    console.log("Download salary slip for:", data); 
     toast({ title: "Salary Slip Download", description: `Preparing salary slip for ${data.month} ${data.year}. (Mock download)` });
     setIsDownloadSalarySlipOpen(false);
   };
 
   const handleRequestVerificationLetter = (data) => {
-    console.log("Verification letter request:", data); // Mock action
+    console.log("Verification letter request:", data); 
     toast({ title: "Request Submitted", description: `Your request for a verification letter has been submitted. Purpose: ${data.purpose}` });
     setIsVerificationLetterOpen(false);
   };
@@ -145,10 +145,10 @@ export default function ProfilePage() {
           <div className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Personal Email:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.personalEmail || "N/A"}</span></div>
           <div className="flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Phone:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.phone}</span></div>
           <div className="flex items-start col-span-1 md:col-span-2"><MapPin className="mr-2 mt-1 h-4 w-4 text-muted-foreground shrink-0" /><strong>Address:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.address}</span></div>
+          <div className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" /><strong>City:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.city || "N/A"}</span></div>
           <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>ID Proof:</strong><span className="ml-2 text-primary cursor-pointer hover:underline">{profileData.personal.idProofFileName || "Not Uploaded"}</span></div>
           <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Address Proof:</strong><span className="ml-2 text-primary cursor-pointer hover:underline">{profileData.personal.addressProofFileName || "Not Uploaded"}</span></div>
            {profileData.personal.profilePhotoFileName && <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Profile Photo File:</strong><span className="ml-2 text-primary">{profileData.personal.profilePhotoFileName}</span></div>}
-          <div className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" /><strong>City:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.city || "N/A"}</span></div>
           <div className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Joining Date:</strong><span className="ml-2 text-muted-foreground">{new Date(profileData.secondaryData.joiningDate).toLocaleDateString('en-IN')}</span></div>
           <div className="flex items-center"><Building className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Department:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.department}</span></div>
         </CardContent>
@@ -293,9 +293,9 @@ export default function ProfilePage() {
               <DialogHeader><DialogTitle>Digital Employee ID</DialogTitle></DialogHeader>
               <div className="flex flex-col items-center">
                 <Image src={profileData.reports.digitalIdImage} alt="Digital ID Card" width={300} height={180} className="rounded-lg border shadow-md object-contain" data-ai-hint="ID card company" />
-                <p className="mt-4 text-lg font-semibold">{user.name}</p>
+                <p className="mt-4 text-lg font-semibold">{profileData.personal.name}</p>
                 <p className="text-sm text-muted-foreground">{profileData.secondaryData.currentPosition}</p>
-                <p className="text-xs text-muted-foreground">Employee ID: EMP{user.email.substring(0,3).toUpperCase()}001</p>
+                <p className="text-xs text-muted-foreground">Employee ID: EMP{profileData.personal.companyEmail.substring(0,3).toUpperCase()}001</p>
               </div>
             </DialogContent>
           </Dialog>
@@ -326,3 +326,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
