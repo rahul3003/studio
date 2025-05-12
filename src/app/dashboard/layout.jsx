@@ -20,18 +20,18 @@ import { useToast } from "@/hooks/use-toast";
 export default function DashboardLayout({
   children,
 }) {
-  const { user, loading } = useMockAuth();
+  const { user, loading } = useMockAuth(); // loading here is authIsLoading
   const router = useRouter();
+
+  // Select state and functions from stores individually for stable references
   const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
   const profileData = useProfileStore(state => state.profileData);
-  const profileUserEmail = useProfileStore(state => state.profileData?.personal?.companyEmail);
+  const profileUserEmail = profileData?.personal?.companyEmail;
 
-
-  const { getAttendanceForUserAndDate, markMorningCheckIn, markEveningCheckout } = useAttendanceStore(state => ({ 
-    getAttendanceForUserAndDate: state.getAttendanceForUserAndDate,
-    markMorningCheckIn: state.markMorningCheckIn,
-    markEveningCheckout: state.markEveningCheckout, 
-  }));
+  const getAttendanceForUserAndDate = useAttendanceStore(state => state.getAttendanceForUserAndDate);
+  const markMorningCheckIn = useAttendanceStore(state => state.markMorningCheckIn);
+  const markEveningCheckout = useAttendanceStore(state => state.markEveningCheckout);
+  
   const { toast } = useToast();
 
   const [isMorningCheckInDialogOpen, setIsMorningCheckInDialogOpen] = React.useState(false);
@@ -55,7 +55,6 @@ export default function DashboardLayout({
       const alreadyAttemptedOrDismissed = sessionStorage.getItem(sessionCheckKey);
       const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
 
-      // Show morning check-in dialog if not checked-in and not dismissed for the day
       if (!attendanceRecord?.checkInTimeCategory && !alreadyAttemptedOrDismissed) {
         setIsMorningCheckInDialogOpen(true);
       } else {
@@ -69,9 +68,8 @@ export default function DashboardLayout({
       }
       
       setCurrentAttendanceNotes(attendanceRecord?.notes || "");
-
     }
-  }, [user, loading, getAttendanceForUserAndDate, router.pathname]);
+  }, [user, loading, getAttendanceForUserAndDate, router.pathname]); // router.pathname can be removed if not strictly necessary for this logic
 
   const handleSaveMorningCheckIn = React.useCallback((checkInData) => {
     if (!user) return;
@@ -85,7 +83,7 @@ export default function DashboardLayout({
         setShowCheckoutButton(true); 
     }
     setCurrentAttendanceNotes(checkInData.notes || "");
-  }, [user, markMorningCheckIn, toast, setCurrentAttendanceNotes, setShowCheckoutButton]);
+  }, [user, markMorningCheckIn, toast]); // Removed setCurrentAttendanceNotes, setShowCheckoutButton from deps as they are stable state setters
 
   const handleCloseMorningCheckInDialog = React.useCallback((saved = false) => {
     setIsMorningCheckInDialogOpen(false);
@@ -100,7 +98,7 @@ export default function DashboardLayout({
     const attendanceRecord = getAttendanceForUserAndDate(user.name, new Date());
     setCurrentAttendanceNotes(attendanceRecord?.notes || ""); 
     setIsEveningCheckoutDialogOpen(true);
-  }, [user, getAttendanceForUserAndDate]);
+  }, [user, getAttendanceForUserAndDate]); // setCurrentAttendanceNotes is stable
 
   const handleSaveEveningCheckout = React.useCallback((checkoutData) => {
     if (!user) return;
@@ -111,10 +109,10 @@ export default function DashboardLayout({
     });
     setIsEveningCheckoutDialogOpen(false);
     setShowCheckoutButton(false); 
-  }, [user, markEveningCheckout, toast, setShowCheckoutButton]);
+  }, [user, markEveningCheckout, toast]); // setShowCheckoutButton is stable
 
 
-  if (loading || !user) {
+  if (loading || !user) { // loading is authIsLoading from useMockAuth
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -155,3 +153,4 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+

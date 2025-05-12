@@ -7,24 +7,16 @@ import { useAuthStore } from '@/store/authStore';
 
 export function useMockAuth() {
   const router = useRouter();
-  const { 
-    user, 
-    loading: authIsLoading, // Get loading state directly from store
-    logout: storeLogout, 
-    switchRole: storeSwitchRole, 
-    getAvailableRolesForSwitching: storeGetAvailableRoles,
-  } = useAuthStore(state => ({
-    user: state.user,
-    loading: state.loading,
-    logout: state.logout,
-    switchRole: state.switchRole,
-    getAvailableRolesForSwitching: state.getAvailableRolesForSwitching,
-  }));
+  
+  // Select state and functions individually for stable references
+  const user = useAuthStore(state => state.user);
+  const authIsLoading = useAuthStore(state => state.loading);
+  const storeLogout = useAuthStore(state => state.logout);
+  const storeSwitchRole = useAuthStore(state => state.switchRole);
+  const storeGetAvailableRoles = useAuthStore(state => state.getAvailableRolesForSwitching);
 
   useEffect(() => {
-    // This effect runs when authIsLoading or user changes.
-    // It ensures redirection if needed once loading is complete.
-    if (!authIsLoading) { // Only act once the store has confirmed its loading status
+    if (!authIsLoading) { 
       if (!user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
         router.push('/login');
       }
@@ -38,7 +30,6 @@ export function useMockAuth() {
 
   const switchRole = (newRoleValue) => {
     storeSwitchRole(newRoleValue);
-    // router.refresh(); // Server components might need this, handled in store action or component if necessary
   };
   
   const getAvailableRolesForSwitching = () => {

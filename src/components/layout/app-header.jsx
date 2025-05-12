@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -9,7 +10,6 @@ import { Home, Bell, Award, LogOut as LogOutIcon } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
-// import { useAttendanceStore } from "@/store/attendanceStore"; // No longer directly needed here for button logic
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-// import { format } from "date-fns"; // No longer needed here for button logic
 
 function getBreadcrumbs(pathname) {
   const pathParts = pathname.split('/').filter(part => part);
@@ -42,8 +41,12 @@ const mockNotifications = [
 export function AppHeader({ onCheckoutClick, showCheckoutButton }) { 
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
-  const { user, loading } = useAuthStore();
-  const profileData = useProfileStore((state) => state.profileData);
+
+  // Select state individually for stable references
+  const user = useAuthStore(state => state.user);
+  const loading = useAuthStore(state => state.loading);
+  const profileData = useProfileStore(state => state.profileData);
+  
   const rewardsPoints = profileData?.rewards?.pointsAvailable || 0;
 
   const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
