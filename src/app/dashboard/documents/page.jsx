@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -115,64 +114,59 @@ export default function DocumentsPage() {
       return;
     }
 
-    const element = document.createElement('div');
-    // Style to be off-screen for layout calculation, but processable by html2canvas
-    element.style.position = 'fixed';
-    element.style.left = '-9999px';
-    element.style.top = '-9999px';
-    element.style.width = '210mm'; // A5 width, helps with layouting before PDF conversion.
-    element.innerHTML = generatedDocumentHtml;
-    document.body.appendChild(element);
-
+    const tempElement = document.createElement('div');
+    tempElement.style.position = 'absolute'; // Use absolute to keep it in flow but move off-screen
+    tempElement.style.left = '-9999px';
+    tempElement.style.top = '0px';
+    tempElement.style.width = '1000px'; // Provide ample width for content like 800-850px max-width containers
+    tempElement.innerHTML = generatedDocumentHtml;
+    document.body.appendChild(tempElement);
 
     const containerSelector = '.offer-letter-container, .contract-container, .experience-letter-container, .payslip-container';
-    const letterContainer = element.querySelector(containerSelector);
+    const documentToCapture = tempElement.querySelector(containerSelector);
     
-    if (!letterContainer) {
-        document.body.removeChild(element); // Clean up
+    if (!documentToCapture) {
+        document.body.removeChild(tempElement);
         toast({ title: "PDF Generation Error", description: "Could not find the main document container for PDF conversion.", variant: "destructive" });
         return;
     }
     
-    // Ensure content is actually visible within the letterContainer for html2canvas
-    // For example, by ensuring it has dimensions and isn't display:none
-    // This is generally handled if the AI provides a container with content.
+    // Ensure the element to capture actually has dimensions.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = documentToCapture.offsetHeight; // Force reflow
 
     const personNameForFilename = currentDocumentData.candidateName || currentDocumentData.employeeName || "Document";
     const filename = `${personNameForFilename.replace(/ /g, '_')}_${getTabTitle(activeTab).replace(/ /g, '_')}.pdf`;
 
     const opt = {
-      margin:       [10, 5, 10, 5], // [top, right, bottom, left] in mm
+      margin:       [10, 10, 10, 10], // [top, right, bottom, left] in mm (A5 typically needs less margin than A4)
       filename:     filename,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false, 
-        allowTaint: true, 
-        foreignObjectRendering: true,
-        // Ensure html2canvas captures the full content of the letterContainer
-        // width: letterContainer.scrollWidth, 
-        // height: letterContainer.scrollHeight,
-        // Using windowWidth/Height can sometimes be more stable if scrollWidth/Height is problematic
-        windowWidth: letterContainer.scrollWidth, 
-        windowHeight: letterContainer.scrollHeight
+        scale: 2, // Good for quality
+        useCORS: true, // For external images like picsum
+        logging: false, // Set to true for debugging html2canvas itself
+        allowTaint: true, // May help with some image loading issues
+        // Remove explicit width/height overrides for html2canvas if possible,
+        // let it derive from the element 'documentToCapture' which is now inside a 1000px wide parent.
+        // windowWidth: documentToCapture.scrollWidth,
+        // windowHeight: documentToCapture.scrollHeight,
       },
       jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
     };
 
     toast({ title: "Generating PDF", description: "Your PDF is being prepared for download..." });
 
-    html2pdf().from(letterContainer).set(opt).save()
+    html2pdf().from(documentToCapture).set(opt).save()
       .then(() => {
         toast({ title: "PDF Downloaded", description: `The ${getTabTitle(activeTab).toLowerCase()} PDF has been saved.` });
       })
       .catch(err => {
         console.error("Error generating PDF:", err);
-        toast({ title: "PDF Generation Failed", description: "An error occurred while generating the PDF.", variant: "destructive" });
+        toast({ title: "PDF Generation Failed", description: "An error occurred while generating the PDF. Check console for details.", variant: "destructive" });
       })
       .finally(() => {
-         document.body.removeChild(element); // Clean up the temporary element
+         document.body.removeChild(tempElement);
       });
   };
 
@@ -297,4 +291,3 @@ export default function DocumentsPage() {
     </div>
   );
 }
-
