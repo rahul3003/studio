@@ -34,12 +34,17 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
+// Updated mock users with new roles
 const mockUsers = [
   { email: "superadmin@example.com", password: "password", role: "superadmin", name: "Super Admin User" },
-  { email: "admin@example.com", password: "password", role: "admin", name: "Admin User" },
   { email: "manager@example.com", password: "password", role: "manager", name: "Manager User" },
-  { email: "teamlead@example.com", password: "password", role: "teamlead", name: "TeamLead User" },
+  { email: "hr@example.com", password: "password", role: "hr", name: "HR User" },
+  { email: "accounts@example.com", password: "password", role: "accounts", name: "Accounts User" },
   { email: "employee@example.com", password: "password", role: "employee", name: "Employee User" },
+  // Added some more users for variety if needed for testing different roles
+  { email: "alice.manager@example.com", password: "password", role: "manager", name: "Alice Manager" },
+  { email: "bob.employee@example.com", password: "password", role: "employee", name: "Bob Employee" },
+
 ];
 
 
@@ -72,8 +77,8 @@ export function LoginForm() {
         title: "Login Successful",
         description: `Welcome back, ${foundUser.name}!`,
       });
-      localStorage.setItem("userRole", foundUser.role); // Current role
-      localStorage.setItem("userBaseRole", foundUser.role); // Base role is the same as login role for mock
+      localStorage.setItem("userRole", foundUser.role); // Current role starts as base role
+      localStorage.setItem("userBaseRole", foundUser.role); // Base role is the login role
       localStorage.setItem("userName", foundUser.name);
       localStorage.setItem("userEmail", foundUser.email);
       
@@ -172,9 +177,9 @@ export function LoginForm() {
             Use password <code className="font-mono bg-muted px-1 py-0.5 rounded">password</code> with:
             <ul className="list-disc pl-5 mt-1 text-xs">
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">superadmin@example.com</code></li>
-              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">admin@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">manager@example.com</code></li>
-              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">teamlead@example.com</code></li>
+              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">hr@example.com</code></li>
+              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">accounts@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">employee@example.com</code></li>
             </ul>
           </AlertDescription>

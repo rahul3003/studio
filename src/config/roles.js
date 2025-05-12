@@ -1,5 +1,5 @@
 
-import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText } from "lucide-react";
+import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText, Calculator } from "lucide-react";
 
 /**
  * @typedef {object} Role
@@ -12,9 +12,9 @@ import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, B
 /** @type {Role[]} */
 export const ROLES = [
   { name: "Super Admin", value: "superadmin", icon: Crown, description: "Full system access and control." },
-  { name: "Admin", value: "admin", icon: ShieldCheck, description: "Manages users and system settings." },
-  { name: "Manager", value: "manager", icon: Briefcase, description: "Manages teams and projects." },
-  { name: "Team Lead", value: "teamlead", icon: Users, description: "Leads a team of employees." },
+  { name: "Manager", value: "manager", icon: Briefcase, description: "Manages teams, projects, and approvals." },
+  { name: "HR", value: "hr", icon: UserCog, description: "Manages employee data, recruitment, and HR processes." },
+  { name: "Accounts", value: "accounts", icon: Calculator, description: "Manages finances, payroll, and reimbursements." },
   { name: "Employee", value: "employee", icon: User, description: "Standard employee access." },
 ];
 
@@ -27,11 +27,11 @@ export const getRole = (value) => ROLES.find(r => r.value === value);
 // Defines which roles can switch to which other roles
 /** @type {Record<string, string[]>} */
 export const ROLE_SWITCH_PERMISSIONS = {
-  superadmin: ["admin", "manager", "teamlead", "employee"],
-  admin: ["manager", "teamlead", "employee"],
-  manager: ["teamlead", "employee"], // Manager can also switch to teamlead
-  teamlead: ["employee"],
-  employee: [],
+  superadmin: ["manager", "hr", "accounts", "employee"], // Super Admin can switch to any role
+  manager: ["employee"], // Manager can switch to Employee
+  hr: ["employee"], // HR can switch to Employee
+  accounts: ["employee"], // Accounts can switch to Employee
+  employee: [], // Employee cannot switch roles
 };
 
 /**
@@ -53,50 +53,43 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
     { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
     { href: "/dashboard/documents", label: "Documents", icon: FileText },
-    { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
+    // Removed roles & permissions for now, can be added back if needed
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  admin: [
+   manager: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/employees", label: "Employees", icon: Users },
-    { href: "/dashboard/departments", label: "Departments", icon: Building2 },
-    { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-    { href: "/dashboard/tasks", label: "Tasks", icon: ListTodo },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
-    { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
-    { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck },
-    { href: "/dashboard/documents", label: "Documents", icon: FileText },
-    { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck },
+    { href: "/dashboard/employees", label: "Team Members", icon: Users }, // Scope to team
+    { href: "/dashboard/projects", label: "Team Projects", icon: FolderKanban }, // Scope to team/assigned
+    { href: "/dashboard/tasks", label: "Team Tasks", icon: ListTodo }, // Scope to team/assigned
+    { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck }, // Scope to team
+    { href: "/dashboard/reimbursements", label: "Approve Reimbursements", icon: Receipt }, // Scope to team
+    { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness }, // View/Request
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  manager: [
+  hr: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/employees", label: "Employees", icon: Users },
-    // { href: "/dashboard/departments", label: "Departments", icon: Building2 }, // Managers typically don't manage departments
-    { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-    { href: "/dashboard/tasks", label: "Tasks", icon: ListTodo },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt }, // Might manage team reimbursements
-    { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness }, // Might be involved in hiring for their team
-    { href: "/dashboard/attendance", label: "Attendance", icon: CalendarCheck }, // For their team
-    { href: "/dashboard/documents", label: "Documents", icon: FileText },
-    // { href: "/dashboard/roles", label: "Roles & Permissions", icon: ShieldCheck }, // Typically not for managers
+    { href: "/dashboard/employees", label: "Manage Employees", icon: Users }, // Full access likely
+    { href: "/dashboard/departments", label: "Manage Departments", icon: Building2 },
+    { href: "/dashboard/jobs", label: "Manage Jobs", icon: BriefcaseBusiness }, // Full access likely
+    { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck }, // Overview
+    { href: "/dashboard/documents", label: "HR Documents", icon: FileText }, // Offer letters, contracts etc.
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  teamlead: [ 
+  accounts: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/projects", label: "Team Projects", icon: FolderKanban }, // Links to generic /projects, page should filter
-    { href: "/dashboard/tasks", label: "Team Tasks", icon: ListTodo }, // Links to generic /tasks, page should filter
-    { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck }, // Links to generic /attendance, page should filter
-    { href: "/dashboard/my-reimbursements", label: "My Reimbursements", icon: Receipt },
+    { href: "/dashboard/reimbursements", label: "Manage Reimbursements", icon: Receipt }, // Full access likely
+    { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText },
+    // Potentially add payroll or finance-specific pages here
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   employee: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/my-projects", label: "My Projects", icon: FolderKanban }, // Placeholder, could link to user's assigned projects
-    { href: "/dashboard/my-tasks", label: "My Tasks", icon: ListTodo }, // Placeholder, could link to user's assigned tasks
-    { href: "/dashboard/my-reimbursements", label: "My Reimbursements", icon: Receipt },
-    { href: "/dashboard/my-attendance", label: "My Attendance", icon: CalendarCheck },
+    // Link specific views for employees if the backend/frontend supports filtering
+    { href: "/dashboard/tasks", label: "My Tasks", icon: ListTodo },
+    { href: "/dashboard/attendance", label: "My Attendance", icon: CalendarCheck },
+    { href: "/dashboard/reimbursements", label: "My Reimbursements", icon: Receipt },
+     // Maybe view assigned projects?
+     // { href: "/dashboard/projects", label: "My Projects", icon: FolderKanban },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
 };
-
