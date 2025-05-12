@@ -12,6 +12,9 @@ import {
   AlertTriangle,
   Info,
   Users,
+  Briefcase,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import {
   format,
@@ -33,11 +36,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { WeeklyView } from "@/components/attendance/weekly-view";
 import { MonthlySummary } from "@/components/attendance/monthly-summary";
-import { useAuthStore } from "@/store/authStore"; // Import auth store
-import { useAttendanceStore } from "@/store/attendanceStore"; // Import attendance store
-import { useEmployeeStore } from "@/store/employeeStore"; // Import employee store for names
+import { useAuthStore } from "@/store/authStore"; 
+import { useAttendanceStore } from "@/store/attendanceStore"; 
+import { useEmployeeStore } from "@/store/employeeStore"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 const statusConfig = {
   Present: { icon: CheckCircle, className: "rdp-day_present", color: "text-green-500", label: "Present" },
@@ -47,12 +51,18 @@ const statusConfig = {
   Default: { icon: AlertTriangle, className: "text-muted-foreground", color: "text-muted-foreground", label: "N/A" },
 };
 
+const workLocationLabels = {
+  Office: "Office",
+  HomeWithPermission: "WFH (Permitted)",
+  HomeWithoutPermission: "WFH (Not Permitted)",
+};
+
 export default function AttendancePage() {
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
 
   const allUsersAttendance = useAttendanceStore((state) => state.allUsersAttendance);
-  const saveUserAttendance = useAttendanceStore((state) => state.saveAttendance);
+  const saveUserAttendance = useAttendanceStore((state) => state.saveAttendance); // Updated store action
   const initializeAttendance = useAttendanceStore((state) => state._initializeAttendance);
 
   const employees = useEmployeeStore((state) => state.employees);
@@ -70,7 +80,7 @@ export default function AttendancePage() {
   const [dayToMarkAttendance, setDayToMarkAttendance] = React.useState(null);
 
   React.useEffect(() => {
-    initializeAttendance(); // Ensure store is initialized
+    initializeAttendance(); 
   }, [initializeAttendance]);
 
   const isAdminView = React.useMemo(() => {
@@ -108,12 +118,14 @@ export default function AttendancePage() {
     setIsMarkAttendanceDialogOpen(true);
   };
 
-  const handleSaveAttendance = (date, status, notes) => {
+  // Updated to pass the full attendanceData object
+  const handleSaveAttendance = (date, attendanceData) => {
     if (!viewingUserName) return;
-    saveUserAttendance(viewingUserName, date, status, notes); // Use store action
+    saveUserAttendance(viewingUserName, date, attendanceData);
+    // Toast message might need adjustment based on what was saved.
     toast({
       title: "Attendance Updated",
-      description: `Attendance for ${viewingUserName} on ${format(date, "PPP")} marked as ${status}.`,
+      description: `Attendance for ${viewingUserName} on ${format(date, "PPP")} updated.`,
     });
     setIsMarkAttendanceDialogOpen(false);
   };
@@ -177,6 +189,8 @@ export default function AttendancePage() {
   const cardTitleText = isAdminView && viewingUserName ? `Attendance: ${viewingUserName}` : "My Attendance";
   const cardDescriptionText = isAdminView && viewingUserName ? `Track and manage attendance for ${viewingUserName}.` : "Track and manage your attendance records.";
 
+  const selectedDayRecord = selectedDate ? currentRecords[format(selectedDate, "yyyy-MM-dd")] : null;
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
@@ -193,7 +207,7 @@ export default function AttendancePage() {
             </div>
             <Button onClick={() => handleOpenMarkAttendanceDialog(selectedDate || new Date())} disabled={!viewingUserName}>
               <PlusCircle className="mr-2 h-5 w-5" /> 
-              Mark Attendance {isAdminView && viewingUserName ? `for ${viewingUserName.split(' ')[0]}` : ""}
+              Mark/Edit Attendance {isAdminView && viewingUserName ? `for ${viewingUserName.split(' ')[0]}` : ""}
             </Button>
           </div>
         </CardHeader>
@@ -257,26 +271,48 @@ export default function AttendancePage() {
             </TabsList>
           
             <TabsContent value="daily">
-              <div className="rounded-md border p-4">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(day) => {
-                    if (day) {
-                      setSelectedDate(day);
-                      handleOpenMarkAttendanceDialog(day);
-                    }
-                  }}
-                  month={currentDate}
-                  onMonthChange={setCurrentDate}
-                  modifiers={modifiers}
-                  modifiersClassNames={modifierClassNames}
-                  className="p-0"
-                  classNames={{
-                      day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
-                      day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
-                  }}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 rounded-md border p-4">
+                    <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(day) => {
+                        if (day) {
+                        setSelectedDate(day);
+                        // Optionally open dialog immediately, or let user click "Mark/Edit"
+                        // handleOpenMarkAttendanceDialog(day); 
+                        }
+                    }}
+                    month={currentDate}
+                    onMonthChange={setCurrentDate}
+                    modifiers={modifiers}
+                    modifiersClassNames={modifierClassNames}
+                    className="p-0"
+                    classNames={{
+                        day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full',
+                        day_today: 'bg-accent text-accent-foreground rounded-full font-bold',
+                    }}
+                    />
+                </div>
+                <div className="md:col-span-1 p-4 border rounded-md">
+                    <h3 className="text-lg font-semibold mb-3">Details for {selectedDate ? format(selectedDate, "PPP") : "selected day"}</h3>
+                    {selectedDayRecord ? (
+                    <div className="space-y-2 text-sm">
+                        <p><Badge variant={selectedDayRecord.status === "Present" ? "default" : (selectedDayRecord.status === "Absent" ? "destructive" : "secondary") }>{selectedDayRecord.status || "N/A"}</Badge></p>
+                        {selectedDayRecord.status === "Present" && (
+                            <>
+                                {selectedDayRecord.checkInTimeCategory && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> In: {selectedDayRecord.checkInTimeCategory}</p>}
+                                {selectedDayRecord.workLocation && <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-muted-foreground" /> At: {workLocationLabels[selectedDayRecord.workLocation] || selectedDayRecord.workLocation}</p>}
+                                {selectedDayRecord.userCoordinates && <p className="flex items-center text-xs"><MapPin className="h-3 w-3 mr-1 text-muted-foreground" /> Loc: {selectedDayRecord.userCoordinates.latitude.toFixed(2)}, {selectedDayRecord.userCoordinates.longitude.toFixed(2)}</p>}
+                                {selectedDayRecord.checkOutTimeCategory && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> Out: {selectedDayRecord.checkOutTimeCategory}</p>}
+                            </>
+                        )}
+                        {selectedDayRecord.notes && <p className="italic text-muted-foreground">Notes: {selectedDayRecord.notes}</p>}
+                    </div>
+                    ) : (
+                    <p className="text-sm text-muted-foreground">No attendance record for this day.</p>
+                    )}
+                </div>
               </div>
             </TabsContent>
 
@@ -284,8 +320,9 @@ export default function AttendancePage() {
               <WeeklyView 
                   currentDate={currentDate} 
                   attendanceRecords={currentRecords} 
-                  onDayClick={handleOpenMarkAttendanceDialog}
+                  onDayClick={(day) => { setSelectedDate(day); handleOpenMarkAttendanceDialog(day);}}
                   statusConfig={statusConfig}
+                  workLocationLabels={workLocationLabels}
                 />
             </TabsContent>
 
@@ -300,7 +337,8 @@ export default function AttendancePage() {
                       onDayClick={(day) => { 
                           if (day && isSameMonth(day, currentDate)) {
                               setSelectedDate(day);
-                              handleOpenMarkAttendanceDialog(day);
+                              // Optionally open dialog or just highlight for view in details panel
+                              // handleOpenMarkAttendanceDialog(day);
                           }
                       }}
                       className="p-0"
@@ -336,7 +374,6 @@ export default function AttendancePage() {
           selectedDate={dayToMarkAttendance}
           currentAttendance={currentRecords[format(dayToMarkAttendance, "yyyy-MM-dd")]}
           onSave={handleSaveAttendance}
-          statusOptions={Object.keys(statusConfig).filter(s => s !== "Default" && s !== "Holiday")}
           userName={viewingUserName}
         />
       )}

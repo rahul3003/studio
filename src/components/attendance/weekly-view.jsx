@@ -1,13 +1,14 @@
-
 "use client";
 
 import * as React from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Clock, Briefcase } from "lucide-react";
 
-export function WeeklyView({ currentDate, attendanceRecords, onDayClick, statusConfig }) {
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday as start of the week
+
+export function WeeklyView({ currentDate, attendanceRecords, onDayClick, statusConfig, workLocationLabels }) {
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); 
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
@@ -23,7 +24,7 @@ export function WeeklyView({ currentDate, attendanceRecords, onDayClick, statusC
           {daysInWeek.map((day) => {
             const dayString = format(day, "yyyy-MM-dd");
             const record = attendanceRecords[dayString];
-            const statusInfo = record ? statusConfig[record.status] : statusConfig.Default;
+            const statusInfo = record?.status ? statusConfig[record.status] : statusConfig.Default;
             const StatusIcon = statusInfo.icon;
 
             return (
@@ -42,9 +43,33 @@ export function WeeklyView({ currentDate, attendanceRecords, onDayClick, statusC
                      {record?.status || "N/A"}
                    </span>
                 </div>
+                {record?.status === "Present" && (
+                  <div className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+                    {record.checkInTimeCategory && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>In: {record.checkInTimeCategory.replace(" AM", "").replace(" PM","")}</span>
+                      </div>
+                    )}
+                    {record.workLocation && (
+                       <div className="flex items-center gap-1">
+                        <Briefcase className="h-3 w-3" />
+                        <span className="truncate" title={workLocationLabels[record.workLocation] || record.workLocation}>
+                            {workLocationLabels[record.workLocation]?.split(" ")[0] || record.workLocation}
+                        </span>
+                      </div>
+                    )}
+                     {record.checkOutTimeCategory && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Out: {record.checkOutTimeCategory.replace(" AM", "").replace(" PM","")}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {record?.notes && (
                   <p className="text-xs text-muted-foreground mt-1 truncate" title={record.notes}>
-                    {record.notes}
+                    Notes: {record.notes}
                   </p>
                 )}
               </div>
@@ -60,5 +85,3 @@ export function WeeklyView({ currentDate, attendanceRecords, onDayClick, statusC
     </Card>
   );
 }
-
-    

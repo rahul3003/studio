@@ -5,29 +5,81 @@ import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { useMockAuth } from "@/hooks/use-mock-auth"; // This now uses useAuthStore
+import { useMockAuth } from "@/hooks/use-mock-auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuthStore } from "@/store/authStore"; // Directly use for initial hydration check
+import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
+import { useAttendanceStore } from "@/store/attendanceStore"; // Import attendance store
+import { MorningCheckInDialog } from "@/components/attendance/morning-check-in-dialog"; // Import the new dialog
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function DashboardLayout({
   children,
 }) {
-  const { user, loading } = useMockAuth(); // useMockAuth handles redirection and user state from store
+  const { user, loading } = useMockAuth();
   const router = useRouter();
   const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
   const profileData = useProfileStore(state => state.profileData);
 
-  // Effect to initialize profile store when auth user changes
+  const { getAttendanceForUserAndDate, markMorningCheckIn } = useAttendanceStore(state => ({
+    getAttendanceForUserAndDate: state.getAttendanceForUserAndDate,
+    markMorningCheckIn: state.markMorningCheckIn,
+  }));
+  const { toast } = useToast();
+
+  const [isMorningCheckInDialogOpen, setIsMorningCheckInDialogOpen] = React.useState(false);
+
   React.useEffect(() => {
     if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
       initializeProfile(user);
-    } else if (!user && profileData) {
-      // Optional: Clear profile data if user logs out
-      // initializeProfile(null); // Or a specific action to clear profile
     }
   }, [user, initializeProfile, profileData]);
+
+  React.useEffect(() => {
+    if (user && !loading) {
+      const today = new Date();
+      const todayDateString = format(today, "yyyy-MM-dd");
+      const sessionCheckKey = `morningCheckInAttempted_${user.name}_${todayDateString}`;
+      
+      const alreadyAttempted = sessionStorage.getItem(sessionCheckKey);
+      const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
+
+      // Show dialog if:
+      // 1. Attendance for today not marked (no record or no checkInTimeCategory)
+      // 2. Morning check-in not already attempted/dismissed in this session
+      if ((!attendanceRecord || !attendanceRecord.checkInTimeCategory) && !alreadyAttempted) {
+        // Basic "morning" check: e.g., before 1 PM. This is a loose check.
+        // A more robust solution might involve server-side flags or more specific business logic.
+        const currentHour = new Date().getHours();
+        if (currentHour < 24) { // For testing, allow it anytime. Change to e.g. currentHour < 13 for "before 1 PM"
+            setIsMorningCheckInDialogOpen(true);
+        }
+      }
+    }
+  }, [user, loading, getAttendanceForUserAndDate]);
+
+  const handleSaveMorningCheckIn = (checkInData) => {
+    if (!user) return;
+    markMorningCheckIn(user.name, new Date(), checkInData);
+    toast({
+      title: "Attendance Marked",
+      description: `Your check-in for ${format(new Date(), "PPP")} has been recorded.`,
+    });
+    setIsMorningCheckInDialogOpen(false);
+    const todayDateString = format(new Date(), "yyyy-MM-dd");
+    sessionStorage.setItem(`morningCheckInAttempted_${user.name}_${todayDateString}`, 'true');
+  };
+
+  const handleCloseMorningCheckInDialog = () => {
+    setIsMorningCheckInDialogOpen(false);
+    // Mark as attempted even if closed, to avoid pestering the user on every navigation
+    if (user) {
+        const todayDateString = format(new Date(), "yyyy-MM-dd");
+        sessionStorage.setItem(`morningCheckInAttempted_${user.name}_${todayDateString}`, 'true');
+    }
+  };
 
 
   if (loading || !user) {
@@ -42,16 +94,23 @@ export default function DashboardLayout({
     );
   }
   
-  // If user is loaded and available
   return (
     <SidebarProvider defaultOpen>
-      <AppSidebar user={user} />
+      <AppSidebar />
       <SidebarInset>
-        <AppHeader user={user} />
+        <AppHeader />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
           {children}
         </main>
       </SidebarInset>
+      {user && (
+        <MorningCheckInDialog
+            isOpen={isMorningCheckInDialogOpen}
+            onClose={handleCloseMorningCheckInDialog}
+            onSave={handleSaveMorningCheckIn}
+            userName={user.name}
+        />
+      )}
     </SidebarProvider>
   );
 }
