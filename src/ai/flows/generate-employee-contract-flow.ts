@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a professional employee contract using AI.
@@ -9,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod'; // Corrected: import z from zod
+import { z } from 'zod'; 
 import { format } from 'date-fns';
 
 const GenerateEmployeeContractInputSchema = z.object({
@@ -50,6 +49,7 @@ const generateEmployeeContractPrompt = ai.definePrompt({
   output: { schema: GenerateEmployeeContractOutputSchema },
   prompt: `You are an expert HR assistant tasked with drafting a formal and comprehensive Employee Contract as an HTML document string.
 The contract should be well-structured, legally sound (for general purposes, not specific legal advice), and visually appealing.
+Use 12px font size for general paragraph text and 14px for clause headings (e.g., '1. Position and Duties'). Main titles can be larger.
 
 **Contract Details:**
 Date of Contract: {{{contractDate}}}
@@ -70,36 +70,36 @@ Governing Law: {{{governingLaw}}}
 
 **Instructions for the HTML Contract:**
 1.  **Overall Structure:**
-    *   Wrap the entire contract in \`<div class="contract-container" style="font-family: 'Times New Roman', Times, serif; max-width: 850px; margin: 30px auto; padding: 40px; border: 1px solid #888888; box-shadow: 0 2px 10px rgba(0,0,0,0.1); line-height: 1.6;">\`
-    *   Use standard HTML tags: \`<p>\`, \`<h1>\`, \`<h2>\`, \`<h3>\`, \`<strong>\`, \`<em>\`, \`<ul>\`, \`<li>\`.
+    *   Wrap the entire contract in \`<div class="contract-container" style="font-family: 'Times New Roman', Times, serif; max-width: 850px; margin: 30px auto; padding: 40px; border: 1px solid #888888; box-shadow: 0 2px 10px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">\`
+    *   Use standard HTML tags: \`<p>\`, \`<h1>\`, \`<h2>\`, \`<h3>\`, \`<strong>\`, \`<em>\`, \`<ul>\`, \`<li>\`. Paragraph text will be 12px.
 2.  **Header:**
-    *   Title: \`<h1 style="font-size: 2em; text-align: center; color: #222; margin-bottom: 30px; text-transform: uppercase; border-bottom: 2px solid #555; padding-bottom: 10px;">Employment Contract</h1>\`
-    *   Date of Contract: \`<p style="text-align: right; margin-bottom: 20px;"><strong>Date:</strong> {{{contractDate}}}</p>\`
+    *   Title: \`<h1 style="font-size: 1.7em; text-align: center; color: #222; margin-bottom: 30px; text-transform: uppercase; border-bottom: 2px solid #555; padding-bottom: 10px;">Employment Contract</h1>\` (Relative to 12px base)
+    *   Date of Contract: \`<p style="text-align: right; margin-bottom: 20px;"><strong>Date:</strong> {{{contractDate}}}</p>\` (12px)
 3.  **Parties Involved:**
-    *   Clearly state the parties: The Company ("Employer") and The Employee.
+    *   Clearly state the parties: The Company ("Employer") and The Employee. (12px)
     *   Example: \`<p>This Employment Contract ("Contract") is entered into as of {{{contractDate}}}, by and between:</p>\`
     *   \`<p><strong>{{{companyName}}}</strong>, a company registered at {{{companyAddress}}} (hereinafter referred to as the "Employer"),</p>\`
     *   \`<p>AND</p>\`
     *   \`<p><strong>{{{employeeName}}}</strong>, residing at {{{employeeAddress}}} (hereinafter referred to as the "Employee").</p>\`
-4.  **Clauses (Numbered List):** Use \`<h3 style="font-size: 1.2em; color: #333; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">1. Position and Duties</h3>\` for main clauses.
-    *   **1. Position and Duties:** State position, department, and briefly outline responsibilities. "The Employee is appointed to the position of <strong>{{{positionTitle}}}</strong> in the <strong>{{{department}}}</strong> department. The Employee's duties will include..." (general description).
-    *   **2. Commencement and Duration:** State the start date. Specify if fixed-term or indefinite. "This contract shall commence on <strong>{{{startDate}}}</strong>..."
-    *   **3. Probation Period:** "The Employee's employment is subject to a probation period of {{{probationPeriod}}}..." (if applicable).
-    *   **4. Remuneration:** Detail salary and payment terms. "The Employer shall pay the Employee a salary of {{{salary}}}..."
-    *   **5. Working Hours:** Specify standard working hours. "The Employee's standard working hours will be {{{workingHours}}}..."
-    *   **6. Leave Entitlement:** Detail annual leave, sick leave, etc. "The Employee is entitled to {{{leaveEntitlement}}}..."
-    *   **7. Confidentiality:** "The Employee agrees to maintain the confidentiality of the Employer's proprietary information..." (Use {{{confidentialityClause}}} if provided, otherwise a standard brief statement).
-    *   **8. Termination:** Specify notice periods. "This Contract may be terminated by either party by giving {{{terminationNotice}}} written notice..."
-    *   **9. Governing Law:** "This Contract shall be governed by and construed in accordance with the laws of {{{governingLaw}}}."
-    *   **10. Entire Agreement:** "This Contract constitutes the entire agreement between the Employer and the Employee..."
+4.  **Clauses (Numbered List):** Use \`<h3 style="font-size: 14px; color: #333; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">1. Position and Duties</h3>\` for main clauses.
+    *   **1. Position and Duties:** State position, department, and briefly outline responsibilities. "The Employee is appointed to the position of <strong>{{{positionTitle}}}</strong> in the <strong>{{{department}}}</strong> department. The Employee's duties will include..." (general description, 12px).
+    *   **2. Commencement and Duration:** State the start date. Specify if fixed-term or indefinite. "This contract shall commence on <strong>{{{startDate}}}</strong>..." (12px)
+    *   **3. Probation Period:** "The Employee's employment is subject to a probation period of {{{probationPeriod}}}..." (if applicable, 12px).
+    *   **4. Remuneration:** Detail salary and payment terms. "The Employer shall pay the Employee a salary of {{{salary}}}..." (12px)
+    *   **5. Working Hours:** Specify standard working hours. "The Employee's standard working hours will be {{{workingHours}}}..." (12px)
+    *   **6. Leave Entitlement:** Detail annual leave, sick leave, etc. "The Employee is entitled to {{{leaveEntitlement}}}..." (12px)
+    *   **7. Confidentiality:** "The Employee agrees to maintain the confidentiality of the Employer's proprietary information..." (Use {{{confidentialityClause}}} if provided, otherwise a standard brief statement, 12px).
+    *   **8. Termination:** Specify notice periods. "This Contract may be terminated by either party by giving {{{terminationNotice}}} written notice..." (12px)
+    *   **9. Governing Law:** "This Contract shall be governed by and construed in accordance with the laws of {{{governingLaw}}}." (12px)
+    *   **10. Entire Agreement:** "This Contract constitutes the entire agreement between the Employer and the Employee..." (12px)
 5.  **Signatures:**
-    *   Provide space for signatures.
+    *   Provide space for signatures. Text here should be 12px or slightly smaller for descriptions.
     *   \`<div style="margin-top: 50px; display: flex; justify-content: space-between;">\`
-    *   \`<div style="width: 45%;"><p><strong>For and on behalf of {{{companyName}}} (Employer):</strong></p><div style="height: 50px; border-bottom: 1px solid #000; margin-top: 30px;"></div><p style="font-size: 0.9em;">Authorised Signatory</p></div>\`
+    *   \`<div style="width: 45%;"><p><strong>For and on behalf of {{{companyName}}} (Employer):</strong></p><div style="height: 50px; border-bottom: 1px solid #000; margin-top: 30px;"></div><p style="font-size: 0.9em;">Authorised Signatory</p></div>\` (0.9em of 12px = ~10.8px)
     *   \`<div style="width: 45%;"><p><strong>Accepted and Agreed by {{{employeeName}}} (Employee):</strong></p><div style="height: 50px; border-bottom: 1px solid #000; margin-top: 30px;"></div><p style="font-size: 0.9em;">Signature</p></div>\`
     *   \`</div>\`
 6.  **Styling:**
-    *   Use inline styles for a formal, traditional document appearance. Emphasize clarity and readability.
+    *   Use inline styles for a formal, traditional document appearance. Emphasize clarity and readability with 12px text and 14px clause headings.
     *   Font: Times New Roman or similar serif font.
 7.  **Content Focus:** Generate **only the HTML string** for the contract, starting with the outer \`<div>\` and ending with its closing \`</div>\`. Do not include any commentary or text outside this HTML.
 
@@ -121,3 +121,4 @@ const generateEmployeeContractFlow = ai.defineFlow(
     return { contractHtml: output.contractHtml };
   }
 );
+

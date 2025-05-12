@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a professional experience letter using AI.
@@ -52,26 +51,26 @@ function preprocessKeyResponsibilities(keyResponsibilitiesText: string): string 
   const hasBulletPoints = lines.some(line => line.startsWith("- "));
 
   if (hasBulletPoints) {
-    let htmlList = '<ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px;">';
+    // When using 12px base font, list items will also be 12px
+    let htmlList = '<ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px; font-size: 12px;">';
     lines.forEach(line => {
       if (line.startsWith("- ")) {
         const itemText = line.substring(2).replace(/</g, "&lt;").replace(/>/g, "&gt;");
         htmlList += `<li style="margin-bottom: 5px;">${itemText}</li>`;
       }
-      // Non-bullet lines within a bulleted list are ignored in this version for simplicity
     });
     htmlList += '</ul>';
     return htmlList;
   } else {
     const paragraphText = keyResponsibilitiesText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br />');
-    return `<p style="margin-top: 5px; margin-bottom: 15px;">${paragraphText}</p>`;
+    return `<p style="margin-top: 5px; margin-bottom: 15px; font-size: 12px;">${paragraphText}</p>`;
   }
 }
 
 export async function generateExperienceLetter(input: GenerateExperienceLetterInput): Promise<GenerateExperienceLetterOutput> {
   const keyResponsibilitiesHtml = preprocessKeyResponsibilities(input.keyResponsibilities);
   const enrichedInput: EnrichedPromptInput = {
-    ...input, // input.joiningDate and input.lastWorkingDate are already strings from form
+    ...input, 
     issueDate: format(new Date(), "MMMM d, yyyy"),
     keyResponsibilitiesHtml,
   };
@@ -84,6 +83,7 @@ const generateExperienceLetterPrompt = ai.definePrompt({
   output: { schema: GenerateExperienceLetterOutputSchema },
   prompt: `You are an expert HR assistant tasked with drafting a formal and professional Experience Letter as an HTML document string.
 The letter should be on a formal letterhead style.
+Use 12px font size for general paragraph text and 14px for main section titles like 'EXPERIENCE LETTER'. Company name can be larger.
 
 **Letter Details:**
 Issue Date: {{{issueDate}}}
@@ -105,16 +105,16 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 **Instructions for the HTML Letter:**
 1.  **Overall Structure:**
-    *   Wrap the entire letter in \`<div class="experience-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6;">\`
+    *   Wrap the entire letter in \`<div class="experience-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">\`
 2.  **Header (Letterhead Style):**
     *   Company Logo (placeholder): \`<img src="https://picsum.photos/180/60?grayscale" alt="Company Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 60px;" data-ai-hint="company logo" />\`
-    *   Company Name: \`<h1 style="font-size: 1.8em; color: #333; margin-bottom: 5px;">{{{companyName}}}</h1>\`
-    *   Company Address: \`<p style="margin-bottom: 5px; font-size: 0.9em; color: #555;">{{{companyAddress}}}</p>\`
-    *   Company Contact: \`<p style="margin-bottom: 20px; font-size: 0.9em; color: #555;">{{{companyContact}}}</p>\`
-    *   Date of Issue: \`<p style="text-align: right; margin-bottom: 30px;"><strong>Date:</strong> {{{issueDate}}}</p>\`
-3.  **Title:** \`<h2 style="font-size: 1.5em; text-align: center; color: #444; margin-bottom: 25px; text-decoration: underline;">EXPERIENCE LETTER</h2>\`
-4.  **Salutation/To Whom It May Concern:** \`<p style="margin-bottom: 20px;"><strong>TO WHOM IT MAY CONCERN,</strong></p>\`
-5.  **Body Paragraphs:** Use \`<p>\` tags.
+    *   Company Name: \`<h1 style="font-size: 1.6em; color: #333; margin-bottom: 5px;">{{{companyName}}}</h1>\` (Relative to 12px base)
+    *   Company Address: \`<p style="margin-bottom: 5px; font-size: 0.9em; color: #555;">{{{companyAddress}}}</p>\` (Relative to 12px, ~10.8px)
+    *   Company Contact: \`<p style="margin-bottom: 20px; font-size: 0.9em; color: #555;">{{{companyContact}}}</p>\` (Relative to 12px, ~10.8px)
+    *   Date of Issue: \`<p style="text-align: right; margin-bottom: 30px;"><strong>Date:</strong> {{{issueDate}}}</p>\` (12px)
+3.  **Title:** \`<h2 style="font-size: 1.4em; text-align: center; color: #444; margin-bottom: 25px; text-decoration: underline;">EXPERIENCE LETTER</h2>\` (Relative to 12px base, this is ~16.8px, close to requested 14px for main sections)
+4.  **Salutation/To Whom It May Concern:** \`<p style="margin-bottom: 20px;"><strong>TO WHOM IT MAY CONCERN,</strong></p>\` (12px)
+5.  **Body Paragraphs:** Use \`<p>\` tags. All body text should be 12px.
     *   **Introduction:** Confirm employment.
         "This is to certify that <strong>{{{employeeName}}}</strong>{{#if employeeId}} (Employee ID: {{{employeeId}}}){{/if}} was employed with <strong>{{{companyName}}}</strong>."
     *   **Employment Period:** State the duration of employment.
@@ -123,33 +123,32 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
         "During their tenure, {{{employeeName}}} held the position of <strong>{{{positionTitle}}}</strong> in the <strong>{{{department}}}</strong> department."
     *   **Responsibilities/Contributions:**
         "Their key responsibilities and contributions included:"
-        {{{keyResponsibilitiesHtml}}}
+        {{{keyResponsibilitiesHtml}}} <!-- This will already be 12px from preprocessing -->
     *   **Concluding Remark (Optional positive statement):**
         "During their employment, {{{employeeName}}} was found to be diligent and responsible. We wish them all the best in their future endeavors." (Or a similar neutral/positive closing).
-6.  **Closing:** Professional closing.
+6.  **Closing:** Professional closing. (12px)
     \`<p style="margin-top: 30px;">Sincerely,</p>\`
-7.  **Signature Block:**
+7.  **Signature Block:** (Signature text 12px, title/company name slightly smaller if desired, e.g. 0.95em of 12px)
     \`<div style="margin-top: 20px;">\`
     \`<div style="height: 60px; width: 200px; border-bottom: 1px solid #000; margin-bottom:5px;"></div>\` (Placeholder for signature)
     \`<p style="font-weight: bold;">{{{issuingAuthorityName}}}</p>\`
     \`<p style="font-size: 0.95em;">{{{issuingAuthorityTitle}}}</p>\`
     \`<p style="font-size: 0.95em;">{{{companyName}}}</p>\`
     \`</div>\`
-8.  **Styling:** Ensure good readability and a professional, modern look within the formal letter style.
+8.  **Styling:** Ensure good readability and a professional, modern look with 12px text and 14px for titles.
 9.  **Content Focus:** Generate **only the HTML string**, starting with the outer \`<div>\` and ending with its closing \`</div>\`.
 
 The final output must be a single, complete HTML string.
 `,
-  // Removed customizers array as helpers are no longer used
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(
   {
     name: 'generateExperienceLetterFlow',
-    inputSchema: EnrichedPromptInputSchema, // Use the enriched schema for the flow input
+    inputSchema: EnrichedPromptInputSchema, 
     outputSchema: GenerateExperienceLetterOutputSchema,
   },
-  async (input) => { // input here is of type EnrichedPromptInput
+  async (input) => { 
     const { output } = await generateExperienceLetterPrompt(input);
     if (!output || !output.experienceLetterHtml) {
       throw new Error("AI failed to generate an experience letter or returned empty content.");
@@ -157,3 +156,4 @@ const generateExperienceLetterFlow = ai.defineFlow(
     return { experienceLetterHtml: output.experienceLetterHtml };
   }
 );
+
