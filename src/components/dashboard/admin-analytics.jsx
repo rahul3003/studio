@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, PieChart, Users, Building, UsersRound } from "lucide-react"; // Added UsersRound
+import { BarChart, PieChart, Users, Building, UsersRound, FolderKanban, Receipt, ListTodo } from "lucide-react"; // Added FolderKanban, Receipt, ListTodo
 import {
   ChartContainer,
   ChartTooltip,
