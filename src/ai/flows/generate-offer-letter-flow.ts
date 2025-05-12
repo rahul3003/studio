@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional offer letter using AI.
@@ -43,13 +44,13 @@ const generateOfferLetterPrompt = ai.definePrompt({
   name: 'generateOfferLetterPrompt',
   input: { schema: GenerateOfferLetterInputSchema.extend({ currentDate: z.string() }) }, 
   output: { schema: GenerateOfferLetterOutputSchema },
-  prompt: `You are an expert HR assistant responsible for drafting formal and professional job offer letters.
+  prompt: `You are an expert HR assistant responsible for drafting formal and professional job offer letters for PESU Venture Labs.
 Generate a comprehensive offer letter **as an HTML document string**. The letter should be visually appealing and well-structured.
 Use 12px font size for general paragraph text and 14px for subheadings (like 'Offer Details'). The main title can be larger.
 
 **Company Information:**
 Company Name: {{{companyName}}}
-(Assume Company Address: "123 Innovation Drive, Tech City, ST 12345" or similar if not explicitly provided in other inputs)
+(Assume Company Address: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085" or similar if not explicitly provided in other inputs)
 Date of Offer: {{{currentDate}}}
 
 **Candidate and Offer Details:**
@@ -66,9 +67,9 @@ Offer Expiry Date: {{{offerExpiryDate}}}
     *   The entire letter should be wrapped in a \`<div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">\`
     *   Use standard HTML tags: \`<p>\`, \`<h1>\`, \`<h3>\`, \`<strong>\`, \`<em>\`, \`<ul>\`, \`<li>\`.
 2.  **Header:**
-    *   Include a company logo placeholder at the top. Use: \`<img src="https://picsum.photos/150/50?grayscale" alt="Company Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 50px;" data-ai-hint="company logo" />\`
+    *   Include a company logo placeholder at the top. Use: \`<img src="https://picsum.photos/150/50?grayscale" alt="PESU Venture Labs Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 50px;" data-ai-hint="PESU Venture Labs logo" />\`
     *   Company Name: \`<h1 style="font-size: 1.5em; color: #333; margin-bottom: 5px;">{{{companyName}}}</h1>\` (This will be relative to 12px base, so ~18px)
-    *   Company Address (placeholder): \`<p style="margin-bottom: 15px; font-size: 0.9em; color: #555;">123 Innovation Drive, Tech City, ST 12345</p>\` (Relative to 12px, so ~10.8px)
+    *   Company Address (placeholder): \`<p style="margin-bottom: 15px; font-size: 0.9em; color: #555;">PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085</p>\` (Relative to 12px, so ~10.8px)
     *   Date of Offer: \`<p style="text-align: right; margin-bottom: 20px;"><strong>Date:</strong> {{{currentDate}}}</p>\` (Will be 12px)
 3.  **Salutation:** E.g., \`<p style="margin-top: 20px; margin-bottom: 15px;">Dear {{{candidateName}}},</p>\` (Will be 12px)
 4.  **Body Paragraphs:** Use \`<p>\` tags for paragraphs (will be 12px). Use \`<strong>\` for emphasis on key terms.
@@ -118,4 +119,5 @@ const generateOfferLetterFlow = ai.defineFlow(
     return output;
   }
 );
+
 

@@ -48,7 +48,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
       salary: "",
       reportingManager: "",
       offerExpiryDate: undefined,
-      companyName: "HRMS Portal Inc.", // Default company name
+      companyName: "PESU Venture Labs", // Default company name
     },
   });
 
@@ -194,3 +194,4 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
+

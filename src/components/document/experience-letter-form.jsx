@@ -52,9 +52,9 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
       joiningDate: undefined,
       lastWorkingDate: undefined,
       keyResponsibilities: "- Managed project A.\n- Developed feature B.\n- Coordinated with team C.",
-      companyName: "HRMS Innovations Inc.",
-      companyAddress: "789 Tech Avenue, Silicon Valley, CA 94000",
-      companyContact: "hr@hrmsinnovations.com / +1-555-123-4567",
+      companyName: "PESU Venture Labs",
+      companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
+      companyContact: "hr@pesuventurelabs.com / +91-XXXXXXXXXX",
       issuingAuthorityName: "Ms. Jane Smith",
       issuingAuthorityTitle: "HR Manager",
     },
@@ -259,3 +259,4 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
+

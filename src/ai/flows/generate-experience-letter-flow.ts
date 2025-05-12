@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional experience letter using AI.
@@ -73,6 +74,9 @@ export async function generateExperienceLetter(input: GenerateExperienceLetterIn
     ...input, 
     issueDate: format(new Date(), "MMMM d, yyyy"),
     keyResponsibilitiesHtml,
+    // Ensure companyAddress and companyContact are passed through or defaulted for the prompt
+    companyAddress: input.companyAddress || "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
+    companyContact: input.companyContact || "contact@pesuventurelabs.com",
   };
   return generateExperienceLetterFlow(enrichedInput);
 }
@@ -81,15 +85,15 @@ const generateExperienceLetterPrompt = ai.definePrompt({
   name: 'generateExperienceLetterPrompt',
   input: { schema: EnrichedPromptInputSchema },
   output: { schema: GenerateExperienceLetterOutputSchema },
-  prompt: `You are an expert HR assistant tasked with drafting a formal and professional Experience Letter as an HTML document string.
+  prompt: `You are an expert HR assistant tasked with drafting a formal and professional Experience Letter for PESU Venture Labs as an HTML document string.
 The letter should be on a formal letterhead style.
 Use 12px font size for general paragraph text and 14px for main section titles like 'EXPERIENCE LETTER'. Company name can be larger.
 
 **Letter Details:**
 Issue Date: {{{issueDate}}}
 Company Name: {{{companyName}}}
-Company Address: {{{companyAddress}}} (e.g., "123 Innovation Drive, Tech City, ST 12345")
-Company Contact: {{{companyContact}}} (e.g., "contact@company.com or +1-555-0100")
+Company Address: {{{companyAddress}}}
+Company Contact: {{{companyContact}}}
 
 Employee Name: {{{employeeName}}}
 Employee ID: {{{employeeId}}}
@@ -107,7 +111,7 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 1.  **Overall Structure:**
     *   Wrap the entire letter in \`<div class="experience-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">\`
 2.  **Header (Letterhead Style):**
-    *   Company Logo (placeholder): \`<img src="https://picsum.photos/180/60?grayscale" alt="Company Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 60px;" data-ai-hint="company logo" />\`
+    *   Company Logo (placeholder): \`<img src="https://picsum.photos/180/60?grayscale" alt="PESU Venture Labs Logo - Placeholder" style="display: block; margin-bottom: 20px; max-height: 60px;" data-ai-hint="PESU Venture Labs logo" />\`
     *   Company Name: \`<h1 style="font-size: 1.6em; color: #333; margin-bottom: 5px;">{{{companyName}}}</h1>\` (Relative to 12px base)
     *   Company Address: \`<p style="margin-bottom: 5px; font-size: 0.9em; color: #555;">{{{companyAddress}}}</p>\` (Relative to 12px, ~10.8px)
     *   Company Contact: \`<p style="margin-bottom: 20px; font-size: 0.9em; color: #555;">{{{companyContact}}}</p>\` (Relative to 12px, ~10.8px)
@@ -156,4 +160,5 @@ const generateExperienceLetterFlow = ai.defineFlow(
     return { experienceLetterHtml: output.experienceLetterHtml };
   }
 );
+
 

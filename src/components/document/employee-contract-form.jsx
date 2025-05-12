@@ -55,9 +55,9 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
       leaveEntitlement: "20 paid vacation days per annum, plus public holidays",
       confidentialityClause: "Standard company confidentiality and non-disclosure agreement applies.",
       terminationNotice: "4 weeks by either party",
-      companyName: "HRMS Solutions Ltd.",
-      companyAddress: "123 Business Park, Innovation City, CA 90210",
-      governingLaw: "State of California",
+      companyName: "PESU Venture Labs",
+      companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
+      governingLaw: "State of Karnataka, India",
     },
   });
 
@@ -280,3 +280,4 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
+

@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/services/emailService';
-import { z } from 'zod'; // Corrected: import z from zod
+import { z } from 'zod'; 
 
 const SendOfferLetterEmailInputSchema = z.object({
   candidateEmail: z.string().email().describe("The recipient's email address."),
@@ -38,12 +38,16 @@ const sendOfferLetterEmailFlow = ai.defineFlow(
   },
   async (input) => {
     const subject = `Job Offer from ${input.companyName} for ${input.candidateName}`;
-    const fromAddress = `careers@${input.companyName.toLowerCase().replace(/\s+/g, '')}.com`; // Example from address
+    // Generate a more plausible from address based on the company name or a default
+    const companyDomain = input.companyName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/gi, '') + '.com';
+    const defaultDomain = 'pesuventurelabs.com'; // Fallback domain
+    const fromAddress = `careers@${companyDomain || defaultDomain}`;
+
 
     try {
       const emailResult = await sendEmail({
         to: input.candidateEmail,
-        from: fromAddress,
+        from: process.env.EMAIL_FROM || fromAddress, // Prioritize .env, then generated,
         subject: subject,
         htmlBody: input.offerLetterHtml,
       });
@@ -55,3 +59,4 @@ const sendOfferLetterEmailFlow = ai.defineFlow(
     }
   }
 );
+

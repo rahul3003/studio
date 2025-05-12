@@ -50,7 +50,7 @@ export function AppSidebar({ user }) {
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
           <Rocket className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
           <h2 className="text-xl font-semibold text-primary group-data-[collapsible=icon]:hidden">
-            HRMS portal
+            PESU Venture Labs
           </h2>
         </div>
       </SidebarHeader>
@@ -117,3 +117,4 @@ export function AppSidebar({ user }) {
     </Sidebar>
   );
 }
+

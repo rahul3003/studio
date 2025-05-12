@@ -15,8 +15,8 @@ const fontRobotoMono = Roboto_Mono({ // Replaced geistMono with fontRobotoMono a
 });
 
 export const metadata = {
-  title: 'HRMS portal',
-  description: 'Human Resource Management System with Role Switching',
+  title: 'PESU Venture Labs',
+  description: 'Human Resource Management System for PESU Venture Labs',
 };
 
 export default function RootLayout({
@@ -41,3 +41,4 @@ export default function RootLayout({
     </html>
   );
 }
+

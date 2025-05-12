@@ -60,8 +60,8 @@ export function PaySlipForm({ onSubmit, isLoading }) {
       basicSalary: "", // Keep as string for input field, Zod will parse
       allowancesStr: "Housing Allowance: 500\nTravel Allowance: 200",
       deductionsStr: "Income Tax: 300\nProvident Fund: 150",
-      companyName: "HRMS Pay Solutions",
-      companyAddress: "45 Finance Avenue, Ledger City, ST 10001",
+      companyName: "PESU Venture Labs",
+      companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
       companyLogoUrl: "",
     },
   });
@@ -286,3 +286,4 @@ export function PaySlipForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
+

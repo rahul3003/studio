@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional employee contract using AI.
@@ -47,14 +48,14 @@ const generateEmployeeContractPrompt = ai.definePrompt({
   name: 'generateEmployeeContractPrompt',
   input: { schema: GenerateEmployeeContractInputSchema.extend({ contractDate: z.string() }) },
   output: { schema: GenerateEmployeeContractOutputSchema },
-  prompt: `You are an expert HR assistant tasked with drafting a formal and comprehensive Employee Contract as an HTML document string.
+  prompt: `You are an expert HR assistant tasked with drafting a formal and comprehensive Employee Contract for PESU Venture Labs as an HTML document string.
 The contract should be well-structured, legally sound (for general purposes, not specific legal advice), and visually appealing.
 Use 12px font size for general paragraph text and 14px for clause headings (e.g., '1. Position and Duties'). Main titles can be larger.
 
 **Contract Details:**
 Date of Contract: {{{contractDate}}}
 Company Name: {{{companyName}}}
-Company Address: {{{companyAddress}}}
+Company Address: {{{companyAddress}}} (e.g., "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085")
 Employee Name: {{{employeeName}}}
 Employee Address: {{{employeeAddress}}}
 Position Title: {{{positionTitle}}}
@@ -121,4 +122,5 @@ const generateEmployeeContractFlow = ai.defineFlow(
     return { contractHtml: output.contractHtml };
   }
 );
+
 

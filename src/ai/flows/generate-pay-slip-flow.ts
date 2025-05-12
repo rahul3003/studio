@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional pay slip using AI.
@@ -113,7 +114,8 @@ export async function generatePaySlip(input: GeneratePaySlipInput): Promise<Gene
     netSalaryStr: formatCurrencyLocal(netSalaryNum),
     parsedAllowances: parsedAllowances,
     parsedDeductions: parsedDeductions,
-    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?grayscale&random&t=${Date.now()}`, // Added grayscale
+    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?grayscale&random&t=${Date.now()}`, 
+    companyAddress: input.companyAddress || "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
   };
   return generatePaySlipFlow(enrichedInput);
 }
@@ -122,7 +124,7 @@ const generatePaySlipPrompt = ai.definePrompt({
   name: 'generatePaySlipPrompt',
   input: { schema: EnrichedGeneratePaySlipInputSchema },
   output: { schema: GeneratePaySlipOutputSchema },
-  prompt: `You are an expert HR assistant tasked with generating a Pay Slip as an HTML document string.
+  prompt: `You are an expert HR assistant tasked with generating a Pay Slip for PESU Venture Labs as an HTML document string.
 The pay slip should be clear, professional, and easy to read. All monetary values are pre-formatted strings.
 Use a base font size of 12px for the document. Table text can be slightly smaller (e.g., 0.9em of 12px).
 
@@ -153,7 +155,7 @@ Calculated Net Salary: {{{netSalaryStr}}}
 1.  **Overall Structure:**
     *   Wrap in \`<div class="payslip-container" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 700px; margin: 20px auto; padding: 25px; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); background-color: #fff; font-size: 12px;">\`
 2.  **Header Section:**
-    *   Company Logo: \`<img src="{{{companyLogoUrl}}}" alt="Company Logo" style="max-height: 60px; margin-bottom: 15px; display: block;" data-ai-hint="company logo"/>\`
+    *   Company Logo: \`<img src="{{{companyLogoUrl}}}" alt="PESU Venture Labs Logo" style="max-height: 60px; margin-bottom: 15px; display: block;" data-ai-hint="PESU Venture Labs logo"/>\`
     *   Company Name: \`<h1 style="font-size: 1.5em; color: #343a40; margin-bottom: 3px;">{{{companyName}}}</h1>\` (Relative to 12px base)
     *   Company Address: \`<p style="font-size: 0.85em; color: #6c757d; margin-bottom: 15px;">{{{companyAddress}}}</p>\` (Relative to 12px)
     *   Pay Slip Title: \`<h2 style="font-size: 1.3em; text-align: center; color: #495057; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ced4da;">Pay Slip</h2>\` (Relative to 12px)
@@ -204,4 +206,5 @@ const generatePaySlipFlow = ai.defineFlow(
     return { paySlipHtml: output.paySlipHtml };
   }
 );
+
 
