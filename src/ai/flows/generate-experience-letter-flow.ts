@@ -11,8 +11,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod'; 
 import { format } from 'date-fns';
-import { handlebars } from 'genkit'; 
 
+// User-facing input schema (matches what the form sends)
 const GenerateExperienceLetterInputSchema = z.object({
   employeeName: z.string().describe('The full name of the former employee.'),
   employeeId: z.string().optional().describe('The employee ID (if applicable).'),
@@ -30,22 +30,57 @@ const GenerateExperienceLetterInputSchema = z.object({
 });
 export type GenerateExperienceLetterInput = z.infer<typeof GenerateExperienceLetterInputSchema>;
 
+// Schema for the data actually passed to the prompt and flow internals
+const EnrichedPromptInputSchema = GenerateExperienceLetterInputSchema.extend({
+  issueDate: z.string().describe('The date the letter is issued, formatted as "MMMM d, yyyy".'),
+  keyResponsibilitiesHtml: z.string().describe('HTML formatted key responsibilities section.'),
+});
+type EnrichedPromptInput = z.infer<typeof EnrichedPromptInputSchema>;
+
 const GenerateExperienceLetterOutputSchema = z.object({
   experienceLetterHtml: z.string().describe('The full HTML text of the generated experience letter.'),
 });
 export type GenerateExperienceLetterOutput = z.infer<typeof GenerateExperienceLetterOutputSchema>;
 
+// Preprocessing function for key responsibilities
+function preprocessKeyResponsibilities(keyResponsibilitiesText: string): string {
+  if (!keyResponsibilitiesText || keyResponsibilitiesText.trim() === "") {
+    return '<p style="margin-top: 5px; margin-bottom: 15px;">The employee fulfilled their duties as per the job description.</p>';
+  }
+  
+  const lines = keyResponsibilitiesText.split('\n').map(s => s.trim()).filter(s => s);
+  const hasBulletPoints = lines.some(line => line.startsWith("- "));
+
+  if (hasBulletPoints) {
+    let htmlList = '<ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px;">';
+    lines.forEach(line => {
+      if (line.startsWith("- ")) {
+        const itemText = line.substring(2).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        htmlList += `<li style="margin-bottom: 5px;">${itemText}</li>`;
+      }
+      // Non-bullet lines within a bulleted list are ignored in this version for simplicity
+    });
+    htmlList += '</ul>';
+    return htmlList;
+  } else {
+    const paragraphText = keyResponsibilitiesText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br />');
+    return `<p style="margin-top: 5px; margin-bottom: 15px;">${paragraphText}</p>`;
+  }
+}
+
 export async function generateExperienceLetter(input: GenerateExperienceLetterInput): Promise<GenerateExperienceLetterOutput> {
-  const enrichedInput = {
-    ...input,
+  const keyResponsibilitiesHtml = preprocessKeyResponsibilities(input.keyResponsibilities);
+  const enrichedInput: EnrichedPromptInput = {
+    ...input, // input.joiningDate and input.lastWorkingDate are already strings from form
     issueDate: format(new Date(), "MMMM d, yyyy"),
+    keyResponsibilitiesHtml,
   };
   return generateExperienceLetterFlow(enrichedInput);
 }
 
 const generateExperienceLetterPrompt = ai.definePrompt({
   name: 'generateExperienceLetterPrompt',
-  input: { schema: GenerateExperienceLetterInputSchema.extend({ issueDate: z.string() }) },
+  input: { schema: EnrichedPromptInputSchema },
   output: { schema: GenerateExperienceLetterOutputSchema },
   prompt: `You are an expert HR assistant tasked with drafting a formal and professional Experience Letter as an HTML document string.
 The letter should be on a formal letterhead style.
@@ -62,7 +97,7 @@ Position Held: {{{positionTitle}}}
 Department: {{{department}}}
 Date of Joining: {{{joiningDate}}}
 Last Working Date: {{{lastWorkingDate}}}
-Key Responsibilities/Contributions: {{{keyResponsibilities}}}
+Key Responsibilities/Contributions (Formatted HTML): {{{keyResponsibilitiesHtml}}}
 
 Issuing Authority Name: {{{issuingAuthorityName}}}
 Issuing Authority Title: {{{issuingAuthorityTitle}}}
@@ -88,19 +123,7 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
         "During their tenure, {{{employeeName}}} held the position of <strong>{{{positionTitle}}}</strong> in the <strong>{{{department}}}</strong> department."
     *   **Responsibilities/Contributions:**
         "Their key responsibilities and contributions included:"
-        Convert the 'keyResponsibilities' input (if it contains bullet points prefixed with "- ") into an HTML unordered list \`<ul>\`. Each item starting with "- " should be an \`<li>\`. If it's a single paragraph, just use a \`<p>\` tag.
-        Example for parsing bullet points:
-        \`{{#if (contains keyResponsibilities "- ")}}\`
-        \`<ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px;">\`
-        \`{{#each (splitLines keyResponsibilities)}}\`
-        \`{{#if (startsWith this "- ")}}\`
-        \`<li style="margin-bottom: 5px;">{{substring this 2}}</li>\`
-        \`{{/if}}\`
-        \`{{/each}}\`
-        \`</ul>\`
-        \`{{else}}\`
-        \`<p style="margin-top: 5px; margin-bottom: 15px;">{{{keyResponsibilities}}}</p>\`
-        \`{{/if}}\`
+        {{{keyResponsibilitiesHtml}}}
     *   **Concluding Remark (Optional positive statement):**
         "During their employment, {{{employeeName}}} was found to be diligent and responsible. We wish them all the best in their future endeavors." (Or a similar neutral/positive closing).
 6.  **Closing:** Professional closing.
@@ -117,23 +140,16 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
-  customizers: [
-    handlebars.helpers({
-      splitLines: (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : [],
-      startsWith: (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false,
-      substring: (str, start) => typeof str === 'string' ? str.substring(start) : '',
-      contains: (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false,
-    }),
-  ],
+  // Removed customizers array as helpers are no longer used
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(
   {
     name: 'generateExperienceLetterFlow',
-    inputSchema: GenerateExperienceLetterInputSchema.extend({ issueDate: z.string() }),
+    inputSchema: EnrichedPromptInputSchema, // Use the enriched schema for the flow input
     outputSchema: GenerateExperienceLetterOutputSchema,
   },
-  async (input) => {
+  async (input) => { // input here is of type EnrichedPromptInput
     const { output } = await generateExperienceLetterPrompt(input);
     if (!output || !output.experienceLetterHtml) {
       throw new Error("AI failed to generate an experience letter or returned empty content.");
@@ -141,4 +157,3 @@ const generateExperienceLetterFlow = ai.defineFlow(
     return { experienceLetterHtml: output.experienceLetterHtml };
   }
 );
-
