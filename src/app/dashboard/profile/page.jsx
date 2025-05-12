@@ -15,6 +15,14 @@ import { NominateRewardDialog } from "@/components/profile/nominate-reward-dialo
 import { DownloadSalarySlipDialog } from "@/components/profile/download-salary-slip-dialog";
 import { VerificationLetterDialog } from "@/components/profile/verification-letter-dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import {
   UserCircle2,
@@ -42,6 +50,7 @@ const initialMockProfileData = {
     phone: "+91 98765 43210",
     address: "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034",
     companyEmail: "priya.sharma@pesuventurelabs.com",
+    personalEmail: "priya.personal@example.com",
     profilePhotoUrl: "https://i.pravatar.cc/150?u=priya.sharma",
     profilePhotoFileName: "", // For "uploaded" photo name
     idProofFileName: "Aadhaar_PriyaSharma.pdf",
@@ -86,15 +95,20 @@ const initialMockProfileData = {
   reports: {
     ndaPath: "/documents/NDA_JohnDoe.pdf",
     form16Path: "/documents/Form16_JohnDoe_2023.pdf",
-    digitalIdImage: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png", // Placeholder
+    digitalIdImage: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png", 
   },
   holidays: {
     companyHolidays: [
       { date: "2024-01-01", name: "New Year's Day" },
       { date: "2024-01-26", name: "Republic Day" },
+      { date: "2024-08-15", name: "Independence Day" },
+      { date: "2024-10-02", name: "Gandhi Jayanti" },
+      { date: "2024-10-31", name: "Diwali" },
+      { date: "2024-12-25", name: "Christmas" },
     ],
     restrictedHolidays: [
-      { date: "2024-05-01", name: "May Day (RH)" },
+      { date: "2024-03-25", name: "Holi (RH)" },
+      { date: "2024-09-07", name: "Ganesh Chaturthi (RH)" },
     ]
   },
   companyName: "PESU Venture Labs"
@@ -119,15 +133,29 @@ export default function ProfilePage() {
 
   React.useEffect(() => {
     if (user) {
-      setProfileData(prevData => ({
-        ...prevData,
+      // Simulate fetching more complete profile data for the logged-in user
+      // In a real app, this would be an API call based on user.id or email
+      const userSpecificData = {
+        ...initialMockProfileData, // Start with base mock
         personal: {
-          ...prevData.personal,
+          ...initialMockProfileData.personal,
           name: user.name,
           companyEmail: user.email,
-          profilePhotoUrl: user.avatar || prevData.personal.profilePhotoUrl,
+          profilePhotoUrl: user.avatar || initialMockProfileData.personal.profilePhotoUrl,
+          // Assume other personal details might be specific for a real fetch
+          phone: user.name === "Priya Sharma" ? "+91 98765 43210" : "+91 88888 77777", 
+          address: user.name === "Priya Sharma" ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
+          city: user.name === "Priya Sharma" ? "Bengaluru" : "New Delhi",
+          idProofFileName: user.name === "Priya Sharma" ? "Aadhaar_PriyaSharma.pdf" : "PAN_Card_RohanMehra.pdf",
+          addressProofFileName: user.name === "Priya Sharma" ? "ElectricityBill_PriyaSharma.pdf" : "Passport_RohanMehra.pdf",
         },
-      }));
+        secondaryData: {
+            ...initialMockProfileData.secondaryData,
+            currentPosition: user.currentRole?.name === "Employee" ? "Software Engineer" : user.currentRole?.name || "Employee", // Adjust based on actual role if needed
+            managerName: user.name === "Priya Sharma" ? "Rohan Mehra" : "Anita Singh"
+        }
+      };
+      setProfileData(userSpecificData);
     }
   }, [user]);
 
@@ -143,11 +171,12 @@ export default function ProfilePage() {
         name: data.name,
         phone: data.phone,
         address: data.address,
-        city: data.city, // Assuming city is part of data
-        profilePhotoUrl: data.profilePhotoUrl,
-        profilePhotoFileName: data.profilePhotoFileName,
-        idProofFileName: data.idProofFileName,
-        addressProofFileName: data.addressProofFileName,
+        city: data.city,
+        personalEmail: data.personalEmail,
+        profilePhotoUrl: data.profilePhotoUrl || prevData.personal.profilePhotoUrl, // Keep old if new is empty
+        profilePhotoFileName: data.profilePhotoFileName || prevData.personal.profilePhotoFileName,
+        idProofFileName: data.idProofFileName || prevData.personal.idProofFileName,
+        addressProofFileName: data.addressProofFileName || prevData.personal.addressProofFileName,
       }
     }));
     toast({ title: "Personal Information Updated", description: "Your details have been saved." });
@@ -225,12 +254,15 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
           <div className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Company Email:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.companyEmail}</span></div>
+          <div className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Personal Email:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.personalEmail || "N/A"}</span></div>
           <div className="flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Phone:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.phone}</span></div>
           <div className="flex items-start col-span-1 md:col-span-2"><MapPin className="mr-2 mt-1 h-4 w-4 text-muted-foreground shrink-0" /><strong>Address:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.address}</span></div>
           <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>ID Proof:</strong><span className="ml-2 text-primary cursor-pointer hover:underline">{profileData.personal.idProofFileName || "Not Uploaded"}</span></div>
           <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Address Proof:</strong><span className="ml-2 text-primary cursor-pointer hover:underline">{profileData.personal.addressProofFileName || "Not Uploaded"}</span></div>
            {profileData.personal.profilePhotoFileName && <div className="flex items-center"><Paperclip className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Profile Photo File:</strong><span className="ml-2 text-primary">{profileData.personal.profilePhotoFileName}</span></div>}
           <div className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" /><strong>City:</strong><span className="ml-2 text-muted-foreground">{profileData.personal.city || "N/A"}</span></div>
+          <div className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Joining Date:</strong><span className="ml-2 text-muted-foreground">{new Date(profileData.secondaryData.joiningDate).toLocaleDateString('en-IN')}</span></div>
+          <div className="flex items-center"><Building className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Department:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.department}</span></div>
         </CardContent>
       </Card>
 
@@ -240,12 +272,10 @@ export default function ProfilePage() {
           <CardTitle className="flex items-center gap-2 text-xl"><Briefcase /> Secondary Data</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-          <div className="flex items-center"><Building className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Department:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.department}</span></div>
-          <div className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Joining Date:</strong><span className="ml-2 text-muted-foreground">{new Date(profileData.secondaryData.joiningDate).toLocaleDateString('en-IN')}</span></div>
           <div className="flex items-center"><strong>Current Position:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.currentPosition}</span></div>
           <div className="flex items-center"><DollarSign className="mr-2 h-4 w-4 text-muted-foreground" /><strong>Remuneration:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.currentRemuneration}</span></div>
-          <div className="flex items-center"><strong>Annual Leave:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.leaveBalance.annual} / {profileData.secondaryData.leaveBalance.totalAnnual} days</span></div>
-          <div className="flex items-center"><strong>Sick Leave:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.leaveBalance.sick} / {profileData.secondaryData.leaveBalance.totalSick} days</span></div>
+          <div className="flex items-center"><strong>Annual Leave Balance:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.leaveBalance.annual} / {profileData.secondaryData.leaveBalance.totalAnnual} days</span></div>
+          <div className="flex items-center"><strong>Sick Leave Balance:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.leaveBalance.sick} / {profileData.secondaryData.leaveBalance.totalSick} days</span></div>
           <div className="flex items-center"><strong>Manager:</strong><span className="ml-2 text-muted-foreground">{profileData.secondaryData.managerName} ({profileData.secondaryData.managerDepartment})</span></div>
         </CardContent>
       </Card>
@@ -274,12 +304,14 @@ export default function ProfilePage() {
           <h4 className="font-semibold text-md mb-2 mt-2">My Nomination History:</h4>
           {profileData.rewards.nominationHistory.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>To</TableHead><TableHead>Points</TableHead><TableHead>Date</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>To</TableHead><TableHead>Points</TableHead><TableHead>Date</TableHead><TableHead>Approved By</TableHead><TableHead>Approved On</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
               <TableBody>
                 {profileData.rewards.nominationHistory.map(item => (
                   <TableRow key={item.id}>
                     <TableCell>{item.to}</TableCell><TableCell>{item.points}</TableCell>
                     <TableCell>{new Date(item.date).toLocaleDateString('en-IN')}</TableCell>
+                    <TableCell>{item.approvedBy}</TableCell>
+                    <TableCell>{new Date(item.approvedOn).toLocaleDateString('en-IN')}</TableCell>
                     <TableCell className="max-w-xs truncate" title={item.reason}>{item.reason}</TableCell>
                   </TableRow>
                 ))}
@@ -358,7 +390,8 @@ export default function ProfilePage() {
             <DialogContent className="max-w-3xl">
                 <DialogHeader><DialogTitle>Non-Disclosure Agreement</DialogTitle></DialogHeader>
                 <div className="prose prose-sm max-w-none dark:prose-invert max-h-[60vh] overflow-y-auto p-1">
-                    <p>This is a mock NDA document for {user.name}, effective {new Date(profileData.secondaryData.joiningDate).toLocaleDateString()}.</p>
+                    <p>This is a mock NDA document for {user.name}, effective {new Date(profileData.secondaryData.joiningDate).toLocaleDateString('en-IN')}.</p>
+                    <p>Content of NDA...</p>
                 </div>
             </DialogContent>
           </Dialog>
@@ -413,3 +446,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+    
