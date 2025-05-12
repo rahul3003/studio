@@ -129,18 +129,5 @@ export const useAuthStore = create(
   )
 );
 
-// Initialize loading state correctly after store setup, especially for client-side.
-// This handles the very first load scenario before rehydration completes.
-if (typeof window !== 'undefined') {
-    const unsub = useAuthStore.persist.onFinishRehydration(() => {
-        useAuthStore.setState({ loading: false });
-        unsub(); // Unsubscribe after first rehydration
-    });
-
-    // Fallback if onFinishRehydration doesn't fire quickly or store is already hydrated
-    // (e.g. from a quick refresh with existing localStorage)
-    // Check if it's already hydrated, if so, set loading to false.
-    if(useAuthStore.persist.hasHydrated()){
-        useAuthStore.setState({loading: false});
-    }
-}
+// The problematic block that caused the error has been removed.
+// The loading state is handled by the onRehydrateStorage callback and initial state.
