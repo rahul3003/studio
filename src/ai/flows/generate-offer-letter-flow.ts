@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit'; 
+import { z } from 'zod'; // Corrected: import z from zod
 import { format } from 'date-fns';
 
 const GenerateOfferLetterInputSchema = z.object({
@@ -118,3 +118,4 @@ const generateOfferLetterFlow = ai.defineFlow(
     return output;
   }
 );
+

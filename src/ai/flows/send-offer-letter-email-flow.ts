@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Flow for sending a generated offer letter via email.
@@ -9,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/services/emailService';
-import { z } from 'genkit';
+import { z } from 'zod'; // Corrected: import z from zod
 
 const SendOfferLetterEmailInputSchema = z.object({
   candidateEmail: z.string().email().describe("The recipient's email address."),
