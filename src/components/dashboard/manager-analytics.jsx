@@ -17,6 +17,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   BarChart as RechartsBarChart,
+  Cell, // Added Cell import
 } from "recharts";
 import { Progress } from "@/components/ui/progress";
 
@@ -148,3 +149,4 @@ export function ManagerAnalytics({ data }) {
     </div>
   );
 }
+
