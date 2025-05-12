@@ -14,7 +14,7 @@ import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
 import { generateEmployeeContract } from "@/ai/flows/generate-employee-contract-flow";
 import { generateExperienceLetter } from "@/ai/flows/generate-experience-letter-flow";
 import { generatePaySlip } from "@/ai/flows/generate-pay-slip-flow";
-import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow"; // Re-use for now, consider a generic one later
+import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow"; 
 import { Loader2, FileText, Copy, Download, Mail } from "lucide-react";
 import html2pdf from 'html2pdf.js';
 
@@ -50,34 +50,35 @@ export default function DocumentsPage() {
     setCurrentDocumentData(data);
 
     let result;
+    let htmlContent;
     try {
       switch (docType) {
         case DOCUMENT_TYPES.OFFER_LETTER:
           result = await generateOfferLetter(data);
-          if (result && result.offerLetterText) setGeneratedDocumentHtml(result.offerLetterText);
+          htmlContent = result?.offerLetterText;
+          if (htmlContent) setGeneratedDocumentHtml(htmlContent);
           break;
         case DOCUMENT_TYPES.EMPLOYEE_CONTRACT:
           result = await generateEmployeeContract(data);
-          if (result && result.contractHtml) setGeneratedDocumentHtml(result.contractHtml);
+          htmlContent = result?.contractHtml;
+          if (htmlContent) setGeneratedDocumentHtml(htmlContent);
           break;
         case DOCUMENT_TYPES.EXPERIENCE_LETTER:
           result = await generateExperienceLetter(data);
-          if (result && result.experienceLetterHtml) setGeneratedDocumentHtml(result.experienceLetterHtml);
+          htmlContent = result?.experienceLetterHtml;
+          if (htmlContent) setGeneratedDocumentHtml(htmlContent);
           break;
         case DOCUMENT_TYPES.PAY_SLIP:
           result = await generatePaySlip(data);
-          if (result && result.paySlipHtml) setGeneratedDocumentHtml(result.paySlipHtml);
+          htmlContent = result?.paySlipHtml;
+          if (htmlContent) setGeneratedDocumentHtml(htmlContent);
           break;
         default:
           throw new Error("Invalid document type for generation.");
       }
 
-      if (!generatedDocumentHtml && !(result?.offerLetterText || result?.contractHtml || result?.experienceLetterHtml || result?.paySlipHtml)) {
-         // Check if result exists and has the expected html content based on type
-        const htmlContent = result?.offerLetterText || result?.contractHtml || result?.experienceLetterHtml || result?.paySlipHtml;
-        if (!htmlContent) {
-            throw new Error("No content received from AI.");
-        }
+      if (!htmlContent) {
+        throw new Error("No content received from AI or content is empty.");
       }
        toast({
           title: `${getTabTitle(docType)} Generated`,
@@ -91,7 +92,7 @@ export default function DocumentsPage() {
         description: error.message || `Could not generate the ${getTabTitle(docType).toLowerCase()}. Please try again.`,
         variant: "destructive",
       });
-      setGeneratedDocumentHtml("<p>Error: Could not generate document. Please check the console for details.</p>");
+      setGeneratedDocumentHtml(`<p class="p-4 text-destructive-foreground bg-destructive rounded-md">Error: Could not generate document. ${error.message || 'Please check console for details.'}</p>`);
     } finally {
       setIsLoading(false);
     }
@@ -115,25 +116,49 @@ export default function DocumentsPage() {
     }
 
     const element = document.createElement('div');
+    // Style to be off-screen for layout calculation, but processable by html2canvas
+    element.style.position = 'fixed';
+    element.style.left = '-9999px';
+    element.style.top = '-9999px';
+    element.style.width = '210mm'; // A5 width, helps with layouting before PDF conversion.
     element.innerHTML = generatedDocumentHtml;
-    // Try to find a common container class or specific ones
+    document.body.appendChild(element);
+
+
     const containerSelector = '.offer-letter-container, .contract-container, .experience-letter-container, .payslip-container';
     const letterContainer = element.querySelector(containerSelector);
     
     if (!letterContainer) {
+        document.body.removeChild(element); // Clean up
         toast({ title: "PDF Generation Error", description: "Could not find the main document container for PDF conversion.", variant: "destructive" });
         return;
     }
     
+    // Ensure content is actually visible within the letterContainer for html2canvas
+    // For example, by ensuring it has dimensions and isn't display:none
+    // This is generally handled if the AI provides a container with content.
+
     const personNameForFilename = currentDocumentData.candidateName || currentDocumentData.employeeName || "Document";
     const filename = `${personNameForFilename.replace(/ /g, '_')}_${getTabTitle(activeTab).replace(/ /g, '_')}.pdf`;
 
     const opt = {
-      margin:       0.5,
+      margin:       [10, 5, 10, 5], // [top, right, bottom, left] in mm
       filename:     filename,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false, allowTaint: true, foreignObjectRendering: true },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false, 
+        allowTaint: true, 
+        foreignObjectRendering: true,
+        // Ensure html2canvas captures the full content of the letterContainer
+        // width: letterContainer.scrollWidth, 
+        // height: letterContainer.scrollHeight,
+        // Using windowWidth/Height can sometimes be more stable if scrollWidth/Height is problematic
+        windowWidth: letterContainer.scrollWidth, 
+        windowHeight: letterContainer.scrollHeight
+      },
+      jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
     };
 
     toast({ title: "Generating PDF", description: "Your PDF is being prepared for download..." });
@@ -145,6 +170,9 @@ export default function DocumentsPage() {
       .catch(err => {
         console.error("Error generating PDF:", err);
         toast({ title: "PDF Generation Failed", description: "An error occurred while generating the PDF.", variant: "destructive" });
+      })
+      .finally(() => {
+         document.body.removeChild(element); // Clean up the temporary element
       });
   };
 
@@ -158,15 +186,13 @@ export default function DocumentsPage() {
     setIsEmailing(true);
     try {
       const emailInput = {
-        candidateEmail: recipientEmail, // Using 'candidateEmail' as the key for the flow
-        candidateName: currentDocumentData.candidateName || currentDocumentData.employeeName, // Using a common name field
-        offerLetterHtml: generatedDocumentHtml, // Generic HTML content
+        candidateEmail: recipientEmail, 
+        candidateName: currentDocumentData.candidateName || currentDocumentData.employeeName, 
+        offerLetterHtml: generatedDocumentHtml, 
         companyName: currentDocumentData.companyName,
       };
-      const subjectTitle = getTabTitle(activeTab); // e.g., "Offer Letter"
-      // The flow's subject is "Job Offer from {companyName} for {candidateName}"
-      // We can make this more generic if we modify the sendOfferLetterEmailFlow or create a new one
-      // For now, it will use that subject format.
+      const subjectTitle = getTabTitle(activeTab); 
+      
       const result = await sendOfferLetterEmail(emailInput); 
       if (result.success) {
         toast({ title: `${subjectTitle} Emailed`, description: result.message });
@@ -271,3 +297,4 @@ export default function DocumentsPage() {
     </div>
   );
 }
+
