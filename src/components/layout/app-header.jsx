@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,11 +5,11 @@ import { RoleSwitcher } from "@/components/role-switcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
-import { Home, Bell, Award, LogOut as LogOutIcon } from "lucide-react"; // Added LogOutIcon
+import { Home, Bell, Award, LogOut as LogOutIcon } from "lucide-react"; 
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
-import { useAttendanceStore } from "@/store/attendanceStore"; // Added attendance store
+// import { useAttendanceStore } from "@/store/attendanceStore"; // No longer directly needed here for button logic
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns"; // Added date-fns
+// import { format } from "date-fns"; // No longer needed here for button logic
 
 function getBreadcrumbs(pathname) {
   const pathParts = pathname.split('/').filter(part => part);
@@ -40,34 +39,15 @@ const mockNotifications = [
 ];
 
 
-export function AppHeader({ onCheckoutClick }) { // Added onCheckoutClick prop
+export function AppHeader({ onCheckoutClick, showCheckoutButton }) { 
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
   const { user, loading } = useAuthStore();
   const profileData = useProfileStore((state) => state.profileData);
   const rewardsPoints = profileData?.rewards?.pointsAvailable || 0;
 
-  const { getAttendanceForUserAndDate } = useAttendanceStore(); // Get attendance function
-
   const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
-
-  const [showCheckoutButton, setShowCheckoutButton] = React.useState(false);
-
-  React.useEffect(() => {
-    if (user) {
-      const today = new Date();
-      const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
-      if (attendanceRecord && attendanceRecord.checkInTimeCategory && !attendanceRecord.checkOutTimeCategory) {
-        setShowCheckoutButton(true);
-      } else {
-        setShowCheckoutButton(false);
-      }
-    } else {
-      setShowCheckoutButton(false);
-    }
-  }, [user, getAttendanceForUserAndDate, pathname]); // Re-check on pathname change if needed, or listen to store updates
-
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -96,7 +76,7 @@ export function AppHeader({ onCheckoutClick }) { // Added onCheckoutClick prop
         {canSwitchRoles && <RoleSwitcher />}
         
         {showCheckoutButton && (
-          <Button variant="outline" size="sm" onClick={onCheckoutClick} className="animate-pulse bg-green-500/10 border-green-500 text-green-700 hover:bg-green-500/20">
+          <Button variant="outline" size="sm" onClick={onCheckoutClick} className="animate-pulse bg-green-500/10 border-green-500 text-green-700 hover:bg-green-500/20 dark:bg-green-700/20 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-700/30">
             <LogOutIcon className="mr-2 h-4 w-4" />
             Check Out
           </Button>
@@ -128,7 +108,7 @@ export function AppHeader({ onCheckoutClick }) { // Added onCheckoutClick prop
             <DropdownMenuSeparator />
             {mockNotifications.length > 0 ? (
               mockNotifications.map(notification => (
-                <DropdownMenuItem key={notification.id} className={`flex flex-col items-start gap-1 ${!notification.read ? 'bg-accent/30 hover:bg-accent/50' : ''}`}>
+                <DropdownMenuItem key={notification.id} className={`flex flex-col items-start gap-1 ${!notification.read ? 'bg-accent/30 hover:bg-accent/50 dark:bg-accent/20 dark:hover:bg-accent/30' : ''}`}>
                   <div className="flex justify-between w-full">
                     <span className="font-semibold text-sm">{notification.title}</span>
                     <span className="text-xs text-muted-foreground">{notification.time}</span>
@@ -151,4 +131,3 @@ export function AppHeader({ onCheckoutClick }) { // Added onCheckoutClick prop
     </header>
   );
 }
-

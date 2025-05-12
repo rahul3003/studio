@@ -10,8 +10,9 @@ const createDefaultAttendanceRecord = () => ({
   notes: "",
   checkInTimeCategory: null, // "Before 9:30 AM", "9:30 AM - 10:30 AM", "After 10:30 AM"
   workLocation: null, // "Office", "HomeWithPermission", "HomeWithoutPermission"
-  userCoordinates: null, // { latitude: number, longitude: number }
+  userCoordinates: null, // { latitude: number, longitude: number } // For check-in
   checkOutTimeCategory: null, // "Before 6:00 PM", "6:00 PM - 7:00 PM", "After 7:00 PM"
+  checkOutCoordinates: null, // { latitude: number, longitude: number } // For check-out
 });
 
 
@@ -28,8 +29,9 @@ const generateUserAttendance = (userName) => {
             notes: "Full day work",
             checkInTimeCategory: "Before 9:30 AM",
             workLocation: "Office",
-            userCoordinates: null,
+            userCoordinates: { latitude: 12.9345, longitude: 77.5968 }, // Example PVL coords
             checkOutTimeCategory: "6:00 PM - 7:00 PM",
+            checkOutCoordinates: { latitude: 12.9346, longitude: 77.5969 }, // Slightly different for demo
         };
         records[format(subDays(today, 2), "yyyy-MM-dd")] = { 
             status: "Leave", 
@@ -38,6 +40,7 @@ const generateUserAttendance = (userName) => {
             workLocation: null,
             userCoordinates: null,
             checkOutTimeCategory: null,
+            checkOutCoordinates: null,
         };
     } else if (userName === "Rohan Mehra") {
         records[format(subDays(today, 1), "yyyy-MM-dd")] = { 
@@ -45,19 +48,20 @@ const generateUserAttendance = (userName) => {
             notes: "WFH",
             checkInTimeCategory: "9:30 AM - 10:30 AM",
             workLocation: "HomeWithPermission",
-            userCoordinates: null,
+            userCoordinates: { latitude: 12.9716, longitude: 77.5946 }, // Example Bangalore coords
             checkOutTimeCategory: "After 7:00 PM",
+            checkOutCoordinates: { latitude: 12.9717, longitude: 77.5947 },
         };
     }
     records["2024-07-04"] = { // Example Holiday
         status: "Holiday", 
         notes: "Independence Day",
-        checkInTimeCategory: null, workLocation: null, userCoordinates: null, checkOutTimeCategory: null,
+        checkInTimeCategory: null, workLocation: null, userCoordinates: null, checkOutTimeCategory: null, checkOutCoordinates: null,
     };
     if (userName === "Admin User") {
          records[format(subDays(today, 1), "yyyy-MM-dd")] = { 
             status: "Present", notes: "Admin present yesterday.",
-            checkInTimeCategory: "Before 9:30 AM", workLocation: "Office", userCoordinates: null, checkOutTimeCategory: "6:00 PM - 7:00 PM"
+            checkInTimeCategory: "Before 9:30 AM", workLocation: "Office", userCoordinates: null, checkOutTimeCategory: "6:00 PM - 7:00 PM", checkOutCoordinates: null,
         };
     }
     return records;
@@ -91,8 +95,9 @@ export const useAttendanceStore = create(
           if (updatedRecord.status !== "Present") {
             updatedRecord.checkInTimeCategory = null;
             updatedRecord.workLocation = null;
-            updatedRecord.userCoordinates = null;
+            updatedRecord.userCoordinates = null; // check-in coords
             updatedRecord.checkOutTimeCategory = null;
+            updatedRecord.checkOutCoordinates = null; // check-out coords
           }
           
           return {
@@ -111,29 +116,33 @@ export const useAttendanceStore = create(
           status: status || "Present", 
           checkInTimeCategory,
           workLocation,
-          userCoordinates,
+          userCoordinates, // check-in coordinates
           notes: notes || (status === "Leave" ? "Marked as Leave" : "Checked in"),
           checkOutTimeCategory: null, // Ensure checkout is null on check-in
+          checkOutCoordinates: null, // Ensure checkout coordinates are null on check-in
         };
         get().saveAttendance(userName, date, attendanceData);
       },
 
-      markEveningCheckout: (userName, date, { checkOutTimeCategory, notes }) => {
+      markEveningCheckout: (userName, date, { checkOutTimeCategory, notes, userCoordinates /* this is now checkOutCoordinates */ }) => {
         const dateString = format(date, "yyyy-MM-dd");
         const userRecords = get().allUsersAttendance[userName] || {};
         const existingRecord = userRecords[dateString] || createDefaultAttendanceRecord();
 
-        if (existingRecord.status !== "Present") {
-            // If not marked present, checkout doesn't make sense or should update status too.
-            // For now, we'll assume checkout is only for 'Present' status.
+        if (existingRecord.status !== "Present" || !existingRecord.checkInTimeCategory) {
             console.warn("Cannot mark checkout for non-present status or no check-in found.");
+            // Optionally, you could still save the checkout attempt notes or coordinates if needed.
+            // For now, we prevent full checkout marking if no valid check-in.
+            // You might want to toast a message to the user here.
             return; 
         }
 
         const attendanceData = {
             checkOutTimeCategory,
-            notes: notes || existingRecord.notes || "Checked out", // Append to existing notes or set new
+            notes: notes || existingRecord.notes || "Checked out", 
+            checkOutCoordinates: userCoordinates, // Store captured coords as checkOutCoordinates
         };
+        // Note: saveAttendance will merge this with the existing record for the day.
         get().saveAttendance(userName, date, attendanceData);
       },
 

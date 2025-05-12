@@ -62,7 +62,7 @@ export default function AttendancePage() {
   const user = useAuthStore((state) => state.user);
 
   const allUsersAttendance = useAttendanceStore((state) => state.allUsersAttendance);
-  const saveUserAttendance = useAttendanceStore((state) => state.saveAttendance); // Updated store action
+  const saveUserAttendance = useAttendanceStore((state) => state.saveAttendance); 
   const initializeAttendance = useAttendanceStore((state) => state._initializeAttendance);
 
   const employees = useEmployeeStore((state) => state.employees);
@@ -118,11 +118,9 @@ export default function AttendancePage() {
     setIsMarkAttendanceDialogOpen(true);
   };
 
-  // Updated to pass the full attendanceData object
   const handleSaveAttendance = (date, attendanceData) => {
     if (!viewingUserName) return;
     saveUserAttendance(viewingUserName, date, attendanceData);
-    // Toast message might need adjustment based on what was saved.
     toast({
       title: "Attendance Updated",
       description: `Attendance for ${viewingUserName} on ${format(date, "PPP")} updated.`,
@@ -279,8 +277,6 @@ export default function AttendancePage() {
                     onSelect={(day) => {
                         if (day) {
                         setSelectedDate(day);
-                        // Optionally open dialog immediately, or let user click "Mark/Edit"
-                        // handleOpenMarkAttendanceDialog(day); 
                         }
                     }}
                     month={currentDate}
@@ -303,8 +299,10 @@ export default function AttendancePage() {
                             <>
                                 {selectedDayRecord.checkInTimeCategory && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> In: {selectedDayRecord.checkInTimeCategory}</p>}
                                 {selectedDayRecord.workLocation && <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-muted-foreground" /> At: {workLocationLabels[selectedDayRecord.workLocation] || selectedDayRecord.workLocation}</p>}
-                                {selectedDayRecord.userCoordinates && <p className="flex items-center text-xs"><MapPin className="h-3 w-3 mr-1 text-muted-foreground" /> Loc: {selectedDayRecord.userCoordinates.latitude.toFixed(2)}, {selectedDayRecord.userCoordinates.longitude.toFixed(2)}</p>}
+                                {selectedDayRecord.userCoordinates && <p className="flex items-center text-xs"><MapPin className="h-3 w-3 mr-1 text-blue-500" /> In-Loc: {selectedDayRecord.userCoordinates.latitude.toFixed(2)}, {selectedDayRecord.userCoordinates.longitude.toFixed(2)}</p>}
                                 {selectedDayRecord.checkOutTimeCategory && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> Out: {selectedDayRecord.checkOutTimeCategory}</p>}
+                                {selectedDayRecord.checkOutCoordinates && <p className="flex items-center text-xs"><MapPin className="h-3 w-3 mr-1 text-green-500" /> Out-Loc: {selectedDayRecord.checkOutCoordinates.latitude.toFixed(2)}, {selectedDayRecord.checkOutCoordinates.longitude.toFixed(2)}</p>}
+                                {/* TODO: Display reverse geocoded address if available */}
                             </>
                         )}
                         {selectedDayRecord.notes && <p className="italic text-muted-foreground">Notes: {selectedDayRecord.notes}</p>}
@@ -337,8 +335,6 @@ export default function AttendancePage() {
                       onDayClick={(day) => { 
                           if (day && isSameMonth(day, currentDate)) {
                               setSelectedDate(day);
-                              // Optionally open dialog or just highlight for view in details panel
-                              // handleOpenMarkAttendanceDialog(day);
                           }
                       }}
                       className="p-0"

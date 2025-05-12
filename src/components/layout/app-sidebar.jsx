@@ -1,4 +1,3 @@
-
 "use client";
 import * as React from "react";
 import Link from "next/link";
@@ -15,20 +14,20 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Rocket, LogOut as LogOutIcon } from "lucide-react"; // Added LogOutIcon for consistency
+import { LogOut, Settings, Rocket, LogOut as LogOutIcon } from "lucide-react"; 
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore"; 
 import { ROLE_NAV_CONFIG } from "@/config/roles";
-import { useAttendanceStore } from "@/store/attendanceStore"; // Added attendance store
-import { format } from "date-fns"; // Added date-fns
+// import { useAttendanceStore } from "@/store/attendanceStore"; // No longer directly needed here for button logic
+// import { format } from "date-fns"; // No longer needed here for button logic
 
-export function AppSidebar({ onCheckoutClick }) { // Added onCheckoutClick prop
+export function AppSidebar({ onCheckoutClick, showCheckoutButton }) { 
   const pathname = usePathname();
   const { user, logout } = useAuthStore(); 
   const { state: sidebarState, isMobile } = useSidebar(); 
-  const { getAttendanceForUserAndDate } = useAttendanceStore();
+  // const { getAttendanceForUserAndDate } = useAttendanceStore(); // Not directly used here anymore
 
-  const [showCheckoutButtonInSidebar, setShowCheckoutButtonInSidebar] = React.useState(false);
+  // const [showCheckoutButtonInSidebar, setShowCheckoutButtonInSidebar] = React.useState(false); // Managed by prop
 
 
   const navItemsForRole = React.useMemo(() => {
@@ -38,18 +37,10 @@ export function AppSidebar({ onCheckoutClick }) { // Added onCheckoutClick prop
     return [];
   }, [user]);
 
-  React.useEffect(() => {
-    if (user) {
-      const today = new Date();
-      const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
-      // Logic for sidebar button visibility (can be different from header)
-      // For example, maybe only show in sidebar if it's collapsed and user is checked in
-      const shouldShow = !!(attendanceRecord && attendanceRecord.checkInTimeCategory && !attendanceRecord.checkOutTimeCategory);
-      setShowCheckoutButtonInSidebar(shouldShow && sidebarState === 'collapsed' && !isMobile); // Example: only if collapsed and on desktop
-    } else {
-      setShowCheckoutButtonInSidebar(false);
-    }
-  }, [user, getAttendanceForUserAndDate, sidebarState, isMobile]);
+  // The logic for showing the checkout button is now primarily handled in DashboardLayout
+  // and passed via the `showCheckoutButton` prop.
+  // Example of specific sidebar logic (if needed, e.g., only if collapsed):
+  const shouldDisplayCheckoutInSidebar = showCheckoutButton && (sidebarState === 'collapsed' && !isMobile);
 
 
   const getTooltipContent = (label) => {
@@ -92,7 +83,7 @@ export function AppSidebar({ onCheckoutClick }) { // Added onCheckoutClick prop
               </Link>
             </SidebarMenuItem>
           ))}
-           {showCheckoutButtonInSidebar && ( // Conditional rendering for checkout button in sidebar
+           {shouldDisplayCheckoutInSidebar && ( 
             <SidebarMenuItem>
                  <SidebarMenuButton
                     onClick={onCheckoutClick}
@@ -163,4 +154,3 @@ export function AppSidebar({ onCheckoutClick }) { // Added onCheckoutClick prop
     </Sidebar>
   );
 }
-

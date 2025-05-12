@@ -58,7 +58,7 @@ export function MarkAttendanceDialog({
   const [checkInTimeCategory, setCheckInTimeCategory] = React.useState(null);
   const [workLocation, setWorkLocation] = React.useState(null);
   const [checkOutTimeCategory, setCheckOutTimeCategory] = React.useState(null);
-  // userCoordinates is usually set by MorningCheckInDialog, view only here.
+  // userCoordinates (for check-in) and checkOutCoordinates are view-only here, usually set by their respective dialogs.
 
   React.useEffect(() => {
     if (isOpen && selectedDate) {
@@ -83,14 +83,13 @@ export function MarkAttendanceDialog({
     const attendanceData = {
       status,
       notes,
-      // Only include these if status is 'Present'
       checkInTimeCategory: status === "Present" ? checkInTimeCategory : null,
       workLocation: status === "Present" ? workLocation : null,
       checkOutTimeCategory: status === "Present" ? checkOutTimeCategory : null,
-      // userCoordinates is not editable here, preserve if existing
-      userCoordinates: currentAttendance?.userCoordinates || null,
+      userCoordinates: currentAttendance?.userCoordinates || null, // Preserve check-in coords
+      checkOutCoordinates: currentAttendance?.checkOutCoordinates || null, // Preserve check-out coords
     };
-    onSave(selectedDate, attendanceData); // Pass the whole object
+    onSave(selectedDate, attendanceData);
     toast({
       title: "Attendance Updated",
       description: `Attendance for ${userName} on ${format(selectedDate, "PPP")} has been updated.`,
@@ -164,8 +163,9 @@ export function MarkAttendanceDialog({
               
               {currentAttendance?.userCoordinates && (
                 <div className="text-sm text-muted-foreground flex items-center">
-                  <MapPin className="h-4 w-4 mr-1.5"/> 
-                  Captured Location: Lat {currentAttendance.userCoordinates.latitude.toFixed(3)}, Lon {currentAttendance.userCoordinates.longitude.toFixed(3)}
+                  <MapPin className="h-4 w-4 mr-1.5 text-blue-500"/> 
+                  Check-In Loc: Lat {currentAttendance.userCoordinates.latitude.toFixed(3)}, Lon {currentAttendance.userCoordinates.longitude.toFixed(3)}
+                  {/* TODO: Convert to City, State, Pincode using a service if needed */}
                 </div>
               )}
 
@@ -185,6 +185,14 @@ export function MarkAttendanceDialog({
                   </SelectContent>
                 </Select>
               </div>
+
+              {currentAttendance?.checkOutCoordinates && (
+                <div className="text-sm text-muted-foreground flex items-center">
+                  <MapPin className="h-4 w-4 mr-1.5 text-green-500"/> 
+                  Check-Out Loc: Lat {currentAttendance.checkOutCoordinates.latitude.toFixed(3)}, Lon {currentAttendance.checkOutCoordinates.longitude.toFixed(3)}
+                   {/* TODO: Convert to City, State, Pincode using a service if needed */}
+                </div>
+              )}
             </>
           )}
 

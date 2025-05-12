@@ -48,11 +48,12 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
     setUserCoordinates(null);
     setNotes("");
     setIsLeave(false);
+    setIsLocating(false);
   };
 
   React.useEffect(() => {
     if (isOpen) {
-      resetForm(); // Reset form state when dialog opens
+      resetForm(); 
     }
   }, [isOpen]);
 
@@ -74,7 +75,7 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
       (error) => {
         console.error("Error getting location:", error);
         toast({ title: "Location Error", description: `Could not get location: ${error.message}`, variant: "destructive" });
-        setUserCoordinates(null); // Clear if error
+        setUserCoordinates(null); 
         setIsLocating(false);
       }
     );
@@ -88,10 +89,10 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
         toast({ title: "Validation Error", description: "Please select a work location.", variant: "destructive" });
         return;
       }
-       if ((workLocation === "HomeWithPermission" || workLocation === "HomeWithoutPermission" || workLocation === "Office") && !userCoordinates) {
-        // Making location optional for now, but can enforce if needed
-        // toast({ title: "Location Required", description: "Please capture your location for WFH/Office.", variant: "destructive" });
-        // return;
+       if ((workLocation === "Office" || workLocation === "HomeWithPermission" || workLocation === "HomeWithoutPermission") && !userCoordinates && workLocation !== "Office") {
+         // Optional: make location mandatory for WFH
+         // toast({ title: "Location Required", description: "Please capture your location for WFH.", variant: "destructive" });
+         // return;
       }
       onSave({
         status: "Present",
@@ -101,14 +102,18 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
         notes,
       });
     }
-    onClose(); // Close dialog after save
+    onClose(true); // Indicate that data was saved
+  };
+
+  const handleDialogClose = () => {
+    onClose(false); // Indicate that dialog was closed without saving
   };
 
 
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleDialogClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Morning Check-In {userName ? `for ${userName}` : ""}</DialogTitle>
@@ -184,7 +189,7 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={handleDialogClose}>
             Cancel
           </Button>
           <Button type="button" onClick={handleSubmit}>
