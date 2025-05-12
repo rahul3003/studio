@@ -34,7 +34,7 @@ export default function RewardsPage() {
   const handleNominateRewardSubmit = (data) => {
     const currentRewards = profileData.rewards;
     const pointsToShare = parseInt(data.points, 10);
-    const remainingSharable = currentRewards.sharablePointsMonthlyLimit - currentRewards.pointsSharedThisMonth;
+    const remainingSharable = (currentRewards.sharablePointsMonthlyLimit || 0) - (currentRewards.pointsSharedThisMonth || 0);
 
     if (pointsToShare > remainingSharable) {
          toast({ 
@@ -46,7 +46,7 @@ export default function RewardsPage() {
     }
 
     addNominationInStore({
-        nominee: data.nominee, // Nominee's name
+        nominee: data.nominee, 
         points: pointsToShare,
         reasonCategory: data.reasonCategory,
         feedbackText: data.feedbackText,
@@ -56,12 +56,12 @@ export default function RewardsPage() {
   };
   
   const availableEmployeesForNomination = DUMMY_EMPLOYEE_LIST_FOR_NOMINATION
-    .filter(emp => emp.name !== user.name) // Exclude self from nomination list
+    .filter(emp => emp.name !== user.name) 
     .map(e => e.name); 
   
   const rewardsData = profileData.rewards;
   const personalData = profileData.personal;
-  const sharablePointsBalance = rewardsData.sharablePointsMonthlyLimit - rewardsData.pointsSharedThisMonth;
+  const sharablePointsBalance = (rewardsData.sharablePointsMonthlyLimit || 0) - (rewardsData.pointsSharedThisMonth || 0);
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -73,9 +73,9 @@ export default function RewardsPage() {
         <CardContent>
           <div className="mb-6 p-4 border rounded-lg bg-muted/30">
             <h3 className="text-lg font-semibold mb-1">Welcome, {personalData.name}!</h3>
-            <p className="text-2xl font-bold text-primary">{rewardsData.accruedPoints} <span className="text-sm font-normal text-muted-foreground">Accrued Points</span></p>
+            <p className="text-2xl font-bold text-primary">{rewardsData.accruedPoints || 0} <span className="text-sm font-normal text-muted-foreground">Accrued Points</span></p>
              <p className="text-sm text-muted-foreground mt-1">
-                You can share <strong>{sharablePointsBalance} / {rewardsData.sharablePointsMonthlyLimit}</strong> points this month.
+                You can share <strong>{sharablePointsBalance} / {rewardsData.sharablePointsMonthlyLimit || 0}</strong> points this month.
             </p>
           </div>
 
@@ -88,7 +88,7 @@ export default function RewardsPage() {
 
             <TabsContent value="my_nominations" className="pt-6">
               <h3 className="font-semibold mb-3 text-xl">My Earlier Nominations</h3>
-              {rewardsData.nominationHistoryGiven.length > 0 ? (
+              {rewardsData.nominationHistoryGiven?.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -116,7 +116,7 @@ export default function RewardsPage() {
 
             <TabsContent value="received_rewards" className="pt-6">
               <h3 className="font-semibold mb-3 text-xl">Rewards I Received</h3>
-               {rewardsData.nominationHistoryReceived.length > 0 ? (
+               {rewardsData.nominationHistoryReceived?.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -160,7 +160,7 @@ export default function RewardsPage() {
           <div className="mt-8 p-3 border-t text-xs text-muted-foreground">
             <p><strong>NOTE:</strong></p>
             <ul className="list-disc list-inside ml-4">
-                <li>Rewards that you can share ({rewardsData.sharablePointsMonthlyLimit} points) will reset on the 1st of every month.</li>
+                <li>Rewards that you can share ({rewardsData.sharablePointsMonthlyLimit || 0} points) will reset on the 1st of every month.</li>
                 <li>However, rewards you have collected (Accrued Points) will remain intact.</li>
             </ul>
           </div>
@@ -179,3 +179,4 @@ export default function RewardsPage() {
     </div>
   );
 }
+
