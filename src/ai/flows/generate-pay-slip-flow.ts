@@ -114,7 +114,7 @@ export async function generatePaySlip(input: GeneratePaySlipInput): Promise<Gene
     netSalaryStr: formatCurrencyLocal(netSalaryNum),
     parsedAllowances: parsedAllowances,
     parsedDeductions: parsedDeductions,
-    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?grayscale&random&t=${Date.now()}`, 
+    companyLogoUrl: input.companyLogoUrl || `https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png`, 
     companyAddress: input.companyAddress || "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
   };
   return generatePaySlipFlow(enrichedInput);
@@ -125,7 +125,7 @@ const generatePaySlipPrompt = ai.definePrompt({
   input: { schema: EnrichedGeneratePaySlipInputSchema },
   output: { schema: GeneratePaySlipOutputSchema },
   prompt: `You are an expert HR assistant tasked with generating a Pay Slip for PESU Venture Labs as an HTML document string.
-The pay slip should be clear, professional, and easy to read. All monetary values are pre-formatted strings.
+The pay slip should be clear, professional, and easy to read. All monetary values are pre-formatted strings representing INR amounts.
 Use a base font size of 12px for the document. Table text can be slightly smaller (e.g., 0.9em of 12px).
 
 **Pay Slip Details:**
@@ -155,7 +155,7 @@ Calculated Net Salary: {{{netSalaryStr}}}
 1.  **Overall Structure:**
     *   Wrap in \`<div class="payslip-container" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 700px; margin: 20px auto; padding: 25px; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); background-color: #fff; font-size: 12px;">\`
 2.  **Header Section:**
-    *   Company Logo: \`<img src="{{{companyLogoUrl}}}" alt="PESU Venture Labs Logo" style="max-height: 60px; margin-bottom: 15px; display: block;" data-ai-hint="PESU Venture Labs logo"/>\`
+    *   Company Logo: \`<img src="{{{companyLogoUrl}}}" alt="{{{companyName}}} Logo" style="max-height: 60px; margin-bottom: 15px; display: block;" data-ai-hint="PESU Venture Labs logo"/>\`
     *   Company Name: \`<h1 style="font-size: 1.5em; color: #343a40; margin-bottom: 3px;">{{{companyName}}}</h1>\` (Relative to 12px base)
     *   Company Address: \`<p style="font-size: 0.85em; color: #6c757d; margin-bottom: 15px;">{{{companyAddress}}}</p>\` (Relative to 12px)
     *   Pay Slip Title: \`<h2 style="font-size: 1.3em; text-align: center; color: #495057; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ced4da;">Pay Slip</h2>\` (Relative to 12px)
@@ -167,7 +167,7 @@ Calculated Net Salary: {{{netSalaryStr}}}
     *   Example Item: \`<p style="font-size: 0.9em; margin: 3px 0;"><span style="color: #6c757d;">Employee Name:</span> <strong style="color: #343a40;">{{{employeeName}}}</strong></p>\` (Relative to 12px)
 4.  **Earnings and Deductions Table:** Use HTML \`<table>\`. Table text should be about 0.9em of the base 12px.
     *   \`<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;">\`
-    *   Table Header: \`<thead style="background-color: #e9ecef;"><tr><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Earnings</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (USD)</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Deductions</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (USD)</th></tr></thead>\`
+    *   Table Header: \`<thead style="background-color: #e9ecef;"><tr><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Earnings</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (INR)</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Deductions</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (INR)</th></tr></thead>\`
     *   Table Body:
         *   Row for Basic Salary: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">Basic Salary</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{{basicSalaryStr}}}</td><td></td><td></td></tr>\`
         *   Dynamically list allowances using \`parsedAllowances\`:
@@ -182,7 +182,7 @@ Calculated Net Salary: {{{netSalaryStr}}}
     *   \`</table>\`
 5.  **Net Pay Section:**
     *   \`<div style="text-align: right; margin-top: 10px; padding: 15px; background-color: #e9ecef; border-radius: 4px;">\`
-    *   \`<strong style="font-size: 1.1em; color: #343a40;">Net Salary: {{{netSalaryStr}}}</strong>\` (Relative to 12px)
+    *   \`<strong style="font-size: 1.1em; color: #343a40;">Net Salary (INR): {{{netSalaryStr}}}</strong>\` (Relative to 12px)
     *   \`</div>\`
 6.  **Footer:**
     *   \`<p style="font-size: 0.75em; color: #6c757d; text-align: center; margin-top: 25px;">This is a system-generated pay slip and does not require a signature. Generated on: {{{currentDate}}}</p>\` (Relative to 12px)
@@ -206,5 +206,3 @@ const generatePaySlipFlow = ai.defineFlow(
     return { paySlipHtml: output.paySlipHtml };
   }
 );
-
-

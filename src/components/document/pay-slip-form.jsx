@@ -31,7 +31,7 @@ const paySlipFormSchema = z.object({
   payPeriodEndDate: z.date({ required_error: "Pay period end date is required." }),
   paymentDate: z.date({ required_error: "Payment date is required." }),
   basicSalary: z.preprocess(
-    (val) => (val === "" ? undefined : parseFloat(String(val))), // Convert empty string to undefined before parsing
+    (val) => (val === "" ? undefined : parseFloat(String(val))), 
     z.number({ required_error: "Basic salary is required.", invalid_type_error: "Basic salary must be a number." })
      .positive({ message: "Basic salary must be positive." })
   ),
@@ -57,12 +57,12 @@ export function PaySlipForm({ onSubmit, isLoading }) {
       payPeriodStartDate: undefined,
       payPeriodEndDate: undefined,
       paymentDate: new Date(),
-      basicSalary: "", // Keep as string for input field, Zod will parse
-      allowancesStr: "Housing Allowance: 500\nTravel Allowance: 200",
-      deductionsStr: "Income Tax: 300\nProvident Fund: 150",
+      basicSalary: "", // e.g. 50000 (INR)
+      allowancesStr: "House Rent Allowance: 15000\nTravel Allowance: 5000\nSpecial Allowance: 10000", // Indian context amounts in INR
+      deductionsStr: "Provident Fund (PF): 2500\nProfessional Tax (PT): 200\nIncome Tax (TDS): 5500", // Indian context amounts in INR
       companyName: "PESU Venture Labs",
       companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
-      companyLogoUrl: "",
+      companyLogoUrl: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png", // Default PVL logo
     },
   });
 
@@ -72,7 +72,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
       payPeriodStartDate: format(values.payPeriodStartDate, "MMMM d, yyyy"),
       payPeriodEndDate: format(values.payPeriodEndDate, "MMMM d, yyyy"),
       paymentDate: format(values.paymentDate, "MMMM d, yyyy"),
-      basicSalary: parseFloat(values.basicSalary) // Ensure it's a number for the flow
+      basicSalary: parseFloat(values.basicSalary) 
     };
     onSubmit(formattedValues);
   };
@@ -87,7 +87,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Bob The Builder" {...field} />
+                <Input placeholder="e.g., Vijay Kumar" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -100,7 +100,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee ID</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., EMP002" {...field} />
+                <Input placeholder="e.g., PVL00234" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -113,7 +113,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g., employee@example.com" {...field} />
+                <Input type="email" placeholder="e.g., vijay.kumar@pesuventurelabs.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,7 +127,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
                 <FormItem>
                 <FormLabel>Department</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., Operations" {...field} />
+                    <Input placeholder="e.g., Engineering" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -140,7 +140,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
                 <FormItem>
                 <FormLabel>Position Title</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., Project Manager" {...field} />
+                    <Input placeholder="e.g., Software Development Engineer II" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -188,9 +188,9 @@ export function PaySlipForm({ onSubmit, isLoading }) {
           name="basicSalary"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Basic Salary</FormLabel>
+              <FormLabel>Basic Salary (INR)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 5000.00" {...field} step="0.01"/>
+                <Input type="number" placeholder="e.g., 50000.00" {...field} step="0.01"/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -201,10 +201,10 @@ export function PaySlipForm({ onSubmit, isLoading }) {
           name="allowancesStr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Allowances (Optional)</FormLabel>
+              <FormLabel>Allowances (Optional, one per line: Name: Amount)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter each allowance on a new line, e.g., Housing: 500"
+                  placeholder="e.g., House Rent Allowance: 15000"
                   className="resize-none"
                   rows={3}
                   {...field}
@@ -219,10 +219,10 @@ export function PaySlipForm({ onSubmit, isLoading }) {
           name="deductionsStr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Deductions (Optional)</FormLabel>
+              <FormLabel>Deductions (Optional, one per line: Name: Amount)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter each deduction on a new line, e.g., Tax: 200"
+                  placeholder="e.g., Income Tax (TDS): 5500"
                   className="resize-none"
                   rows={3}
                   {...field}
@@ -239,7 +239,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Your Company Payroll Ltd." {...field} />
+                <Input placeholder="e.g., PESU Venture Labs Pvt. Ltd." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -252,7 +252,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Address (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 123 Finance St, Capital City" {...field} />
+                <Input placeholder="e.g., PES University, Bengaluru" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -265,7 +265,7 @@ export function PaySlipForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Logo URL (Optional)</FormLabel>
               <FormControl>
-                <Input type="url" placeholder="https://example.com/logo.png" {...field} />
+                <Input type="url" placeholder="https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -286,4 +286,3 @@ export function PaySlipForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
-

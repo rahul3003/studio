@@ -49,15 +49,15 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
       positionTitle: "",
       department: "",
       startDate: undefined,
-      salary: "USD 60,000 per annum, paid monthly",
-      workingHours: "9:00 AM to 5:00 PM, Monday to Friday",
-      probationPeriod: "3 months",
-      leaveEntitlement: "20 paid vacation days per annum, plus public holidays",
-      confidentialityClause: "Standard company confidentiality and non-disclosure agreement applies.",
-      terminationNotice: "4 weeks by either party",
+      salary: "₹ 6,00,000 per annum, paid monthly", // Indian context
+      workingHours: "10:00 AM to 6:00 PM, Monday to Friday", // Indian context
+      probationPeriod: "6 months", // Indian context
+      leaveEntitlement: "18 earned leave days, 12 casual/sick leave days per annum, plus public holidays", // Indian context
+      confidentialityClause: "Standard company confidentiality and non-disclosure agreement applies as per Indian IT Act.",
+      terminationNotice: "1 month by either party", // Indian context
       companyName: "PESU Venture Labs",
       companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
-      governingLaw: "State of Karnataka, India",
+      governingLaw: "Laws of India, State of Karnataka", // Indian context
     },
   });
 
@@ -79,7 +79,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., John Michael Doe" {...field} />
+                <Input placeholder="e.g., Rajesh Kumar Singh" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +92,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="e.g., 456 Residential Ave, Townsville, ST 54321" {...field} />
+                <Textarea placeholder="e.g., #123, 4th Main, Indiranagar, Bengaluru 560038" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -105,7 +105,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g., employee@example.com" {...field} />
+                <Input type="email" placeholder="e.g., employee@pesuventurelabs.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,7 +118,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Position Title</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Lead Software Developer" {...field} />
+                <Input placeholder="e.g., Senior Software Developer" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,7 +131,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Department</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Engineering" {...field} />
+                <Input placeholder="e.g., Technology" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,7 +155,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Salary & Payment Terms</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., $60,000 per annum, paid monthly" {...field} />
+                <Input placeholder="e.g., ₹ 6,00,000 per annum, paid monthly" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -168,7 +168,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Working Hours</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 9 AM to 5 PM, Mon-Fri" {...field} />
+                <Input placeholder="e.g., 10 AM to 6 PM, Mon-Fri" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -181,7 +181,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Probation Period (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 3 months" {...field} />
+                <Input placeholder="e.g., 6 months" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -194,7 +194,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Leave Entitlement</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 20 paid days per year" {...field} />
+                <Input placeholder="e.g., 18 earned leave days per year" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -220,7 +220,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Termination Notice Period</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 4 weeks by either party" {...field} />
+                <Input placeholder="e.g., 1 month by either party" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -233,7 +233,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Your Company Inc." {...field} />
+                <Input placeholder="e.g., PESU Venture Labs Pvt. Ltd." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -246,7 +246,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="e.g., 789 Corporate Blvd, Business City, ST 67890" {...field} />
+                <Textarea placeholder="e.g., PESU Venture Labs, PES University, Bengaluru" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -259,7 +259,7 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Governing Law</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Laws of the State of New York" {...field} />
+                <Input placeholder="e.g., Laws of India, State of Karnataka" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -280,4 +280,3 @@ export function EmployeeContractForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
-

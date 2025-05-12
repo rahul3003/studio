@@ -26,7 +26,7 @@ const offerLetterFormSchema = z.object({
   positionTitle: z.string().min(3, { message: "Position title must be at least 3 characters." }),
   department: z.string().min(2, { message: "Department must be at least 2 characters." }),
   startDate: z.date({ required_error: "Start date is required." }),
-  salary: z.string().min(3, { message: "Salary details must be provided (e.g., $50,000 per year)." }),
+  salary: z.string().min(3, { message: "Salary details must be provided (e.g., ₹ 5,00,000 per year)." }), // Updated placeholder
   reportingManager: z.string().min(2, { message: "Reporting manager name must be at least 2 characters." }),
   offerExpiryDate: z.date({ required_error: "Offer expiry date is required." }),
   companyName: z.string().min(2, { message: "Company name is required."}),
@@ -45,10 +45,10 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
       positionTitle: "",
       department: "",
       startDate: undefined,
-      salary: "",
+      salary: "₹ 7,00,000 per annum plus standard benefits", // Indian context
       reportingManager: "",
       offerExpiryDate: undefined,
-      companyName: "PESU Venture Labs", // Default company name
+      companyName: "PESU Venture Labs", 
     },
   });
 
@@ -71,7 +71,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Candidate Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Jane Doe" {...field} />
+                <Input placeholder="e.g., Anjali Desai" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -84,7 +84,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Candidate Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g., jane.doe@example.com" {...field} />
+                <Input type="email" placeholder="e.g., anjali.desai@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -97,7 +97,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Position Title</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Senior Software Engineer" {...field} />
+                <Input placeholder="e.g., Senior Business Analyst" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -110,7 +110,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Department</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Technology" {...field} />
+                <Input placeholder="e.g., Product Management" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -123,7 +123,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Reporting Manager</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., John Smith" {...field} />
+                <Input placeholder="e.g., Rahul Verma" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -136,7 +136,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Salary / Compensation</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., $80,000 per annum plus benefits" {...field} />
+                <Input placeholder="e.g., ₹ 8,00,000 per annum plus benefits" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -173,7 +173,7 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Your Company LLC" {...field} />
+                <Input placeholder="e.g., PESU Venture Labs Pvt. Ltd." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -194,4 +194,3 @@ export function OfferLetterForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
-

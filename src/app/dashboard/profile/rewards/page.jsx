@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -10,21 +11,21 @@ import { useToast } from "@/hooks/use-toast";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import { Award, Gift } from "lucide-react";
 
-// Mock data relevant to this page
+// Mock data relevant to this page - Indian context
 const mockRewardsData = {
   pointsAvailable: 1250,
   pointsReceived: 500,
-  pointsValue: "USD 125.00", // Assuming 1 point = $0.10
+  pointsValue: "₹ 125.00", // Assuming 1 point = ₹0.10
   nominationHistory: [
-    { id: 1, to: "Bob The Builder", points: 100, date: "2024-06-15", approvedBy: "Alice Wonderland", approvedOn: "2024-06-16", reason: "Excellent project management on Project X." },
-    { id: 2, to: "Charlie Chaplin", points: 50, date: "2024-05-20", approvedBy: "Alice Wonderland", approvedOn: "2024-05-21", reason: "Great teamwork and UI designs." },
+    { id: 1, to: "Rohan Mehra", points: 100, date: "2024-06-15", approvedBy: "Priya Sharma", approvedOn: "2024-06-16", reason: "Excellent project management on HRMS portal." },
+    { id: 2, to: "Aisha Khan", points: 50, date: "2024-05-20", approvedBy: "Priya Sharma", approvedOn: "2024-05-21", reason: "Great teamwork and UI designs for Q2." },
   ],
 };
 
-const DUMMY_EMPLOYEE_LIST = [
-  { name: "Alice Wonderland" }, { name: "Bob The Builder" }, { name: "Charlie Chaplin" },
-  { name: "Diana Prince" }, { name: "Edward Scissorhands" }, { name: "Fiona Gallagher" },
-  { name: "George Best" }, { name: "Hannah Montana" }, { name: "Ian Wright" }, { name: "Julia Roberts" },
+const DUMMY_EMPLOYEE_LIST = [ // Updated with Indian names
+  { name: "Priya Sharma" }, { name: "Rohan Mehra" }, { name: "Aisha Khan" },
+  { name: "Vikram Singh" }, { name: "Suresh Kumar" }, { name: "Sunita Reddy" },
+  { name: "Arjun Patel" }, { name: "Meera Iyer" }, { name: "Imran Ahmed" }, { name: "Deepika Rao" },
 ];
 
 
@@ -99,7 +100,7 @@ export default function RewardsPage() {
                       <TableRow key={item.id}>
                         <TableCell>{item.to}</TableCell>
                         <TableCell>{item.points}</TableCell>
-                        <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(item.date).toLocaleDateString('en-IN')}</TableCell>
                         <TableCell className="max-w-xs truncate" title={item.reason}>{item.reason}</TableCell>
                       </TableRow>
                     ))}

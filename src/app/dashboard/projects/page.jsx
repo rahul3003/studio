@@ -28,78 +28,80 @@ import { PlusCircle, Edit, Trash2, FolderKanban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectForm } from "@/components/project/project-form"; // New component for project form
 
-// Initial mock project data
+// Initial mock project data with Indian context
 const initialProjects = [
   {
     id: "PROJ001",
     name: "HRMS Portal Development",
-    description: "Build a comprehensive Human Resource Management System portal.",
-    projectManager: "Bob The Builder",
+    description: "Build a comprehensive Human Resource Management System portal for PESU Venture Labs.",
+    projectManager: "Rohan Mehra",
     startDate: "2024-01-10",
     endDate: "2024-12-31",
     status: "In Progress",
-    teamMembers: "Alice Wonderland, Charlie Chaplin, Edward Scissorhands",
+    teamMembers: "Priya Sharma, Aisha Khan, Suresh Kumar",
   },
   {
     id: "PROJ002",
-    name: "Marketing Campaign Q3",
-    description: "Launch new marketing campaign for Q3 product line.",
-    projectManager: "Sophia Rodriguez",
+    name: "Marketing Campaign Q3 2024",
+    description: "Launch new marketing campaign for the Q3 product line.",
+    projectManager: "Deepika Rao", // Product Owner can manage marketing projects
     startDate: "2024-07-01",
     endDate: "2024-09-30",
     status: "Planning",
-    teamMembers: "Fiona Gallagher, David Miller",
+    teamMembers: "Sunita Reddy, Arjun Patel",
   },
   {
     id: "PROJ003",
-    name: "Office Renovation",
-    description: "Complete renovation of the main office space.",
-    projectManager: "Jessica Lee",
+    name: "Bengaluru Office Expansion",
+    description: "Oversee the expansion and setup of the new office floor.",
+    projectManager: "Vikram Singh", // HR can manage office admin projects
     startDate: "2024-05-15",
     endDate: "2024-08-15",
     status: "Completed",
-    teamMembers: "Bob The Builder",
+    teamMembers: "Rohan Mehra", // Project Manager involved in infra
   },
   {
     id: "PROJ004",
-    name: "New Website Launch",
-    description: "Design and launch the new corporate website.",
-    projectManager: "Alice Wonderland",
+    name: "PESU VL Website Revamp",
+    description: "Design and launch the new corporate website for PESU Venture Labs.",
+    projectManager: "Priya Sharma", // Senior Developer can lead tech projects
     startDate: "2024-03-01",
     endDate: "2024-10-30",
     status: "On Hold",
-    teamMembers: "Charlie Chaplin, Edward Scissorhands",
+    teamMembers: "Aisha Khan, Suresh Kumar",
   },
   {
     id: "PROJ005",
-    name: "Mobile App Development",
-    description: "Develop a new mobile application for customer engagement.",
-    projectManager: "Diana Prince",
+    name: "Campus Recruitment App",
+    description: "Develop a mobile application for streamlining campus recruitment drives.",
+    projectManager: "Vikram Singh", // HR Specialist managing recruitment tool
     startDate: "2024-02-15",
     endDate: "2024-11-20",
     status: "Cancelled",
-    teamMembers: "Alice Wonderland, Bob The Builder",
+    teamMembers: "Priya Sharma, Rohan Mehra",
   },
 ];
 
 const PROJECT_STATUS_OPTIONS = ["Planning", "In Progress", "Completed", "On Hold", "Cancelled"];
-const MOCK_EMPLOYEES_FOR_PM = [
-    "Alice Wonderland",
-    "Bob The Builder",
-    "Charlie Chaplin",
-    "Diana Prince",
-    "Edward Scissorhands",
-    "Fiona Gallagher",
-    "Sophia Rodriguez",
-    "Jessica Lee",
-    "David Miller"
+const MOCK_EMPLOYEES_FOR_PM = [ // Updated with Indian names
+    "Priya Sharma",
+    "Rohan Mehra",
+    "Aisha Khan",
+    "Vikram Singh",
+    "Suresh Kumar",
+    "Sunita Reddy",
+    "Arjun Patel",
+    "Meera Iyer",
+    "Imran Ahmed",
+    "Deepika Rao",
+    "Admin User"
 ];
 
 
 const statusVariantMap = {
   Planning: "secondary",
   "In Progress": "default",
-  Completed: "outline", // Consider a 'success' variant if available or custom style
+  Completed: "outline", 
   "On Hold": "secondary",
   Cancelled: "destructive",
 };
@@ -205,12 +207,12 @@ export default function ProjectsPage() {
                     <TableCell>{project.name}</TableCell>
                     <TableCell>{project.projectManager}</TableCell>
                     <TableCell>
-                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-US", {
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>
                     <TableCell>
-                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-US", {
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>

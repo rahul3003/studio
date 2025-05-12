@@ -51,11 +51,11 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
       department: "",
       joiningDate: undefined,
       lastWorkingDate: undefined,
-      keyResponsibilities: "- Managed project A.\n- Developed feature B.\n- Coordinated with team C.",
+      keyResponsibilities: "- Managed key client accounts for South India region.\n- Achieved 120% of sales target in FY 2023-24.\n- Mentored junior team members.",
       companyName: "PESU Venture Labs",
       companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
-      companyContact: "hr@pesuventurelabs.com / +91-XXXXXXXXXX",
-      issuingAuthorityName: "Ms. Jane Smith",
+      companyContact: "hr@pesuventurelabs.com / +91 80 XXXXXXXX",
+      issuingAuthorityName: "Ananya Sharma",
       issuingAuthorityTitle: "HR Manager",
     },
   });
@@ -79,7 +79,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Alice Wonderland" {...field} />
+                <Input placeholder="e.g., Priya Kumari" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +92,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee ID (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., EMP001" {...field} />
+                <Input placeholder="e.g., PVL00123" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -105,7 +105,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Employee Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g., employee@example.com" {...field} />
+                <Input type="email" placeholder="e.g., employee@pesuventurelabs.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,7 +118,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Last Held Position Title</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Senior Software Engineer" {...field} />
+                <Input placeholder="e.g., Senior Marketing Manager" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,7 +131,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Department</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Technology" {...field} />
+                <Input placeholder="e.g., Marketing" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -186,7 +186,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Your Company LLC" {...field} />
+                <Input placeholder="e.g., PESU Venture Labs Pvt. Ltd." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -199,7 +199,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Address (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 123 Main St, Anytown, USA" {...field} />
+                <Input placeholder="e.g., PES University, Bengaluru" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -212,7 +212,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Company Contact (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., hr@company.com or +1-234-567-8900" {...field} />
+                <Input placeholder="e.g., hr@pesuventurelabs.com or +91 XXXXX XXXXX" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -225,7 +225,7 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
             <FormItem>
               <FormLabel>Issuing Authority Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Mr. John Smith" {...field} />
+                <Input placeholder="e.g., Mr. Suresh Patil" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -259,4 +259,3 @@ export function ExperienceLetterForm({ onSubmit, isLoading }) {
     </Form>
   );
 }
-

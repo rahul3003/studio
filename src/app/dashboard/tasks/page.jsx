@@ -27,13 +27,13 @@ import { PlusCircle, Edit, Trash2, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm } from "@/components/task/task-form";
 
-// Initial mock task data
+// Initial mock task data with Indian context
 const initialTasks = [
   {
     id: "TASK001",
-    name: "Design Homepage UI",
-    description: "Create wireframes and mockups for the new homepage.",
-    assignee: "Charlie Chaplin", // UX Designer
+    name: "Design Homepage UI for HRMS",
+    description: "Create wireframes and mockups for the new HRMS portal homepage.",
+    assignee: "Aisha Khan", 
     projectName: "HRMS Portal Development",
     dueDate: "2024-09-15",
     priority: "High",
@@ -42,9 +42,9 @@ const initialTasks = [
   },
   {
     id: "TASK002",
-    name: "Develop Login API",
-    description: "Implement backend API for user authentication.",
-    assignee: "Alice Wonderland", // Software Engineer
+    name: "Develop Authentication API",
+    description: "Implement backend API for user login and registration for HRMS.",
+    assignee: "Priya Sharma", 
     projectName: "HRMS Portal Development",
     dueDate: "2024-08-30",
     priority: "Urgent",
@@ -53,10 +53,10 @@ const initialTasks = [
   },
   {
     id: "TASK003",
-    name: "Plan Q4 Marketing Strategy",
-    description: "Outline marketing initiatives for the fourth quarter.",
-    assignee: "Fiona Gallagher", // Sales Executive (could be Marketing Manager)
-    projectName: "Marketing Campaign Q3",
+    name: "Plan Diwali Marketing Campaign",
+    description: "Outline marketing initiatives for the upcoming Diwali festive season.",
+    assignee: "Sunita Reddy", 
+    projectName: "Marketing Campaign Q3 2024", // Changed from Q3 to Q4 to align with Diwali
     dueDate: "2024-10-01",
     priority: "Medium",
     status: "Planning",
@@ -64,10 +64,10 @@ const initialTasks = [
   },
   {
     id: "TASK004",
-    name: "Client Onboarding Documentation",
-    description: "Prepare documentation for new client onboarding process.",
-    assignee: "Diana Prince", // HR Specialist
-    projectName: "Office Renovation", // Example, might not be directly related
+    name: "New Joiner Onboarding Kit",
+    description: "Prepare and update the onboarding documentation for new employees.",
+    assignee: "Vikram Singh", 
+    projectName: "Bengaluru Office Expansion", // Can be a general HR task
     dueDate: "2024-09-05",
     priority: "Medium",
     status: "Completed",
@@ -75,10 +75,10 @@ const initialTasks = [
   },
   {
     id: "TASK005",
-    name: "Fix Payment Gateway Bug",
-    description: "Investigate and resolve reported bug in payment processing.",
-    assignee: "Edward Scissorhands", // Frontend Developer
-    projectName: "New Website Launch",
+    name: "Fix UPI Payment Gateway Bug",
+    description: "Investigate and resolve reported bug in UPI payment processing on website.",
+    assignee: "Suresh Kumar", 
+    projectName: "PESU VL Website Revamp",
     dueDate: "2024-08-25",
     priority: "High",
     status: "Blocked",
@@ -86,26 +86,28 @@ const initialTasks = [
   },
 ];
 
-const MOCK_EMPLOYEES_FOR_ASSIGNEE = [
-    "Alice Wonderland",
-    "Bob The Builder",
-    "Charlie Chaplin",
-    "Diana Prince",
-    "Edward Scissorhands",
-    "Fiona Gallagher",
-    "Sophia Rodriguez",
-    "Jessica Lee",
-    "David Miller",
+const MOCK_EMPLOYEES_FOR_ASSIGNEE = [ // Updated with Indian names
+    "Priya Sharma",
+    "Rohan Mehra",
+    "Aisha Khan",
+    "Vikram Singh",
+    "Suresh Kumar",
+    "Sunita Reddy",
+    "Arjun Patel",
+    "Meera Iyer",
+    "Imran Ahmed",
+    "Deepika Rao",
     "Admin User"
 ];
 
-const MOCK_PROJECT_OPTIONS = [
+const MOCK_PROJECT_OPTIONS = [ // Updated with Indian context project names
     "HRMS Portal Development",
-    "Marketing Campaign Q3",
-    "Office Renovation",
-    "New Website Launch",
-    "Mobile App Development",
-    "General Tasks",
+    "Marketing Campaign Q3 2024",
+    "Bengaluru Office Expansion",
+    "PESU VL Website Revamp",
+    "Campus Recruitment App",
+    "General Admin Tasks",
+    "Client Project Alpha",
 ];
 
 
@@ -233,7 +235,7 @@ export default function TasksPage() {
                     <TableCell>{task.projectName}</TableCell>
                     <TableCell>{task.assignee}</TableCell>
                     <TableCell>
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-US", {
+                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
                         year: "numeric", month: "short", day: "numeric",
                       }) : "N/A"}
                     </TableCell>

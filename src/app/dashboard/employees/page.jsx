@@ -28,15 +28,15 @@ import { PlusCircle, Edit, Trash2, Users as UsersIcon } from "lucide-react"; // 
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeForm } from "@/components/employee/employee-form";
 
-// Initial mock employee data
+// Initial mock employee data with Indian context
 export const initialEmployees = [
   {
     id: "EMP001",
-    name: "Alice Wonderland",
-    email: "alice.wonderland@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=alice",
+    name: "Priya Sharma",
+    email: "priya.sharma@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=priya.sharma",
     role: "Software Engineer",
-    designation: "Senior",
+    designation: "Senior Developer",
     department: "Technology",
     status: "Active",
     joinDate: "2022-08-15",
@@ -44,11 +44,11 @@ export const initialEmployees = [
   },
   {
     id: "EMP002",
-    name: "Bob The Builder",
-    email: "bob.builder@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=bob",
+    name: "Rohan Mehra",
+    email: "rohan.mehra@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=rohan.mehra",
     role: "Project Manager",
-    designation: "Lead",
+    designation: "Team Lead",
     department: "Operations",
     status: "Active",
     joinDate: "2021-05-20",
@@ -56,35 +56,35 @@ export const initialEmployees = [
   },
   {
     id: "EMP003",
-    name: "Charlie Chaplin",
-    email: "charlie.chaplin@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=charlie",
+    name: "Aisha Khan",
+    email: "aisha.khan@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=aisha.khan",
     role: "UX Designer",
-    designation: "Junior",
+    designation: "Junior Designer",
     department: "Design",
     status: "On Leave",
     joinDate: "2023-01-10",
-    gender: "Male",
-  },
-  {
-    id: "EMP004",
-    name: "Diana Prince",
-    email: "diana.prince@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=diana",
-    role: "HR Specialist",
-    designation: "Staff",
-    department: "Human Resources",
-    status: "Active",
-    joinDate: "2020-03-01",
     gender: "Female",
   },
   {
+    id: "EMP004",
+    name: "Vikram Singh",
+    email: "vikram.singh@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=vikram.singh",
+    role: "HR Specialist",
+    designation: "HR Executive",
+    department: "Human Resources",
+    status: "Active",
+    joinDate: "2020-03-01",
+    gender: "Male",
+  },
+  {
     id: "EMP005",
-    name: "Edward Scissorhands",
-    email: "edward.hands@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=edward",
+    name: "Suresh Kumar",
+    email: "suresh.kumar@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=suresh.kumar",
     role: "Frontend Developer",
-    designation: "Associate",
+    designation: "Associate Developer",
     department: "Technology",
     status: "Terminated",
     joinDate: "2022-11-01",
@@ -92,11 +92,11 @@ export const initialEmployees = [
   },
   {
     id: "EMP006",
-    name: "Fiona Gallagher",
-    email: "fiona.gallagher@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=fiona",
+    name: "Sunita Reddy",
+    email: "sunita.reddy@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=sunita.reddy",
     role: "Sales Executive",
-    designation: "Senior",
+    designation: "Senior Sales Rep",
     department: "Sales",
     status: "Active",
     joinDate: "2023-06-22",
@@ -104,11 +104,11 @@ export const initialEmployees = [
   },
   {
     id: "EMP007",
-    name: "George Best",
-    email: "george.best@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=george",
+    name: "Arjun Patel",
+    email: "arjun.patel@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=arjun.patel",
     role: "Data Analyst",
-    designation: "Staff",
+    designation: "Analyst",
     department: "Marketing",
     status: "Active",
     joinDate: "2023-02-15",
@@ -116,11 +116,11 @@ export const initialEmployees = [
   },
   {
     id: "EMP008",
-    name: "Hannah Montana",
-    email: "hannah.montana@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=hannah",
+    name: "Meera Iyer",
+    email: "meera.iyer@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=meera.iyer",
     role: "QA Engineer",
-    designation: "Associate",
+    designation: "Associate QA",
     department: "Technology",
     status: "Active",
     joinDate: "2024-01-05",
@@ -128,11 +128,11 @@ export const initialEmployees = [
   },
   {
     id: "EMP009",
-    name: "Ian Wright",
-    email: "ian.wright@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=ian",
+    name: "Imran Ahmed",
+    email: "imran.ahmed@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=imran.ahmed",
     role: "DevOps Engineer",
-    designation: "Senior",
+    designation: "Senior DevOps",
     department: "Technology",
     status: "On Leave",
     joinDate: "2022-03-10",
@@ -140,16 +140,28 @@ export const initialEmployees = [
   },
   {
     id: "EMP010",
-    name: "Julia Roberts",
-    email: "julia.roberts@example.com",
-    avatarUrl: "https://i.pravatar.cc/150?u=julia",
+    name: "Deepika Rao",
+    email: "deepika.rao@pesuventurelabs.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=deepika.rao",
     role: "Product Owner",
-    designation: "Manager",
+    designation: "Product Manager",
     department: "Product",
     status: "Active",
     joinDate: "2021-09-01",
     gender: "Female",
   },
+   {
+    id: "EMP011",
+    name: "Admin User", // Keep one generic Admin for testing
+    email: "admin@example.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=admin.user",
+    role: "System Administrator",
+    designation: "Administrator",
+    department: "IT",
+    status: "Active",
+    joinDate: "2020-01-01",
+    gender: "Other",
+  }
 ];
 
 const statusVariantMap = {
@@ -158,9 +170,9 @@ const statusVariantMap = {
   Terminated: "destructive",
 };
 
-const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst"];
-const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior", "Associate", "Staff", "Senior", "Lead", "Principal", "Manager", "Director"];
-const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance"];
+const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
+const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior Developer", "Associate Developer", "Developer", "Senior Developer", "Team Lead", "Principal Engineer", "Junior Designer", "Designer", "Senior Designer", "HR Executive", "Senior HR", "Sales Rep", "Senior Sales Rep", "Analyst", "Senior Analyst", "Associate QA", "QA Engineer", "Senior QA", "DevOps Engineer", "Senior DevOps", "Product Manager", "Senior Product Manager", "Manager", "Director", "Administrator", "Accountant"];
+const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
 const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
 
 export default function EmployeesPage() {
@@ -209,7 +221,6 @@ export default function EmployeesPage() {
         ...employeeData,
         id: newId,
         avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
-        // Ensure new employees have a gender, default if not in form (form should ideally include it)
         gender: employeeData.gender || "Other", 
       };
       setEmployees((prevEmployees) => [newEmployee, ...prevEmployees]);
@@ -285,7 +296,7 @@ export default function EmployeesPage() {
                     <TableCell>{employee.department}</TableCell>
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
-                      {new Date(employee.joinDate).toLocaleDateString("en-US", {
+                      {new Date(employee.joinDate).toLocaleDateString("en-IN", { // Changed to en-IN locale
                         year: "numeric",
                         month: "short",
                         day: "numeric",

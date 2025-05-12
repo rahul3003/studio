@@ -27,86 +27,87 @@ import { PlusCircle, Edit, Trash2, Receipt, FileText, XCircle } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { ReimbursementForm } from "@/components/reimbursement/reimbursement-form"; // New component
 
-// Initial mock reimbursement data
+// Initial mock reimbursement data with Indian context
 const initialReimbursements = [
   {
     id: "REIM001",
-    employeeName: "Alice Wonderland",
-    amount: 75.50,
-    currency: "USD",
-    description: "Client dinner meeting",
+    employeeName: "Priya Sharma",
+    amount: 5500.50,
+    currency: "INR",
+    description: "Client dinner meeting in Mumbai",
     submissionDate: "2024-07-15",
     status: "Approved",
-    fileName: "dinner_receipt.pdf",
+    fileName: "dinner_receipt_mumbai.pdf",
     reasonForRejection: null,
   },
   {
     id: "REIM002",
-    employeeName: "Bob The Builder",
-    amount: 120.00,
-    currency: "USD",
-    description: "Project supplies purchase",
+    employeeName: "Rohan Mehra",
+    amount: 8500.00,
+    currency: "INR",
+    description: "Project software purchase",
     submissionDate: "2024-07-20",
     status: "Pending",
-    fileName: "supplies_invoice.jpg",
+    fileName: "software_invoice.jpg",
     reasonForRejection: null,
   },
   {
     id: "REIM003",
-    employeeName: "Charlie Chaplin",
-    amount: 35.00,
-    currency: "EUR",
-    description: "Taxi fare for conference",
+    employeeName: "Aisha Khan",
+    amount: 1250.00,
+    currency: "INR",
+    description: "Taxi fare for design conference",
     submissionDate: "2024-07-22",
     status: "Paid",
-    fileName: "taxi_fare.png",
+    fileName: "taxi_fare_conf.png",
     reasonForRejection: null,
   },
   {
     id: "REIM004",
-    employeeName: "Diana Prince",
-    amount: 250.00,
-    currency: "USD",
-    description: "Software license renewal",
+    employeeName: "Vikram Singh",
+    amount: 15000.00,
+    currency: "INR",
+    description: "Team building activity expenses",
     submissionDate: "2024-07-25",
     status: "Rejected",
-    reasonForRejection: "Exceeded annual budget for software.",
+    reasonForRejection: "Exceeded quarterly budget for team activities.",
     fileName: null,
   },
   {
     id: "REIM005",
-    employeeName: "Edward Scissorhands",
-    amount: 45.99,
-    currency: "GBP",
-    description: "Team lunch",
+    employeeName: "Suresh Kumar",
+    amount: 3500.75,
+    currency: "INR",
+    description: "Team lunch (Tech Department)",
     submissionDate: "2024-07-28",
     status: "Pending",
-    fileName: "team_lunch_receipt.docx",
+    fileName: "team_lunch_tech.docx",
     reasonForRejection: null,
   },
 ];
 
-const MOCK_EMPLOYEES_FOR_REIMBURSEMENT = [
-    "Alice Wonderland",
-    "Bob The Builder",
-    "Charlie Chaplin",
-    "Diana Prince",
-    "Edward Scissorhands",
-    "Fiona Gallagher",
-    "Sophia Rodriguez",
-    "Jessica Lee",
-    "David Miller",
+const MOCK_EMPLOYEES_FOR_REIMBURSEMENT = [ // Updated with Indian names
+    "Priya Sharma",
+    "Rohan Mehra",
+    "Aisha Khan",
+    "Vikram Singh",
+    "Suresh Kumar",
+    "Sunita Reddy",
+    "Arjun Patel",
+    "Meera Iyer",
+    "Imran Ahmed",
+    "Deepika Rao",
     "Admin User"
 ];
 
-const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "JPY", "INR"];
+const CURRENCY_OPTIONS = ["INR", "USD", "EUR", "GBP", "JPY"]; // INR prioritized
 const REIMBURSEMENT_STATUS_OPTIONS = ["Pending", "Approved", "Rejected", "Paid"];
 
 const statusVariantMap = {
   Pending: "secondary",
   Approved: "default",
   Rejected: "destructive",
-  Paid: "outline", // Consider a 'success' or specific 'paid' variant
+  Paid: "outline", 
 };
 
 export default function ReimbursementsPage() {
@@ -210,11 +211,11 @@ export default function ReimbursementsPage() {
                     <TableCell className="font-medium">{reimbursement.id}</TableCell>
                     <TableCell>{reimbursement.employeeName}</TableCell>
                     <TableCell>
-                      {reimbursement.amount.toLocaleString(undefined, { style: 'currency', currency: reimbursement.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {reimbursement.amount.toLocaleString('en-IN', { style: 'currency', currency: reimbursement.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{reimbursement.description}</TableCell>
                     <TableCell>
-                      {new Date(reimbursement.submissionDate).toLocaleDateString("en-US", {
+                      {new Date(reimbursement.submissionDate).toLocaleDateString("en-IN", { // Changed locale to en-IN
                         year: "numeric", month: "short", day: "numeric",
                       })}
                     </TableCell>
