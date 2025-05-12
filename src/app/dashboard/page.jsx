@@ -14,7 +14,7 @@ import { EmployeeAnalytics } from "@/components/dashboard/employee-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initialEmployees } from "@/app/dashboard/employees/page"; // Import employee data
 
-// Function to aggregate department data
+// Function to aggregate department data (total headcount)
 const getHeadcountByDept = (employees) => {
   const deptCounts = employees.reduce((acc, emp) => {
     acc[emp.department] = (acc[emp.department] || 0) + 1;
@@ -27,13 +27,14 @@ const getHeadcountByDept = (employees) => {
   ];
   
   return Object.entries(deptCounts).map(([name, value], index) => ({
-    name: name.substring(0, 4), // Abbreviate for chart
+    name: name, // Full name for display
+    shortName: name.substring(0, 4), // Abbreviate for chart if needed elsewhere
     value,
     fill: chartColors[index % chartColors.length],
   }));
 };
 
-// Function to aggregate gender data
+// Function to aggregate gender data (overall)
 const getGenderDistribution = (employees) => {
   const genderCounts = employees.reduce((acc, emp) => {
     const gender = emp.gender || "Other"; // Default to 'Other' if undefined
@@ -54,9 +55,30 @@ const getGenderDistribution = (employees) => {
   }));
 };
 
+// Function to aggregate department-wise gender counts
+const getDepartmentGenderCounts = (employees) => {
+  const deptGenderData = {};
+
+  employees.forEach(emp => {
+    const dept = emp.department;
+    const gender = emp.gender || "Other";
+
+    if (!deptGenderData[dept]) {
+      deptGenderData[dept] = { Male: 0, Female: 0, Other: 0, name: dept };
+    }
+    if (deptGenderData[dept][gender] !== undefined) {
+      deptGenderData[dept][gender]++;
+    }
+  });
+
+  return Object.values(deptGenderData);
+  // Returns array like: [{ name: 'Technology', Male: 5, Female: 3, Other: 0 }, ...]
+};
+
 
 const headcountByDeptData = getHeadcountByDept(initialEmployees);
 const genderDistributionData = getGenderDistribution(initialEmployees);
+const departmentGenderCountsData = getDepartmentGenderCounts(initialEmployees);
 const totalActiveEmployees = initialEmployees.filter(e => e.status === "Active").length;
 
 // Mock data - Replace with actual data fetching later
@@ -73,8 +95,9 @@ const mockData = {
       { status: "Absent", count: 80, fill: "hsl(var(--chart-2))" },
       { status: "Leave", count: 70, fill: "hsl(var(--chart-3))" },
     ],
-    headcountByDept: headcountByDeptData,
-    genderDistribution: genderDistributionData,
+    headcountByDept: headcountByDeptData, // Total headcount per department
+    genderDistribution: genderDistributionData, // Overall gender distribution
+    departmentGenderCounts: departmentGenderCountsData, // Department-wise gender breakdown
   },
   manager: {
     teamSize: 8,
@@ -237,3 +260,4 @@ export default function DashboardPage() {
   );
 }
 
+    
