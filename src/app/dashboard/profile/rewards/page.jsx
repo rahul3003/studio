@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -25,6 +26,10 @@ export default function RewardsPage() {
     if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
       initializeProfile(user);
     }
+    // If profileData exists, ensure rewards calculations are fresh (e.g. if month/year changed)
+    else if (user && profileData) {
+        initializeProfile(user); // This will re-check and update monthly/yearly resets
+    }
   }, [user, profileData, initializeProfile]);
 
   if (authLoading || !user || !profileData || !profileData.rewards || !profileData.personal) {
@@ -32,26 +37,15 @@ export default function RewardsPage() {
   }
 
   const handleNominateRewardSubmit = (data) => {
-    const currentRewards = profileData.rewards;
-    const pointsToShare = parseInt(data.points, 10);
-    const remainingSharable = (currentRewards.sharablePointsMonthlyLimit || 0) - (currentRewards.pointsSharedThisMonth || 0);
-
-    if (pointsToShare > remainingSharable) {
-         toast({ 
-            title: "Nomination Failed", 
-            description: `You only have ${remainingSharable} points left to share this month.`,
-            variant: "destructive"
-        });
-        return;
-    }
-
+    // Validation for points (integer, multiple of 5) is in the dialog's Zod schema
+    // Additional check for available points is also in the store's addNomination
     addNominationInStore({
         nominee: data.nominee, 
-        points: pointsToShare,
+        points: parseInt(data.points, 10), // Ensure it's a number
         reasonCategory: data.reasonCategory,
         feedbackText: data.feedbackText,
     });
-    toast({ title: "Nomination Submitted", description: `You have nominated ${data.nominee} for ${pointsToShare} points.` });
+    toast({ title: "Nomination Submitted", description: `You have nominated ${data.nominee} for ${data.points} points.` });
     setIsNominateRewardOpen(false);
   };
   
@@ -61,7 +55,13 @@ export default function RewardsPage() {
   
   const rewardsData = profileData.rewards;
   const personalData = profileData.personal;
-  const sharablePointsBalance = (rewardsData.sharablePointsMonthlyLimit || 0) - (rewardsData.pointsSharedThisMonth || 0);
+
+  const pointsLeftThisMonth = Math.max(0, (rewardsData.monthlyShareLimit || 0) - (rewardsData.pointsSharedThisMonth || 0));
+  const pointsLeftThisYear = Math.max(0, (rewardsData.totalAnnualSharablePoints || 0) - (rewardsData.pointsSharedThisYear || 0));
+  const actualAvailablePointsToShare = Math.min(pointsLeftThisMonth, pointsLeftThisYear);
+  
+  const yearlySharableBalanceDisplay = `${pointsLeftThisYear} / ${rewardsData.totalAnnualSharablePoints || 0}`;
+
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -75,8 +75,11 @@ export default function RewardsPage() {
             <h3 className="text-lg font-semibold mb-1">Welcome, {personalData.name}!</h3>
             <p className="text-2xl font-bold text-primary">{rewardsData.accruedPoints || 0} <span className="text-sm font-normal text-muted-foreground">Accrued Points</span></p>
              <p className="text-sm text-muted-foreground mt-1">
-                You can share <strong>{sharablePointsBalance} / {rewardsData.sharablePointsMonthlyLimit || 0}</strong> points this month.
-            </p>
+                Available points to share this year: <strong>{yearlySharableBalanceDisplay}</strong>.
+             </p>
+             <p className="text-xs text-muted-foreground">
+                You can share up to <strong>{rewardsData.monthlyShareLimit || 0}</strong> points this month. Points shared this month: <strong>{rewardsData.pointsSharedThisMonth || 0}</strong>.
+             </p>
           </div>
 
           <Tabs defaultValue="my_nominations" className="w-full">
@@ -88,7 +91,7 @@ export default function RewardsPage() {
 
             <TabsContent value="my_nominations" className="pt-6">
               <h3 className="font-semibold mb-3 text-xl">My Earlier Nominations</h3>
-              {rewardsData.nominationHistoryGiven?.length > 0 ? (
+              {(rewardsData.nominationHistoryGiven || []).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -116,7 +119,7 @@ export default function RewardsPage() {
 
             <TabsContent value="received_rewards" className="pt-6">
               <h3 className="font-semibold mb-3 text-xl">Rewards I Received</h3>
-               {rewardsData.nominationHistoryReceived?.length > 0 ? (
+               {(rewardsData.nominationHistoryReceived || []).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -148,11 +151,12 @@ export default function RewardsPage() {
               <h3 className="font-semibold mb-1 text-xl">Reward Someone</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 Recognize a colleague for their outstanding work. 
-                You have <strong>{sharablePointsBalance}</strong> points available to share this month.
+                You have <strong>{actualAvailablePointsToShare}</strong> points available to share.
+                (Max {rewardsData.monthlyShareLimit} this month, {pointsLeftThisYear} left for the year).
               </p>
-              <Button onClick={() => setIsNominateRewardOpen(true)} disabled={sharablePointsBalance <= 0}>
+              <Button onClick={() => setIsNominateRewardOpen(true)} disabled={actualAvailablePointsToShare <= 0}>
                 <Gift className="mr-2 h-4 w-4" /> 
-                {sharablePointsBalance <= 0 ? "No Points to Share" : "Nominate Colleague"}
+                {actualAvailablePointsToShare <= 0 ? "No Points to Share" : "Nominate Colleague"}
               </Button>
             </TabsContent>
           </Tabs>
@@ -160,8 +164,9 @@ export default function RewardsPage() {
           <div className="mt-8 p-3 border-t text-xs text-muted-foreground">
             <p><strong>NOTE:</strong></p>
             <ul className="list-disc list-inside ml-4">
-                <li>Rewards that you can share ({rewardsData.sharablePointsMonthlyLimit || 0} points) will reset on the 1st of every month.</li>
-                <li>However, rewards you have collected (Accrued Points) will remain intact.</li>
+                <li>Your total annual sharable points ({rewardsData.totalAnnualSharablePoints || 0}) are calculated based on your joining date for the current calendar year.</li>
+                <li>Your capacity to share points resets up to {rewardsData.monthlyShareLimit || 0} points on the 1st of every month (if your annual balance allows).</li>
+                <li>Points you have accrued by receiving rewards from others will remain intact.</li>
             </ul>
           </div>
 
@@ -174,7 +179,7 @@ export default function RewardsPage() {
         employeeList={availableEmployeesForNomination}
         rewardCategories={REWARD_REASON_CATEGORIES}
         currentUser={user?.name || "Current User"}
-        availablePointsToShare={sharablePointsBalance}
+        availablePointsToShare={actualAvailablePointsToShare}
       />
     </div>
   );
