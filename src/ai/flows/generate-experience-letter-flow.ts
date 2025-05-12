@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a professional experience letter using AI.
@@ -9,9 +8,9 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod'; // Corrected Zod import
+import { z } from 'zod';
 import { format } from 'date-fns';
-import { handlebars } from 'genkit'; // Changed import path
+import { handlebars } from 'genkit';
 
 const GenerateExperienceLetterInputSchema = z.object({
   employeeName: z.string().describe('The full name of the former employee.'),
@@ -41,6 +40,24 @@ export async function generateExperienceLetter(input: GenerateExperienceLetterIn
     issueDate: format(new Date(), "MMMM d, yyyy"),
   };
   return generateExperienceLetterFlow(enrichedInput);
+}
+
+const customizersForExperienceLetter = [];
+if (handlebars && typeof handlebars.helpers === 'function') {
+  customizersForExperienceLetter.push(
+    handlebars.helpers({
+      splitLines: (str) => str.split('\n').map(s => s.trim()).filter(s => s),
+      startsWith: (str, prefix) => str.startsWith(prefix),
+      substring: (str, start) => str.substring(start),
+      contains: (str, substr) => str.includes(substr),
+    })
+  );
+} else {
+  console.warn(
+    "Genkit handlebars.helpers is not available for generateExperienceLetterPrompt. " +
+    "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
+    "The template may not render correctly."
+  );
 }
 
 const generateExperienceLetterPrompt = ai.definePrompt({
@@ -117,14 +134,7 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
-  customizers: [
-    handlebars.helpers({
-      splitLines: (str) => str.split('\n').map(s => s.trim()).filter(s => s),
-      startsWith: (str, prefix) => str.startsWith(prefix),
-      substring: (str, start) => str.substring(start),
-      contains: (str, substr) => str.includes(substr),
-    })
-  ]
+  customizers: customizersForExperienceLetter
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(

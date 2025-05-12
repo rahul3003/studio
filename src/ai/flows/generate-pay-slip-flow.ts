@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a professional pay slip using AI.
@@ -9,8 +8,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod'; // Corrected: import z from zod
-import { handlebars } from 'genkit'; // Changed import path
+import { z } from 'zod';
+import { handlebars } from 'genkit';
 import { format } from 'date-fns';
 
 const PayItemSchema = z.object({
@@ -28,8 +27,6 @@ const GeneratePaySlipInputSchema = z.object({
   payPeriodEndDate: z.string().describe("End date of the pay period, formatted as 'MMMM d, yyyy'."),
   paymentDate: z.string().describe("Date of payment, formatted as 'MMMM d, yyyy'."),
   basicSalary: z.number().describe('Basic salary for the period.'),
-  // For simplicity, allowances and deductions are strings. AI will parse lines.
-  // A more robust solution would use z.array(PayItemSchema).
   allowancesStr: z.string().optional().describe('List of allowances, each on a new line, e.g., "Housing Allowance: 500\\nTravel Allowance: 200". The AI should parse this into table rows.'),
   deductionsStr: z.string().optional().describe('List of deductions, each on a new line, e.g., "Income Tax: 300\\nProvident Fund: 150". The AI should parse this into table rows.'),
   companyName: z.string().describe('Name of the company.'),
@@ -44,8 +41,6 @@ const GeneratePaySlipOutputSchema = z.object({
 export type GeneratePaySlipOutput = z.infer<typeof GeneratePaySlipOutputSchema>;
 
 export async function generatePaySlip(input: GeneratePaySlipInput): Promise<GeneratePaySlipOutput> {
-  // Calculate total allowances, total deductions, and net salary before sending to prompt
-  // This is a simplified calculation. Real-world scenarios are more complex.
   let totalAllowances = 0;
   if (input.allowancesStr) {
     input.allowancesStr.split('\n').forEach(line => {
@@ -78,9 +73,36 @@ export async function generatePaySlip(input: GeneratePaySlipInput): Promise<Gene
     totalAllowances,
     totalDeductions,
     netSalary,
-    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?random&t=${Date.now()}` // Ensure unique placeholder
+    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?random&t=${Date.now()}`
   };
   return generatePaySlipFlow(enrichedInput);
+}
+
+const customizersForPaySlip = [];
+if (handlebars && typeof handlebars.helpers === 'function') {
+  customizersForPaySlip.push(
+    handlebars.helpers({
+      formatCurrency: (num) => (typeof num === 'number' ? num.toFixed(2) : '0.00'),
+      parsePayItems: (str) => {
+        if (!str) return [];
+        return str.split('\n').map(line => {
+          const parts = line.split(':');
+          if (parts.length === 2) {
+            const name = parts[0].trim();
+            const amount = parseFloat(parts[1].trim());
+            return { name, amount: isNaN(amount) ? 0 : amount };
+          }
+          return null;
+        }).filter(item => item !== null && item.name !== "");
+      },
+    })
+  );
+} else {
+  console.warn(
+    "Genkit handlebars.helpers is not available for generatePaySlipPrompt. " +
+    "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
+    "The template may not render correctly."
+  );
 }
 
 const generatePaySlipPrompt = ai.definePrompt({
@@ -162,23 +184,7 @@ Calculated Net Salary: {{{netSalary}}}
 
 The final output must be a single, complete HTML string.
 `,
-  customizers: [
-    handlebars.helpers({
-      formatCurrency: (num) => (typeof num === 'number' ? num.toFixed(2) : '0.00'),
-      parsePayItems: (str) => {
-        if (!str) return [];
-        return str.split('\n').map(line => {
-          const parts = line.split(':');
-          if (parts.length === 2) {
-            const name = parts[0].trim();
-            const amount = parseFloat(parts[1].trim());
-            return { name, amount: isNaN(amount) ? 0 : amount };
-          }
-          return null;
-        }).filter(item => item !== null && item.name !== ""); // Ensure item and name are valid
-      },
-    })
-  ]
+  customizers: customizersForPaySlip
 });
 
 const generatePaySlipFlow = ai.defineFlow(
