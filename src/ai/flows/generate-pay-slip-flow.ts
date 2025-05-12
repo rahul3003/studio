@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod'; // Corrected: import z from zod
-import { handlebars } from 'genkit/handlebars'; // Reverted to specific import for handlebars
+import { handlebars } from 'genkit'; // Changed import path
 import { format } from 'date-fns';
 
 const PayItemSchema = z.object({
