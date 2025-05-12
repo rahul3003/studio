@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import * as React from "react";
@@ -22,8 +23,9 @@ export default function DashboardLayout({
 
   const user = useAuthStore(state => state.user);
   const loading = useAuthStore(state => state.loading); // authIsLoading
+  const authStoreLogout = useAuthStore(state => state.logout);
 
-  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
+  const storeInitializeProfile = useProfileStore(state => state.initializeProfileForUser);
   const profileData = useProfileStore(state => state.profileData);
   
   const getAttendanceForUserAndDate = useAttendanceStore(state => state.getAttendanceForUserAndDate);
@@ -37,14 +39,20 @@ export default function DashboardLayout({
   const [currentAttendanceNotes, setCurrentAttendanceNotes] = React.useState("");
   const [showCheckoutButton, setShowCheckoutButton] = React.useState(false);
 
+  // Memoize initializeProfile to ensure stable reference if needed, though Zustand actions are typically stable.
+  const initializeProfile = React.useCallback((userData) => {
+    storeInitializeProfile(userData);
+  }, [storeInitializeProfile]);
+
 
   React.useEffect(() => {
-    if (user && user.email) {
+    // Initialize profile only when user is loaded and not in auth loading state
+    if (user && user.email && !loading) {
       if (!profileData || !profileData.personal || profileData.personal.companyEmail !== user.email) {
         initializeProfile(user);
       }
     }
-  }, [user, initializeProfile, profileData]);
+  }, [user, loading, initializeProfile, profileData]);
 
   React.useEffect(() => {
     if (user && !loading) {
@@ -111,8 +119,20 @@ export default function DashboardLayout({
     setShowCheckoutButton(false); 
   }, [user, markEveningCheckout, toast]);
 
+  const handleLogout = () => {
+    authStoreLogout();
+    router.push('/login');
+  };
 
-  if (loading || !user) { 
+
+  if (loading || (!user && typeof window !== 'undefined' && window.location.pathname !== '/login')) { 
+    // If still loading, or no user and not on login page, show skeleton or redirect.
+    // The redirect to /login should be handled by useMockAuth or similar hook if not loading and no user.
+    // Here, we primarily show skeleton during the loading phase.
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login' && !user && !loading) {
+        router.push('/login'); // Ensure redirect if not loading and no user.
+        return null; // Prevent rendering children during redirect.
+    }
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -124,11 +144,23 @@ export default function DashboardLayout({
     );
   }
   
+  // If user is null and we are on a protected route (not /login), redirecting should occur.
+  // This might be better handled in a dedicated auth guard component or higher up.
+  // For now, the check above tries to manage it.
+
+  if (!user) {
+    // This case implies loading is false, but user is still null.
+    // This should ideally not happen on protected routes if redirection logic is correct.
+    // If on /login, LoginForm handles it.
+    // If on other routes, it means redirection failed or is pending.
+    return null; // Or a more specific loading/redirecting indicator.
+  }
+  
   return (
     <SidebarProvider defaultOpen>
-      <AppSidebar onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} />
+      <AppSidebar onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} onLogout={handleLogout}/>
       <SidebarInset>
-        <AppHeader onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} />
+        <AppHeader onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} onLogout={handleLogout} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-secondary/40 dark:bg-background">
           {children}
         </main>
@@ -153,4 +185,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-

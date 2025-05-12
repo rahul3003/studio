@@ -38,16 +38,15 @@ const mockNotifications = [
 ];
 
 
-export function AppHeader({ onCheckoutClick, showCheckoutButton }) { 
+export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) { 
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
 
-  // Select state individually for stable references
   const user = useAuthStore(state => state.user);
   const loading = useAuthStore(state => state.loading);
   const profileData = useProfileStore(state => state.profileData);
   
-  const rewardsPoints = profileData?.rewards?.pointsAvailable || 0;
+  const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
 
   const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;

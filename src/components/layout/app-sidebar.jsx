@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import Link from "next/link";
@@ -19,9 +20,9 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore"; 
 import { ROLE_NAV_CONFIG } from "@/config/roles";
 
-export function AppSidebar({ onCheckoutClick, showCheckoutButton }) { 
+export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) { 
   const pathname = usePathname();
-  const { user, logout } = useAuthStore(); 
+  const { user } = useAuthStore(); 
   const { state: sidebarState, isMobile } = useSidebar(); 
 
   const navItemsForRole = React.useMemo(() => {
@@ -135,7 +136,7 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton }) {
             variant="ghost"
             size="icon"
             className="ml-auto h-8 w-8 group-data-[collapsible=icon]:hidden"
-            onClick={logout}
+            onClick={onLogout}
             aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />
@@ -145,7 +146,7 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton }) {
             variant="ghost"
             size="icon"
             className="hidden h-8 w-8 group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:mx-auto mt-2"
-            onClick={logout}
+            onClick={onLogout}
             aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />
