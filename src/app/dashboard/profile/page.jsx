@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -34,7 +35,8 @@ import {
   Eye,
   Download,
   Edit2,
-  Paperclip
+  Paperclip,
+  CalendarCheck // Added CalendarCheck import
 } from "lucide-react";
 
 const mockProfileData = {
@@ -46,6 +48,7 @@ const mockProfileData = {
     addressProof: "Address_Proof_JohnDoe.pdf",
     joiningDate: "2022-08-15",
     department: "Technology",
+    companyName: "PESU Venture Labs"
   },
   secondaryData: {
     currentPosition: "Senior Software Engineer",
@@ -89,7 +92,7 @@ const mockProfileData = {
   reports: {
     ndaPath: "/documents/NDA_JohnDoe.pdf", // Mock path
     form16Path: "/documents/Form16_JohnDoe_2023.pdf", // Mock path
-    digitalIdImage: "https://picsum.photos/300/180?random&blur=1&sig=digitalid"
+    digitalIdImage: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png"
   },
   holidays: [
     { date: "2024-01-01", name: "New Year's Day" },
@@ -107,6 +110,16 @@ const mockProfileData = {
   ]
 };
 
+// Dummy data for NominateRewardDialog if `initialEmployees` is not directly accessible here or too large.
+// This list is used for the dropdown in the NominateRewardDialog.
+// Ensure it's available to the dialog component.
+const DUMMY_EMPLOYEE_LIST = [ // Renamed to avoid conflict if initialEmployees is imported elsewhere
+  { name: "Alice Wonderland" }, { name: "Bob The Builder" }, { name: "Charlie Chaplin" },
+  { name: "Diana Prince" }, { name: "Edward Scissorhands" }, { name: "Fiona Gallagher" },
+  { name: "George Best" }, { name: "Hannah Montana" }, { name: "Ian Wright" }, { name: "Julia Roberts" },
+];
+
+
 export default function ProfilePage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useMockAuth();
@@ -120,7 +133,7 @@ export default function ProfilePage() {
     return <div>Loading profile...</div>; // Or a skeleton loader
   }
 
-  const profilePhotoUrl = `https://i.pravatar.cc/150?u=${user.email}`; // Use email for consistent avatar
+  const profilePhotoUrl = user.avatar || `https://i.pravatar.cc/150?u=${user.email}`; // Use email for consistent avatar
 
   const handleApplyLeave = (data) => {
     console.log("Leave application:", data);
@@ -381,7 +394,7 @@ export default function ProfilePage() {
             <DialogContent>
               <DialogHeader><DialogTitle>Digital Employee ID</DialogTitle></DialogHeader>
               <div className="flex flex-col items-center">
-                <Image src={mockProfileData.reports.digitalIdImage} alt="Digital ID Card" width={300} height={180} className="rounded-lg border shadow-md" data-ai-hint="ID card employee" />
+                <Image src={mockProfileData.reports.digitalIdImage} alt="Digital ID Card" width={300} height={180} className="rounded-lg border shadow-md object-contain" data-ai-hint="ID card employee" />
                 <p className="mt-4 text-lg font-semibold">{user.name}</p>
                 <p className="text-sm text-muted-foreground">{mockProfileData.secondaryData.currentPosition}</p>
                 <p className="text-xs text-muted-foreground">Employee ID: EMP{user.email.substring(0,3).toUpperCase()}001</p> {/* Mock ID */}
@@ -414,18 +427,9 @@ export default function ProfilePage() {
 
       {/* Dialogs */}
       <ApplyLeaveDialog isOpen={isApplyLeaveOpen} onClose={() => setIsApplyLeaveOpen(false)} onSubmit={handleApplyLeave} />
-      <NominateRewardDialog isOpen={isNominateRewardOpen} onClose={() => setIsNominateRewardOpen(false)} onSubmit={handleNominateReward} employeeList={initialEmployees.map(e => e.name).filter(name => name !== user.name)} />
+      <NominateRewardDialog isOpen={isNominateRewardOpen} onClose={() => setIsNominateRewardOpen(false)} onSubmit={handleNominateReward} employeeList={DUMMY_EMPLOYEE_LIST.map(e => e.name).filter(name => name !== user.name)} />
       <DownloadSalarySlipDialog isOpen={isDownloadSalarySlipOpen} onClose={() => setIsDownloadSalarySlipOpen(false)} onSubmit={handleDownloadSalarySlip} />
       <VerificationLetterDialog isOpen={isVerificationLetterOpen} onClose={() => setIsVerificationLetterOpen(false)} onSubmit={handleRequestVerificationLetter} />
     </div>
   );
 }
-
-// Dummy data for NominateRewardDialog if `initialEmployees` is not directly accessible here or too large.
-// This list is used for the dropdown in the NominateRewardDialog.
-// Ensure it's available to the dialog component.
-const initialEmployees = [
-  { name: "Alice Wonderland" }, { name: "Bob The Builder" }, { name: "Charlie Chaplin" },
-  { name: "Diana Prince" }, { name: "Edward Scissorhands" }, { name: "Fiona Gallagher" },
-  { name: "George Best" }, { name: "Hannah Montana" }, { name: "Ian Wright" }, { name: "Julia Roberts" },
-];
