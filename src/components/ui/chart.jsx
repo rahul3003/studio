@@ -7,7 +7,7 @@ import * as RechartsPrimitive from "recharts"
 import { cn } from "@/lib/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } 
+const THEMES = { light: "", dark: ".dark" }
 
 /**
  * @typedef {Object.<string, {
@@ -43,7 +43,10 @@ const ChartContainer = React.forwardRef(
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+           // Base styles - applied regardless of aspect ratio
+          "flex justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+           // Apply aspect ratio conditionally if needed, otherwise allow flexibility
+          props.style?.aspectRatio ? "aspect-video" : "", // Only add aspect-video if aspect ratio is explicitly set or intended
           className
         )}
         {...props}
@@ -122,10 +125,16 @@ const ChartTooltipContent = React.forwardRef(
       const [item] = payload
       const key = `${labelKey || item.dataKey || item.name || "value"}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
-      const value =
+      let value =
         !labelKey && typeof label === "string"
           ? config[label]?.label || label
           : itemConfig?.label
+
+       // Fallback to payload value if label is not found
+      if (item.payload && !value) {
+          value = labelKey ? item.payload[labelKey] : (label || item.payload[item.name] || item.payload[item.dataKey])
+      }
+
 
       if (labelFormatter) {
         return (
@@ -169,11 +178,11 @@ const ChartTooltipContent = React.forwardRef(
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = color || item.payload.fill || item.color || "hsl(var(--primary))" // Added fallback color
 
             return (
               <div
-                key={item.dataKey}
+                key={item.dataKey || item.name || index} // Use index as fallback key
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center"
@@ -219,7 +228,7 @@ const ChartTooltipContent = React.forwardRef(
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
+                      {(item.value !== undefined && item.value !== null) && ( // Check for undefined/null
                         <span className="font-mono font-medium tabular-nums text-foreground">
                           {item.value.toLocaleString()}
                         </span>
@@ -254,7 +263,7 @@ const ChartLegendContent = React.forwardRef(
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-center gap-4",
+          "flex flex-wrap items-center justify-center gap-x-4 gap-y-1", // Added flex-wrap and gap-y
           verticalAlign === "top" ? "pb-3" : "pt-3",
           className
         )}
@@ -280,7 +289,7 @@ const ChartLegendContent = React.forwardRef(
                   }}
                 />
               )}
-              {itemConfig?.label}
+              {itemConfig?.label || item.value} {/* Fallback to item.value if label missing */}
             </div>
           )
         })}
@@ -289,6 +298,12 @@ const ChartLegendContent = React.forwardRef(
   }
 )
 ChartLegendContent.displayName = "ChartLegend"
+
+// Area Chart Components
+const ChartArea = React.forwardRef((props, ref) => (
+  <RechartsPrimitive.Area ref={ref} {...props} />
+))
+ChartArea.displayName = "ChartArea"
 
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
@@ -313,7 +328,7 @@ function getPayloadConfigFromPayload(
     key in payload &&
     typeof payload[key] === "string"
   ) {
-    configLabelKey = payload[key] 
+    configLabelKey = payload[key]
   } else if (
     payloadPayload &&
     key in payloadPayload &&
@@ -327,7 +342,9 @@ function getPayloadConfigFromPayload(
     : config[key]
 }
 
+
 export {
+  ChartArea, // Export Area component
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
