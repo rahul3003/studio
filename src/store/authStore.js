@@ -58,14 +58,23 @@ export const useAuthStore = create(
         if (currentUser && currentUser.baseRole) {
           const newRole = getRole(newRoleValue);
           const allowedSwitches = ROLE_SWITCH_PERMISSIONS[currentUser.baseRole.value] || [];
-          const canSwitch = newRoleValue === currentUser.baseRole.value || allowedSwitches.includes(newRoleValue);
+          
+          // An admin can switch to any role defined in their permissions.
+          // Non-admin roles can switch to 'employee' or back to their baseRole if they are currently acting as 'employee'.
+          let canSwitch = false;
+          if (currentUser.baseRole.value === 'superadmin' || currentUser.baseRole.value === 'admin') {
+            canSwitch = newRoleValue === currentUser.baseRole.value || allowedSwitches.includes(newRoleValue);
+          } else { // manager, hr, accounts
+             canSwitch = newRoleValue === currentUser.baseRole.value || (newRoleValue === 'employee' && allowedSwitches.includes('employee'));
+          }
+
 
           if (newRole && canSwitch) {
             set(state => ({
               user: { ...state.user, currentRole: newRole }
             }));
           } else {
-            console.warn(`Role switch to ${newRoleValue} not allowed for base role ${currentUser.baseRole.value}`);
+            console.warn(`Role switch to ${newRoleValue} not allowed for base role ${currentUser.baseRole.value} or current role ${currentUser.currentRole.value}`);
           }
         }
       },
@@ -75,15 +84,14 @@ export const useAuthStore = create(
          if (!currentUser || !currentUser.baseRole) {
           return [];
         }
-        // Employee role cannot switch.
+        // Employee role cannot switch to other roles.
         if (currentUser.baseRole.value === 'employee') {
-            return [currentUser.baseRole]; // Only show their own role
+            return [currentUser.baseRole]; 
         }
 
         const baseRoleValue = currentUser.baseRole.value;
         const allowedSwitchValues = ROLE_SWITCH_PERMISSIONS[baseRoleValue] || [];
         
-        // Ensure the base role is always an option to switch back to
         const availableRoleValues = Array.from(new Set([baseRoleValue, ...allowedSwitchValues]));
         
         return ROLES.filter(role => availableRoleValues.includes(role.value));
@@ -98,27 +106,41 @@ export const useAuthStore = create(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
             console.error("Failed to rehydrate auth store", error);
-            // Potentially clear user or set to a default state if rehydration fails
-            state.user = null;
+            if (state) {
+              state.user = null;
+              state.loading = false; // Ensure loading is false even on error
+            } else {
+              // This case should be rare, but if state is null, set initial state
+              useAuthStore.setState({ user: null, loading: false, error: "Rehydration failed critically." });
+            }
+            return;
         }
-        // Always set loading to false after rehydration attempt, successful or not.
-        // The `user` state will either be the rehydrated user or null.
-        if (state) { // state might be null if rehydration failed completely
+        
+        if (state) {
+          // If rehydration is successful or if state was already there (e.g. persisted state exists)
           state.loading = false;
         } else {
-          // If state is null, we might need to initialize loading state differently,
-          // but `set({ loading: false })` outside might cover this.
-          // For safety, ensure loading is false.
-          useAuthStore.getState().setLoading(false);
+          // If state is null (e.g., storage was empty and persist middleware returned null for state)
+          // Set initial state with loading false.
+          useAuthStore.setState({ user: null, loading: false, error: null });
         }
       }
     }
   )
 );
 
-// This ensures that on the client-side, after the store is potentially rehydrated,
-// the loading state is set to false. This helps prevent the app from getting stuck
-// in a loading state if rehydration happens quickly or if there's no stored state.
+// Initialize loading state correctly after store setup, especially for client-side.
+// This handles the very first load scenario before rehydration completes.
 if (typeof window !== 'undefined') {
-  useAuthStore.getState().setLoading(false); 
+    const unsub = useAuthStore.persist.onFinishRehydration(() => {
+        useAuthStore.setState({ loading: false });
+        unsub(); // Unsubscribe after first rehydration
+    });
+
+    // Fallback if onFinishRehydration doesn't fire quickly or store is already hydrated
+    // (e.g. from a quick refresh with existing localStorage)
+    // Check if it's already hydrated, if so, set loading to false.
+    if(useAuthStore.persist.hasHydrated()){
+        useAuthStore.setState({loading: false});
+    }
 }
