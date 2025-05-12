@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a professional pay slip using AI.
@@ -9,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { handlebars } from 'genkit';
 import { format } from 'date-fns';
 
 const PayItemSchema = z.object({
@@ -27,8 +27,8 @@ const GeneratePaySlipInputSchema = z.object({
   payPeriodEndDate: z.string().describe("End date of the pay period, formatted as 'MMMM d, yyyy'."),
   paymentDate: z.string().describe("Date of payment, formatted as 'MMMM d, yyyy'."),
   basicSalary: z.number().describe('Basic salary for the period.'),
-  allowancesStr: z.string().optional().describe('List of allowances, each on a new line, e.g., "Housing Allowance: 500\\nTravel Allowance: 200". The AI should parse this into table rows.'),
-  deductionsStr: z.string().optional().describe('List of deductions, each on a new line, e.g., "Income Tax: 300\\nProvident Fund: 150". The AI should parse this into table rows.'),
+  allowancesStr: z.string().optional().describe('List of allowances, each on a new line, e.g., "Housing Allowance: 500\\nTravel Allowance: 200".'),
+  deductionsStr: z.string().optional().describe('List of deductions, each on a new line, e.g., "Income Tax: 300\\nProvident Fund: 150".'),
   companyName: z.string().describe('Name of the company.'),
   companyAddress: z.string().optional().describe('Address of the company.'),
   companyLogoUrl: z.string().url().optional().describe('URL to the company logo. Use placeholder if not provided.'),
@@ -40,87 +40,99 @@ const GeneratePaySlipOutputSchema = z.object({
 });
 export type GeneratePaySlipOutput = z.infer<typeof GeneratePaySlipOutputSchema>;
 
-// Register helpers directly on the imported handlebars instance
-// Assume genkit always provides a valid handlebars object with registerHelper
-// If not, this will throw a more direct error, which is better than silent failure.
-try {
-  if (handlebars && typeof handlebars.registerHelper === 'function') {
-    handlebars.registerHelper('formatCurrency', (num) => 
-      (typeof num === 'number' ? num.toFixed(2) : '0.00')
-    );
-    handlebars.registerHelper('parsePayItems', (str) => {
-      if (!str) return [];
-      return str.split('\n').map(line => {
-        const parts = line.split(':');
-        if (parts.length === 2) {
-          const name = parts[0].trim();
-          const amount = parseFloat(parts[1].trim());
-          return { name, amount: isNaN(amount) ? 0 : amount };
-        }
-        return null;
-      }).filter(item => item !== null && item.name !== "");
-    });
-  } else {
-    console.warn(
-      "Genkit handlebars.registerHelper is not available for generatePaySlipPrompt. " +
-      "Pay slip template helpers (formatCurrency, parsePayItems) will not be registered. " +
-      "The template may not render correctly."
-    );
+// Helper function to format currency, moved from Handlebars helper
+const formatCurrencyLocal = (num: number | undefined): string => {
+  if (typeof num !== 'number' || isNaN(num)) {
+    return '0.00';
   }
-} catch (e) {
-    console.error("Failed to register Handlebars helpers for Pay Slip:", e);
-}
+  return num.toFixed(2);
+};
+
+// Helper function to parse pay items, moved from Handlebars helper
+const parsePayItemsLocal = (str: string | undefined): Array<{ name: string; amountStr: string }> => {
+  if (!str) return [];
+  return str.split('\n').map(line => {
+    const parts = line.split(':');
+    if (parts.length === 2) {
+      const name = parts[0].trim();
+      const amount = parseFloat(parts[1].trim());
+      return { name, amountStr: formatCurrencyLocal(isNaN(amount) ? 0 : amount) };
+    }
+    return null;
+  }).filter((item): item is { name: string; amountStr: string } => item !== null && item.name !== "");
+};
+
+// Define the schema for the enriched input that the prompt and flow will use
+const EnrichedGeneratePaySlipInputSchema = GeneratePaySlipInputSchema.extend({ 
+  currentDate: z.string(),
+  // String versions for template
+  basicSalaryStr: z.string(),
+  grossSalaryStr: z.string(),
+  totalAllowancesStrDisplay: z.string(),
+  totalDeductionsStrDisplay: z.string(),
+  netSalaryStr: z.string(),
+  // Parsed lists for template
+  parsedAllowances: z.array(z.object({ name: z.string(), amountStr: z.string() })),
+  parsedDeductions: z.array(z.object({ name: z.string(), amountStr: z.string() })),
+  // companyLogoUrl is already optional in base and will be part of enrichedInput
+});
+type EnrichedGeneratePaySlipInput = z.infer<typeof EnrichedGeneratePaySlipInputSchema>;
+
 
 export async function generatePaySlip(input: GeneratePaySlipInput): Promise<GeneratePaySlipOutput> {
-  let totalAllowances = 0;
+  let totalAllowancesNum = 0;
+  const parsedAllowances = parsePayItemsLocal(input.allowancesStr);
+  parsedAllowances.forEach(item => {
+    // For sum, we need to parse back the string amount or sum original numbers
+    // Let's sum original numbers from input.allowancesStr for accuracy
+  });
   if (input.allowancesStr) {
     input.allowancesStr.split('\n').forEach(line => {
-      const parts = line.split(':');
-      if (parts.length === 2) {
-        const amount = parseFloat(parts[1].trim());
-        if (!isNaN(amount)) totalAllowances += amount;
-      }
+        const parts = line.split(':');
+        if (parts.length === 2) {
+            const amount = parseFloat(parts[1].trim());
+            if (!isNaN(amount)) totalAllowancesNum += amount;
+        }
     });
   }
 
-  let totalDeductions = 0;
-  if (input.deductionsStr) {
+
+  let totalDeductionsNum = 0;
+  const parsedDeductions = parsePayItemsLocal(input.deductionsStr);
+   if (input.deductionsStr) {
     input.deductionsStr.split('\n').forEach(line => {
-      const parts = line.split(':');
-      if (parts.length === 2) {
-        const amount = parseFloat(parts[1].trim());
-        if (!isNaN(amount)) totalDeductions += amount;
-      }
+        const parts = line.split(':');
+        if (parts.length === 2) {
+            const amount = parseFloat(parts[1].trim());
+            if (!isNaN(amount)) totalDeductionsNum += amount;
+        }
     });
   }
   
-  const grossSalary = input.basicSalary + totalAllowances;
-  const netSalary = grossSalary - totalDeductions;
+  const grossSalaryNum = input.basicSalary + totalAllowancesNum;
+  const netSalaryNum = grossSalaryNum - totalDeductionsNum;
 
-  const enrichedInput = {
+  const enrichedInput: EnrichedGeneratePaySlipInput = {
     ...input,
     currentDate: format(new Date(), "MMMM d, yyyy"),
-    grossSalary,
-    totalAllowances,
-    totalDeductions,
-    netSalary,
-    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?random&t=${Date.now()}`
+    basicSalaryStr: formatCurrencyLocal(input.basicSalary),
+    grossSalaryStr: formatCurrencyLocal(grossSalaryNum),
+    totalAllowancesStrDisplay: formatCurrencyLocal(totalAllowancesNum),
+    totalDeductionsStrDisplay: formatCurrencyLocal(totalDeductionsNum),
+    netSalaryStr: formatCurrencyLocal(netSalaryNum),
+    parsedAllowances: parsedAllowances,
+    parsedDeductions: parsedDeductions,
+    companyLogoUrl: input.companyLogoUrl || `https://picsum.photos/150/50?random&t=${Date.now()}`,
   };
   return generatePaySlipFlow(enrichedInput);
 }
 
 const generatePaySlipPrompt = ai.definePrompt({
   name: 'generatePaySlipPrompt',
-  input: { schema: GeneratePaySlipInputSchema.extend({ 
-    currentDate: z.string(),
-    grossSalary: z.number(),
-    totalAllowances: z.number(),
-    totalDeductions: z.number(),
-    netSalary: z.number(),
-  }) },
+  input: { schema: EnrichedGeneratePaySlipInputSchema },
   output: { schema: GeneratePaySlipOutputSchema },
   prompt: `You are an expert HR assistant tasked with generating a Pay Slip as an HTML document string.
-The pay slip should be clear, professional, and easy to read, with all monetary values formatted to two decimal places.
+The pay slip should be clear, professional, and easy to read. All monetary values are pre-formatted strings.
 
 **Pay Slip Details:**
 Company Name: {{{companyName}}}
@@ -135,14 +147,14 @@ Employee ID: {{{employeeId}}}
 Department: {{{department}}}
 Position: {{{positionTitle}}}
 
-Basic Salary: {{{basicSalary}}}
-Allowances (String format): {{{allowancesStr}}}
-Deductions (String format): {{{deductionsStr}}}
+Basic Salary: {{{basicSalaryStr}}}
+Allowances (Parsed): {{#each parsedAllowances}}{{{this.name}}}: {{{this.amountStr}}}; {{/each}}
+Deductions (Parsed): {{#each parsedDeductions}}{{{this.name}}}: {{{this.amountStr}}}; {{/each}}
 
-Calculated Gross Salary: {{{grossSalary}}}
-Calculated Total Allowances: {{{totalAllowances}}}
-Calculated Total Deductions: {{{totalDeductions}}}
-Calculated Net Salary: {{{netSalary}}}
+Calculated Gross Salary: {{{grossSalaryStr}}}
+Calculated Total Allowances: {{{totalAllowancesStrDisplay}}}
+Calculated Total Deductions: {{{totalDeductionsStrDisplay}}}
+Calculated Net Salary: {{{netSalaryStr}}}
 
 
 **Instructions for the HTML Pay Slip:**
@@ -154,37 +166,33 @@ Calculated Net Salary: {{{netSalary}}}
     *   Company Address: \`<p style="font-size: 0.85em; color: #6c757d; margin-bottom: 15px;">{{{companyAddress}}}</p>\`
     *   Pay Slip Title: \`<h2 style="font-size: 1.3em; text-align: center; color: #495057; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ced4da;">Pay Slip</h2>\`
     *   Pay Period & Payment Date: \`<p style="font-size: 0.9em; text-align: center; color: #6c757d; margin-bottom: 20px;">For the period: <strong>{{{payPeriodStartDate}}} to {{{payPeriodEndDate}}}</strong> | Payment Date: <strong>{{{paymentDate}}}</strong></p>\`
-3.  **Employee Details Section:** Use a two-column layout (e.g., using flexbox or a simple table).
+3.  **Employee Details Section:** Use a two-column layout.
     *   \`<div style="display: flex; justify-content: space-between; margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">\`
     *   Left Column: Employee Name, Employee ID
     *   Right Column: Department, Position
     *   Example Item: \`<p style="font-size: 0.9em; margin: 3px 0;"><span style="color: #6c757d;">Employee Name:</span> <strong style="color: #343a40;">{{{employeeName}}}</strong></p>\`
-4.  **Earnings and Deductions Table:** Use HTML \`<table>\` for clarity.
+4.  **Earnings and Deductions Table:** Use HTML \`<table>\`.
     *   \`<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;">\`
     *   Table Header: \`<thead style="background-color: #e9ecef;"><tr><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Earnings</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (USD)</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: left; color: #495057;">Deductions</th><th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #495057;">Amount (USD)</th></tr></thead>\`
     *   Table Body:
-        *   Row for Basic Salary: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">Basic Salary</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency basicSalary}}</td><td></td><td></td></tr>\`
-        *   Dynamically parse \`{{{allowancesStr}}}\` and \`{{{deductionsStr}}}\`. Each line like "Name: Amount" should become a table row.
-            Example for allowances, using the 'parsePayItems' helper that returns an array of {name, amount} objects:
-            \`{{#each (parsePayItems allowancesStr) as |item|}}\`
-            \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">{{{item.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency item.amount}}</td><td></td><td></td></tr>\`
+        *   Row for Basic Salary: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">Basic Salary</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{{basicSalaryStr}}}</td><td></td><td></td></tr>\`
+        *   Dynamically list allowances using \`parsedAllowances\`:
+            \`{{#each parsedAllowances}}\`
+            \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;">{{{this.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{{this.amountStr}}}</td><td></td><td></td></tr>\`
             \`{{/each}}\`
-            Example for deductions:
-            \`{{#each (parsePayItems deductionsStr) as |item|}}\`
-            \`<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">{{{item.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{formatCurrency item.amount}}</td></tr>\`
+        *   Dynamically list deductions using \`parsedDeductions\`:
+            \`{{#each parsedDeductions}}\`
+            \`<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">{{{this.name}}}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">{{{this.amountStr}}}</td></tr>\`
             \`{{/each}}\`
-            Ensure that if one side (earnings/deductions) has more items, the other side has corresponding empty cells to maintain table structure. You might need to iterate a combined list or use conditional rendering for this.
-            The provided examples above will list all earnings first, then all deductions.
-        *   Total Row: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Gross Earnings</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency grossSalary}}</strong></td><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Total Deductions</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{formatCurrency totalDeductions}}</strong></td></tr>\`
+        *   Total Row: \`<tr><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Gross Earnings</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{{grossSalaryStr}}}</strong></td><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Total Deductions</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>{{{totalDeductionsStrDisplay}}}</strong></td></tr>\`
     *   \`</table>\`
 5.  **Net Pay Section:**
     *   \`<div style="text-align: right; margin-top: 10px; padding: 15px; background-color: #e9ecef; border-radius: 4px;">\`
-    *   \`<strong style="font-size: 1.1em; color: #343a40;">Net Salary: {{formatCurrency netSalary}}</strong>\`
+    *   \`<strong style="font-size: 1.1em; color: #343a40;">Net Salary: {{{netSalaryStr}}}</strong>\`
     *   \`</div>\`
 6.  **Footer:**
     *   \`<p style="font-size: 0.75em; color: #6c757d; text-align: center; margin-top: 25px;">This is a system-generated pay slip and does not require a signature. Generated on: {{{currentDate}}}</p>\`
-7.  **Monetary Formatting:** All monetary values MUST be formatted to two decimal places using the 'formatCurrency' helper.
-8.  **Content Focus:** Generate **only the HTML string** for the pay slip, starting with the outer \`<div>\`.
+7.  **Content Focus:** Generate **only the HTML string** for the pay slip, starting with the outer \`<div>\`.
 
 The final output must be a single, complete HTML string.
 `,
@@ -193,13 +201,7 @@ The final output must be a single, complete HTML string.
 const generatePaySlipFlow = ai.defineFlow(
   {
     name: 'generatePaySlipFlow',
-    inputSchema: GeneratePaySlipInputSchema.extend({ 
-      currentDate: z.string(),
-      grossSalary: z.number(),
-      totalAllowances: z.number(),
-      totalDeductions: z.number(),
-      netSalary: z.number(),
-    }),
+    inputSchema: EnrichedGeneratePaySlipInputSchema,
     outputSchema: GeneratePaySlipOutputSchema,
   },
   async (input) => {

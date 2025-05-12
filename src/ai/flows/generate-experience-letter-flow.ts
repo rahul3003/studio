@@ -9,9 +9,9 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod'; // Corrected: import z from zod
+import { z } from 'zod'; 
 import { format } from 'date-fns';
-import { handlebars } from 'genkit';
+import { handlebars } from 'genkit'; 
 
 const GenerateExperienceLetterInputSchema = z.object({
   employeeName: z.string().describe('The full name of the former employee.'),
@@ -34,26 +34,6 @@ const GenerateExperienceLetterOutputSchema = z.object({
   experienceLetterHtml: z.string().describe('The full HTML text of the generated experience letter.'),
 });
 export type GenerateExperienceLetterOutput = z.infer<typeof GenerateExperienceLetterOutputSchema>;
-
-// Register helpers directly on the imported handlebars instance
-// Assume genkit always provides a valid handlebars object with registerHelper
-// If not, this will throw a more direct error, which is better than silent failure.
-try {
-  if (handlebars && typeof handlebars.registerHelper === 'function') {
-    handlebars.registerHelper('splitLines', (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : []);
-    handlebars.registerHelper('startsWith', (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false);
-    handlebars.registerHelper('substring', (str, start) => typeof str === 'string' ? str.substring(start) : '');
-    handlebars.registerHelper('contains', (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false);
-  } else {
-    console.warn(
-      "Genkit handlebars.registerHelper is not available for generateExperienceLetterPrompt. " +
-      "Experience letter template helpers (splitLines, startsWith, etc.) will not be registered. " +
-      "The template may not render correctly."
-    );
-  }
-} catch (e) {
-  console.error("Failed to register Handlebars helpers for Experience Letter:", e);
-}
 
 export async function generateExperienceLetter(input: GenerateExperienceLetterInput): Promise<GenerateExperienceLetterOutput> {
   const enrichedInput = {
@@ -137,6 +117,14 @@ Issuing Authority Title: {{{issuingAuthorityTitle}}}
 
 The final output must be a single, complete HTML string.
 `,
+  customizers: [
+    handlebars.helpers({
+      splitLines: (str) => typeof str === 'string' ? str.split('\n').map(s => s.trim()).filter(s => s) : [],
+      startsWith: (str, prefix) => typeof str === 'string' && typeof prefix === 'string' ? str.startsWith(prefix) : false,
+      substring: (str, start) => typeof str === 'string' ? str.substring(start) : '',
+      contains: (str, substr) => typeof str === 'string' && typeof substr === 'string' ? str.includes(substr) : false,
+    }),
+  ],
 });
 
 const generateExperienceLetterFlow = ai.defineFlow(
