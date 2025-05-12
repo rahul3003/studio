@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import * as React from "react";
@@ -23,6 +24,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
   const profileData = useProfileStore(state => state.profileData);
+  const profileUserEmail = useProfileStore(state => state.profileData?.personal?.companyEmail);
+
 
   const { getAttendanceForUserAndDate, markMorningCheckIn, markEveningCheckout } = useAttendanceStore(state => ({ 
     getAttendanceForUserAndDate: state.getAttendanceForUserAndDate,
@@ -38,10 +41,10 @@ export default function DashboardLayout({
 
 
   React.useEffect(() => {
-    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
+    if (user && (!profileUserEmail || profileUserEmail !== user.email)) {
       initializeProfile(user);
     }
-  }, [user, initializeProfile, profileData]);
+  }, [user, initializeProfile, profileUserEmail]);
 
   React.useEffect(() => {
     if (user && !loading) {
@@ -54,26 +57,23 @@ export default function DashboardLayout({
 
       // Show morning check-in dialog if not checked-in and not dismissed for the day
       if (!attendanceRecord?.checkInTimeCategory && !alreadyAttemptedOrDismissed) {
-        // We can add time-based logic if desired (e.g., only show before noon)
         setIsMorningCheckInDialogOpen(true);
       } else {
-        setIsMorningCheckInDialogOpen(false); // Ensure it's closed if conditions not met
+        setIsMorningCheckInDialogOpen(false);
       }
 
-      // Determine if checkout button should be shown
       if (attendanceRecord?.checkInTimeCategory && !attendanceRecord?.checkOutTimeCategory) {
         setShowCheckoutButton(true);
       } else {
         setShowCheckoutButton(false);
       }
       
-      // Store current notes if attendance record exists, for pre-filling checkout dialog
       setCurrentAttendanceNotes(attendanceRecord?.notes || "");
 
     }
-  }, [user, loading, getAttendanceForUserAndDate, router.pathname]); // Added router.pathname to re-evaluate on nav
+  }, [user, loading, getAttendanceForUserAndDate, router.pathname]);
 
-  const handleSaveMorningCheckIn = (checkInData) => {
+  const handleSaveMorningCheckIn = React.useCallback((checkInData) => {
     if (!user) return;
     markMorningCheckIn(user.name, new Date(), checkInData);
     toast({
@@ -81,29 +81,28 @@ export default function DashboardLayout({
       description: `Your check-in for ${format(new Date(), "PPP")} has been recorded.`,
     });
     setIsMorningCheckInDialogOpen(false);
-    // No need to set session storage here as successful check-in will prevent dialog next time
     if (checkInData.status === "Present") {
-        setShowCheckoutButton(true); // Show checkout button immediately after check-in
+        setShowCheckoutButton(true); 
     }
     setCurrentAttendanceNotes(checkInData.notes || "");
-  };
+  }, [user, markMorningCheckIn, toast, setCurrentAttendanceNotes, setShowCheckoutButton]);
 
-  const handleCloseMorningCheckInDialog = (saved = false) => {
+  const handleCloseMorningCheckInDialog = React.useCallback((saved = false) => {
     setIsMorningCheckInDialogOpen(false);
-    if (!saved && user) { // If closed without saving (e.g. Cancel or 'X')
+    if (!saved && user) { 
         const todayDateString = format(new Date(), "yyyy-MM-dd");
         sessionStorage.setItem(`morningCheckInAttempted_${user.name}_${todayDateString}`, 'true');
     }
-  };
+  }, [user]);
 
-  const handleOpenEveningCheckoutDialog = () => {
+  const handleOpenEveningCheckoutDialog = React.useCallback(() => {
     if (!user) return;
     const attendanceRecord = getAttendanceForUserAndDate(user.name, new Date());
     setCurrentAttendanceNotes(attendanceRecord?.notes || ""); 
     setIsEveningCheckoutDialogOpen(true);
-  };
+  }, [user, getAttendanceForUserAndDate]);
 
-  const handleSaveEveningCheckout = (checkoutData) => {
+  const handleSaveEveningCheckout = React.useCallback((checkoutData) => {
     if (!user) return;
     markEveningCheckout(user.name, new Date(), checkoutData);
     toast({
@@ -111,8 +110,8 @@ export default function DashboardLayout({
       description: `Your check-out for ${format(new Date(), "PPP")} has been recorded.`,
     });
     setIsEveningCheckoutDialogOpen(false);
-    setShowCheckoutButton(false); // Hide checkout button after successful checkout
-  };
+    setShowCheckoutButton(false); 
+  }, [user, markEveningCheckout, toast, setShowCheckoutButton]);
 
 
   if (loading || !user) {
@@ -139,7 +138,7 @@ export default function DashboardLayout({
       {user && (
         <MorningCheckInDialog
             isOpen={isMorningCheckInDialogOpen}
-            onClose={(saved) => handleCloseMorningCheckInDialog(saved)}
+            onClose={handleCloseMorningCheckInDialog}
             onSave={handleSaveMorningCheckIn}
             userName={user.name}
         />
