@@ -29,17 +29,18 @@ import { useToast } from "@/hooks/use-toast";
 import { EmployeeForm } from "@/components/employee/employee-form";
 
 // Initial mock employee data
-const initialEmployees = [
+export const initialEmployees = [
   {
     id: "EMP001",
     name: "Alice Wonderland",
     email: "alice.wonderland@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=alice",
-    role: "Software Engineer", // This is the Job Title/Primary Function
-    designation: "Senior",   // This is the new Designation field
+    role: "Software Engineer",
+    designation: "Senior",
     department: "Technology",
     status: "Active",
     joinDate: "2022-08-15",
+    gender: "Female",
   },
   {
     id: "EMP002",
@@ -51,6 +52,7 @@ const initialEmployees = [
     department: "Operations",
     status: "Active",
     joinDate: "2021-05-20",
+    gender: "Male",
   },
   {
     id: "EMP003",
@@ -62,6 +64,7 @@ const initialEmployees = [
     department: "Design",
     status: "On Leave",
     joinDate: "2023-01-10",
+    gender: "Male",
   },
   {
     id: "EMP004",
@@ -73,6 +76,7 @@ const initialEmployees = [
     department: "Human Resources",
     status: "Active",
     joinDate: "2020-03-01",
+    gender: "Female",
   },
   {
     id: "EMP005",
@@ -84,6 +88,7 @@ const initialEmployees = [
     department: "Technology",
     status: "Terminated",
     joinDate: "2022-11-01",
+    gender: "Male",
   },
   {
     id: "EMP006",
@@ -95,6 +100,55 @@ const initialEmployees = [
     department: "Sales",
     status: "Active",
     joinDate: "2023-06-22",
+    gender: "Female",
+  },
+  {
+    id: "EMP007",
+    name: "George Best",
+    email: "george.best@example.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=george",
+    role: "Data Analyst",
+    designation: "Staff",
+    department: "Marketing",
+    status: "Active",
+    joinDate: "2023-02-15",
+    gender: "Male",
+  },
+  {
+    id: "EMP008",
+    name: "Hannah Montana",
+    email: "hannah.montana@example.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=hannah",
+    role: "QA Engineer",
+    designation: "Associate",
+    department: "Technology",
+    status: "Active",
+    joinDate: "2024-01-05",
+    gender: "Female",
+  },
+  {
+    id: "EMP009",
+    name: "Ian Wright",
+    email: "ian.wright@example.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=ian",
+    role: "DevOps Engineer",
+    designation: "Senior",
+    department: "Technology",
+    status: "On Leave",
+    joinDate: "2022-03-10",
+    gender: "Male",
+  },
+  {
+    id: "EMP010",
+    name: "Julia Roberts",
+    email: "julia.roberts@example.com",
+    avatarUrl: "https://i.pravatar.cc/150?u=julia",
+    role: "Product Owner",
+    designation: "Manager",
+    department: "Product",
+    status: "Active",
+    joinDate: "2021-09-01",
+    gender: "Female",
   },
 ];
 
@@ -155,6 +209,8 @@ export default function EmployeesPage() {
         ...employeeData,
         id: newId,
         avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
+        // Ensure new employees have a gender, default if not in form (form should ideally include it)
+        gender: employeeData.gender || "Other", 
       };
       setEmployees((prevEmployees) => [newEmployee, ...prevEmployees]);
       toast({ title: "Employee Added", description: `${employeeData.name} has been added to the system.` });
@@ -201,6 +257,7 @@ export default function EmployeesPage() {
                   <TableHead>Job Title</TableHead>
                   <TableHead>Designation</TableHead>
                   <TableHead>Department</TableHead>
+                  <TableHead>Gender</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -226,6 +283,7 @@ export default function EmployeesPage() {
                     <TableCell>{employee.role}</TableCell> 
                     <TableCell>{employee.designation}</TableCell>
                     <TableCell>{employee.department}</TableCell>
+                    <TableCell>{employee.gender}</TableCell>
                     <TableCell>
                       {new Date(employee.joinDate).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -315,3 +373,4 @@ export default function EmployeesPage() {
     </div>
   );
 }
+

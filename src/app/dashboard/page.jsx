@@ -12,30 +12,69 @@ import { HrAnalytics } from "@/components/dashboard/hr-analytics";
 import { AccountsAnalytics } from "@/components/dashboard/accounts-analytics";
 import { EmployeeAnalytics } from "@/components/dashboard/employee-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
+import { initialEmployees } from "@/app/dashboard/employees/page"; // Import employee data
+
+// Function to aggregate department data
+const getHeadcountByDept = (employees) => {
+  const deptCounts = employees.reduce((acc, emp) => {
+    acc[emp.department] = (acc[emp.department] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const chartColors = [
+    "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))", "hsl(var(--chart-5))",
+  ];
+  
+  return Object.entries(deptCounts).map(([name, value], index) => ({
+    name: name.substring(0, 4), // Abbreviate for chart
+    value,
+    fill: chartColors[index % chartColors.length],
+  }));
+};
+
+// Function to aggregate gender data
+const getGenderDistribution = (employees) => {
+  const genderCounts = employees.reduce((acc, emp) => {
+    const gender = emp.gender || "Other"; // Default to 'Other' if undefined
+    acc[gender] = (acc[gender] || 0) + 1;
+    return acc;
+  }, {});
+
+  const chartColors = {
+    Male: "hsl(var(--chart-1))",
+    Female: "hsl(var(--chart-2))",
+    Other: "hsl(var(--chart-3))",
+  };
+
+  return Object.entries(genderCounts).map(([gender, count]) => ({
+    gender,
+    count,
+    fill: chartColors[gender] || "hsl(var(--chart-4))", // Fallback color
+  }));
+};
+
+
+const headcountByDeptData = getHeadcountByDept(initialEmployees);
+const genderDistributionData = getGenderDistribution(initialEmployees);
+const totalActiveEmployees = initialEmployees.filter(e => e.status === "Active").length;
 
 // Mock data - Replace with actual data fetching later
 const mockData = {
   admin: {
-    totalEmployees: 55,
-    totalDepartments: 7,
-    totalProjects: 12,
-    totalTasks: 88,
-    openJobs: 5,
-    pendingReimbursements: 15,
-    attendanceSummary: [
+    totalEmployees: initialEmployees.length,
+    totalDepartments: new Set(initialEmployees.map(e => e.department)).size,
+    totalProjects: 12, // Keep as mock for now
+    totalTasks: 88, // Keep as mock for now
+    openJobs: 5, // Keep as mock for now
+    pendingReimbursements: 15, // Keep as mock for now
+    attendanceSummary: [ // Keep as mock for now
       { status: "Present", count: 850, fill: "hsl(var(--chart-1))" },
       { status: "Absent", count: 80, fill: "hsl(var(--chart-2))" },
       { status: "Leave", count: 70, fill: "hsl(var(--chart-3))" },
     ],
-    headcountByDept: [
-      { name: "Tech", value: 15, fill: "hsl(var(--chart-1))" },
-      { name: "HR", value: 5, fill: "hsl(var(--chart-2))" },
-      { name: "Sales", value: 10, fill: "hsl(var(--chart-3))" },
-      { name: "Mktg", value: 8, fill: "hsl(var(--chart-4))" },
-      { name: "Ops", value: 12, fill: "hsl(var(--chart-5))" },
-      { name: "Design", value: 3, fill: "hsl(var(--chart-1))"},
-      { name: "Finance", value: 2, fill: "hsl(var(--chart-2))"},
-    ],
+    headcountByDept: headcountByDeptData,
+    genderDistribution: genderDistributionData,
   },
   manager: {
     teamSize: 8,
@@ -56,16 +95,17 @@ const mockData = {
     ],
   },
   hr: {
-    activeEmployees: 50,
-    newHiresThisMonth: 4,
-    openPositions: 5,
-    avgTimeToFill: 35, // days
-    employeeDistribution: [ // Example: By Employment Type
-      { type: "Full-time", count: 45, fill: "hsl(var(--chart-1))" },
-      { type: "Part-time", count: 3, fill: "hsl(var(--chart-2))" },
-      { type: "Intern", count: 2, fill: "hsl(var(--chart-3))" },
-    ],
-     jobStatusDistribution: [
+    activeEmployees: totalActiveEmployees,
+    newHiresThisMonth: initialEmployees.filter(e => {
+        const joinDate = new Date(e.joinDate);
+        const today = new Date();
+        return joinDate.getFullYear() === today.getFullYear() && joinDate.getMonth() === today.getMonth();
+    }).length,
+    openPositions: 5, // Keep mock
+    avgTimeToFill: 35, // days, keep mock
+    employeeDistribution: genderDistributionData, // Use calculated gender data
+    headcountByDept: headcountByDeptData, // Use calculated department data
+     jobStatusDistribution: [ // Keep mock for now
         { status: 'Open', count: 5, fill: 'hsl(var(--chart-1))' },
         { status: 'Closed', count: 10, fill: 'hsl(var(--chart-2))' },
         { status: 'Filled', count: 8, fill: 'hsl(var(--chart-3))' },
@@ -141,7 +181,7 @@ export default function DashboardPage() {
   const renderAnalytics = () => {
     switch (user.currentRole.value) {
       case 'superadmin':
-      case 'admin': // Assuming admin has similar view to superadmin for now
+      case 'admin': 
         return <AdminAnalytics data={mockData.admin} />;
       case 'manager':
         return <ManagerAnalytics data={mockData.manager} />;
@@ -196,3 +236,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

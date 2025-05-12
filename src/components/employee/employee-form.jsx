@@ -30,19 +30,22 @@ import { useToast } from "@/hooks/use-toast";
 const employeeFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
-  role: z.string().min(1, { message: "Job Title/Role is required." }), // This field represents Job Title
-  designation: z.string().min(1, { message: "Designation is required." }), // New field for Designation
+  role: z.string().min(1, { message: "Job Title/Role is required." }),
+  designation: z.string().min(1, { message: "Designation is required." }),
   department: z.string().min(1, { message: "Department is required." }),
+  gender: z.string().min(1, { message: "Gender is required." }),
   joinDate: z.date({ required_error: "Join date is required." }),
   status: z.string().min(1, { message: "Status is required." }),
 });
+
+const GENDER_OPTIONS = ["Male", "Female", "Other"];
 
 export function EmployeeForm({
   onSubmit,
   initialData,
   onCancel,
-  rolesOptions, // For Job Title/Role
-  designationOptions, // For Designation
+  rolesOptions, 
+  designationOptions,
   departmentsOptions,
   statusOptions,
 }) {
@@ -53,6 +56,7 @@ export function EmployeeForm({
       ? {
           ...initialData,
           joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
+          gender: initialData.gender || "",
         }
       : {
           name: "",
@@ -60,6 +64,7 @@ export function EmployeeForm({
           role: "",
           designation: "",
           department: "",
+          gender: "",
           joinDate: undefined,
           status: "Active",
         },
@@ -70,6 +75,7 @@ export function EmployeeForm({
       ? {
           ...initialData,
           joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
+          gender: initialData.gender || "",
         }
       : {
           name: "",
@@ -77,6 +83,7 @@ export function EmployeeForm({
           role: "",
           designation: "",
           department: "",
+          gender: "",
           joinDate: undefined,
           status: "Active",
         });
@@ -193,35 +200,22 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
-          <FormField
+           <FormField
             control={form.control}
-            name="joinDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Join Date</FormLabel>
-                <DatePicker date={field.value} setDate={field.onChange} />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <FormField
-            control={form.control}
-            name="status"
+            name="gender"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>Gender</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
+                    {GENDER_OPTIONS.map((gender) => (
+                      <SelectItem key={gender} value={gender}>
+                        {gender}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -230,6 +224,45 @@ export function EmployeeForm({
               </FormItem>
             )}
           />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <FormField
+                control={form.control}
+                name="joinDate"
+                render={({ field }) => (
+                <FormItem className="flex flex-col">
+                    <FormLabel>Join Date</FormLabel>
+                    <DatePicker date={field.value} setDate={field.onChange} />
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>
+                            {status}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
@@ -242,3 +275,4 @@ export function EmployeeForm({
     </Form>
   );
 }
+

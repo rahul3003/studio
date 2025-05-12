@@ -1,8 +1,9 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, PieChart } from "lucide-react";
+import * as React from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BarChart, PieChart, Users, Building, UsersRound } from "lucide-react"; // Added UsersRound
 import {
   ChartContainer,
   ChartTooltip,
@@ -16,129 +17,183 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  BarChart as RechartsBarChart, // Alias import
-  PieChart as RechartsPieChart, // Alias import
+  BarChart as RechartsBarChart, 
+  PieChart as RechartsPieChart, 
   Pie,
   Cell,
 } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const barChartConfig = {
-  value: { label: "Count" },
-  Tech: { label: "Technology", color: "hsl(var(--chart-1))" },
-  HR: { label: "Human Resources", color: "hsl(var(--chart-2))" },
-  Sales: { label: "Sales", color: "hsl(var(--chart-3))" },
-  Mktg: { label: "Marketing", color: "hsl(var(--chart-4))" },
-  Ops: { label: "Operations", color: "hsl(var(--chart-5))" },
-  Design: { label: "Design", color: "hsl(var(--chart-1))" }, // Re-use colors
-  Finance: { label: "Finance", color: "hsl(var(--chart-2))" }, // Re-use colors
+  value: { label: "Headcount" },
+  // Department specific labels will be derived from data
 };
 
-const pieChartConfig = {
-  count: { label: "Count" },
-  Present: { label: "Present", color: "hsl(var(--chart-1))" },
-  Absent: { label: "Absent", color: "hsl(var(--chart-2))" },
-  Leave: { label: "Leave", color: "hsl(var(--chart-3))" },
+const genderPieChartConfig = {
+  count: { label: "Employees" },
+  Male: { label: "Male", color: "hsl(var(--chart-1))" },
+  Female: { label: "Female", color: "hsl(var(--chart-2))" },
+  Other: { label: "Other", color: "hsl(var(--chart-3))" },
 };
 
 export function AdminAnalytics({ data }) {
+  const [analyticsView, setAnalyticsView] = React.useState("departments"); // 'departments' or 'gender'
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Summary Cards */}
       <Card>
-        <CardHeader>
-          <CardTitle>Total Employees</CardTitle>
-        </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.totalEmployees}</CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Departments</CardTitle>
-        </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.totalDepartments}</CardContent>
-      </Card>
-       <Card>
-        <CardHeader>
-          <CardTitle>Open Job Positions</CardTitle>
-        </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.openJobs}</CardContent>
-      </Card>
-
-      {/* Headcount by Department Chart */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Headcount by Department</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <ChartContainer config={barChartConfig} className="h-[300px] w-full">
-            <RechartsBarChart accessibilityLayer data={data.headcountByDept} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3"/>
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-              />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8}/>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
-              />
-              <Bar dataKey="value" radius={4} />
-            </RechartsBarChart>
-          </ChartContainer>
+          <div className="text-2xl font-bold">{data.totalEmployees}</div>
         </CardContent>
       </Card>
-
-      {/* Attendance Summary Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Attendance Overview (Sample)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Departments</CardTitle>
+          <Building className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent className="flex items-center justify-center">
-          <ChartContainer config={pieChartConfig} className="h-[250px] w-full">
-            <RechartsPieChart>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Pie
-                data={data.attendanceSummary}
-                dataKey="count"
-                nameKey="status"
-                innerRadius={60}
-                outerRadius={90}
-                strokeWidth={2}
-              >
-                 {data.attendanceSummary.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-               <ChartLegend content={<ChartLegendContent nameKey="status" />} />
-            </RechartsPieChart>
-          </ChartContainer>
+        <CardContent>
+          <div className="text-2xl font-bold">{data.totalDepartments}</div>
         </CardContent>
-      </Card>
-
-      {/* More summary cards */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Projects</CardTitle>
-        </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.totalProjects}</CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Reimbursements</CardTitle>
-        </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.pendingReimbursements}</CardContent>
       </Card>
        <Card>
-        <CardHeader>
-          <CardTitle>Total Tasks</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Open Job Positions</CardTitle>
+           <BarChart className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
         </CardHeader>
-        <CardContent className="text-3xl font-bold">{data.totalTasks}</CardContent>
+        <CardContent>
+          <div className="text-2xl font-bold">{data.openJobs}</div>
+        </CardContent>
+      </Card>
+
+      {/* Analytics View Switcher */}
+      <Card className="lg:col-span-3">
+        <CardHeader>
+          <CardTitle>Employee Demographics</CardTitle>
+          <CardDescription>View employee distribution by department or gender.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <Label htmlFor="analytics-view-select" className="text-sm font-medium">Select View:</Label>
+            <Select value={analyticsView} onValueChange={setAnalyticsView}>
+              <SelectTrigger id="analytics-view-select" className="w-full md:w-[200px] mt-1">
+                <SelectValue placeholder="Select view" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="departments">By Department</SelectItem>
+                <SelectItem value="gender">By Gender</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {analyticsView === "departments" && (
+            <ChartContainer config={barChartConfig} className="h-[350px] w-full">
+              <RechartsBarChart accessibilityLayer data={data.headcountByDept} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3"/>
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}/>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent 
+                    formatter={(value, name, props) => {
+                        const dept = data.headcountByDept.find(d => d.name === props.payload.name);
+                        return [`${value} employees`, dept ? `Department: ${dept.name}`: "Department"];
+                    }}
+                    indicator="dot" 
+                    />}
+                />
+                 <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="value" radius={4} name="Headcount">
+                   {data.headcountByDept.map((entry) => (
+                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </RechartsBarChart>
+            </ChartContainer>
+          )}
+
+          {analyticsView === "gender" && (
+            <ChartContainer config={genderPieChartConfig} className="h-[350px] w-full flex items-center justify-center">
+              <RechartsPieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Pie
+                  data={data.genderDistribution}
+                  dataKey="count"
+                  nameKey="gender"
+                  innerRadius={80}
+                  outerRadius={120}
+                  strokeWidth={2}
+                  labelLine={false}
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, ...rest }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    return (
+                      <text x={x} y={y} fill="hsl(var(--primary-foreground))" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs font-medium">
+                        {`${(percent * 100).toFixed(0)}%`}
+                      </text>
+                    );
+                  }}
+                >
+                   {data.genderDistribution.map((entry) => (
+                    <Cell key={`cell-${entry.gender}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                 <ChartLegend content={<ChartLegendContent nameKey="gender" icon={UsersRound} />} />
+              </RechartsPieChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
+
+
+      {/* More summary cards can remain below or be integrated elsewhere */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+          <FolderKanban className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{data.totalProjects}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Pending Reimbursements</CardTitle>
+          <Receipt className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{data.pendingReimbursements}</div>
+        </CardContent>
+      </Card>
+       <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Tasks Assigned</CardTitle>
+          <ListTodo className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{data.totalTasks}</div>
+        </CardContent>
       </Card>
 
     </div>
   );
 }
+
