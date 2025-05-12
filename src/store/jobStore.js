@@ -20,7 +20,7 @@ const initialJobsMock = [
 export const useJobStore = create(
   persist(
     (set, get) => ({
-      jobs: [],
+      jobs: initialJobsMock, // Initialize with mock data directly
       _initializeJobs: () => {
         if (get().jobs.length === 0) {
           set({ jobs: initialJobsMock });
@@ -45,21 +45,19 @@ export const useJobStore = create(
     {
       name: 'job-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (!state || state.jobs.length === 0) {
-          console.log("Rehydrating job store with initial mock data.");
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate job store", error);
           state.jobs = initialJobsMock;
+        } else if (!state || !state.jobs || state.jobs.length === 0) {
+          console.log("Rehydrating job store: store empty or invalid, using initial mock data.");
+          if (state) {
+            state.jobs = initialJobsMock;
+          }
         }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('job-storage');
-    if (!storedData || JSON.parse(storedData)?.state?.jobs?.length === 0) {
-      useJobStore.setState({ jobs: initialJobsMock });
-    } else {
-       useJobStore.getState().setJobs(JSON.parse(storedData).state.jobs);
-    }
-}
+// Redundant client-side initialization block removed.

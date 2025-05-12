@@ -1,3 +1,4 @@
+
 "use client"; // Ensure this is a client component
 
 import * as React from "react";
@@ -62,8 +63,6 @@ export function LoginForm() {
         title: "Login Successful",
         description: `Welcome back, ${result.user.name}!`,
       });
-      // Dispatch a custom event to notify other parts of the app (like useMockAuth)
-      window.dispatchEvent(new CustomEvent('authChanged')); 
       router.push("/dashboard");
     } else {
       toast({
@@ -159,10 +158,13 @@ export function LoginForm() {
             Use password <code className="font-mono bg-muted px-1 py-0.5 rounded">password</code> with:
             <ul className="list-disc pl-5 mt-1 text-xs">
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">superadmin@example.com</code></li>
+              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">admin@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">manager@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">hr@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">accounts@example.com</code></li>
               <li><code className="font-mono bg-muted px-1 py-0.5 rounded">employee@example.com</code></li>
+              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">alice.manager@example.com</code></li>
+              <li><code className="font-mono bg-muted px-1 py-0.5 rounded">bob.employee@example.com</code></li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -191,3 +193,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

@@ -14,7 +14,12 @@ const generateUserAttendance = (userName) => {
     } else if (userName === "Bob The Builder") {
         records[format(subDays(today, 1), "yyyy-MM-dd")] = { status: "Present", notes: "Morning session" };
     }
-    records["2024-07-04"] = { status: "Holiday", notes: "Independence Day" };
+    records["2024-07-04"] = { status: "Holiday", notes: "Independence Day" }; // Example Holiday
+    // Add a record for Admin User for testing
+    if (userName === "Admin User") {
+         records[format(today, "yyyy-MM-dd")] = { status: "Present", notes: "Admin present today." };
+         records[format(subDays(today,1), "yyyy-MM-dd")] = { status: "Leave", notes: "Admin on leave yesterday." };
+    }
     return records;
 };
 
@@ -27,7 +32,7 @@ const initialAllUsersAttendanceDataMock = MOCK_EMPLOYEE_NAMES_FOR_ATTENDANCE.red
 export const useAttendanceStore = create(
   persist(
     (set, get) => ({
-      allUsersAttendance: {},
+      allUsersAttendance: initialAllUsersAttendanceDataMock, // Initialize with mock data directly
       _initializeAttendance: () => {
          if (Object.keys(get().allUsersAttendance).length === 0) {
            set({ allUsersAttendance: initialAllUsersAttendanceDataMock });
@@ -52,21 +57,19 @@ export const useAttendanceStore = create(
     {
       name: 'attendance-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-         if (!state || Object.keys(state.allUsersAttendance).length === 0) {
-            console.log("Rehydrating attendance store with initial mock data.");
-           state.allUsersAttendance = initialAllUsersAttendanceDataMock;
-         }
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate attendance store", error);
+          state.allUsersAttendance = initialAllUsersAttendanceDataMock;
+        } else if (!state || !state.allUsersAttendance || Object.keys(state.allUsersAttendance).length === 0) {
+           console.log("Rehydrating attendance store: store empty or invalid, using initial mock data.");
+           if (state) { // If state exists but is empty/invalid
+             state.allUsersAttendance = initialAllUsersAttendanceDataMock;
+           }
+        }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('attendance-storage');
-     if (!storedData || Object.keys(JSON.parse(storedData)?.state?.allUsersAttendance || {}).length === 0) {
-      useAttendanceStore.setState({ allUsersAttendance: initialAllUsersAttendanceDataMock });
-    } else {
-       useAttendanceStore.getState().setAllUsersAttendance(JSON.parse(storedData).state.allUsersAttendance);
-    }
-}
+// Redundant client-side initialization block removed.

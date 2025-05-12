@@ -19,7 +19,7 @@ const initialProjectsMock = [
 export const useProjectStore = create(
   persist(
     (set, get) => ({
-      projects: [],
+      projects: initialProjectsMock, // Initialize with mock data directly
       _initializeProjects: () => {
         if (get().projects.length === 0) {
           set({ projects: initialProjectsMock });
@@ -44,21 +44,19 @@ export const useProjectStore = create(
     {
       name: 'project-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (!state || state.projects.length === 0) {
-          console.log("Rehydrating project store with initial mock data.");
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate project store", error);
           state.projects = initialProjectsMock;
+        } else if (!state || !state.projects || state.projects.length === 0) {
+          console.log("Rehydrating project store: store empty or invalid, using initial mock data.");
+          if (state) {
+            state.projects = initialProjectsMock;
+          }
         }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('project-storage');
-    if (!storedData || JSON.parse(storedData)?.state?.projects?.length === 0) {
-      useProjectStore.setState({ projects: initialProjectsMock });
-    } else {
-      useProjectStore.getState().setProjects(JSON.parse(storedData).state.projects);
-    }
-}
+// Redundant client-side initialization block removed.

@@ -55,8 +55,17 @@ const initialMockProfileData = {
     digitalIdImage: "https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png", 
   },
   holidays: {
-    companyHolidays: [ { date: "2024-01-01", name: "New Year's Day" } ],
-    restrictedHolidays: [ { date: "2024-03-25", name: "Holi (RH)" } ]
+    companyHolidays: [ 
+        { date: "2024-01-01", name: "New Year's Day" },
+        { date: "2024-01-26", name: "Republic Day" },
+        { date: "2024-08-15", name: "Independence Day" },
+        { date: "2024-10-02", name: "Gandhi Jayanti" },
+        { date: "2024-12-25", name: "Christmas" },
+    ],
+    restrictedHolidays: [ 
+        { date: "2024-03-25", name: "Holi (RH)" },
+        { date: "2024-11-01", name: "Diwali (RH)" }
+    ]
   },
   companyName: "PESU Venture Labs"
 };
@@ -67,7 +76,6 @@ export const useProfileStore = create(
     (set, get) => ({
       profileData: initialMockProfileData, // Initialize with mock data
       
-      // Action to update personal information
       updatePersonalInformation: (newData) =>
         set((state) => ({
           profileData: {
@@ -80,17 +88,12 @@ export const useProfileStore = create(
           },
         })),
 
-      // Action to add a leave application (mock update)
       applyLeave: (leaveData) =>
         set((state) => ({
-          // This is a simplified update. In a real app, you'd manage leave records separately.
-          // For now, we can just log it or update a 'lastLeaveApplied' field if needed.
           profileData: {
             ...state.profileData,
             attendance: {
                 ...state.profileData.attendance,
-                // Potentially update summary or add to a list of leave requests
-                // For mock, let's assume a leave was taken in the current month for simplicity.
                 summary: state.profileData.attendance.summary.map((s, i) => 
                     i === 0 ? {...s, leaves: (s.leaves || 0) + 1 } : s
                 )
@@ -98,7 +101,6 @@ export const useProfileStore = create(
           }
         })),
 
-      // Action to add a reward nomination
       addNomination: (nominationData) =>
         set((state) => ({
           profileData: {
@@ -107,7 +109,7 @@ export const useProfileStore = create(
               ...state.profileData.rewards,
               nominationHistory: [
                 { 
-                  id: Date.now(), // Simple ID for mock
+                  id: Date.now(), 
                   ...nominationData 
                 },
                 ...state.profileData.rewards.nominationHistory,
@@ -116,32 +118,41 @@ export const useProfileStore = create(
           },
         })),
       
-      // Set full profile data (e.g., when user context changes)
       setProfileData: (newProfileData) => set({ profileData: newProfileData }),
 
-       // Action to initialize profileData based on user details (e.g., email, name from authStore)
       initializeProfileForUser: (authUser) => {
         if (!authUser) {
-          set({ profileData: initialMockProfileData }); // Reset to default if no authUser
+          set({ profileData: initialMockProfileData }); 
           return;
         }
-        // Create a user-specific profile based on the initial mock and authUser details
         const userSpecificProfile = {
-          ...initialMockProfileData,
+          ...initialMockProfileData, // Start with a deep copy of the mock
           personal: {
-            ...initialMockProfileData.personal,
+            ...initialMockProfileData.personal, // Deep copy personal
             name: authUser.name,
             companyEmail: authUser.email,
             profilePhotoUrl: authUser.avatar || initialMockProfileData.personal.profilePhotoUrl,
-            phone: authUser.name === "Priya Sharma" ? "+91 98765 43210" : "+91 88888 77777", 
-            address: authUser.name === "Priya Sharma" ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
-            city: authUser.name === "Priya Sharma" ? "Bengaluru" : "New Delhi",
+            // More specific mock data based on a known user for consistency
+            phone: authUser.email === "priya.sharma@pesuventurelabs.com" ? "+91 98765 43210" : "+91 88888 77777", 
+            address: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Apt 101, Silicon Towers, Koramangala, Bengaluru, Karnataka 560034" : "B-45, Green Park, New Delhi 110016",
+            city: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Bengaluru" : "New Delhi",
+            idProofFileName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Aadhaar_PriyaSharma.pdf" : "PAN_Card_OtherUser.pdf",
+            addressProofFileName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "ElectricityBill_PriyaSharma.pdf" : "Passport_OtherUser.pdf",
           },
            secondaryData: {
-            ...initialMockProfileData.secondaryData,
+            ...initialMockProfileData.secondaryData, // Deep copy secondary
             currentPosition: authUser.currentRole?.name || "Employee",
-            managerName: authUser.name === "Priya Sharma" ? "Rohan Mehra" : "Anita Singh",
+            managerName: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Rohan Mehra" : "Anita Singh",
+            department: authUser.email === "priya.sharma@pesuventurelabs.com" ? "Technology" : "Marketing",
           },
+          // Keep other parts like rewards, attendance, remuneration, reports, holidays, companyName as they are from initialMock
+          // unless they also need to be user-specific.
+          rewards: {...initialMockProfileData.rewards},
+          attendance: {...initialMockProfileData.attendance},
+          remuneration: {...initialMockProfileData.remuneration},
+          reports: {...initialMockProfileData.reports},
+          holidays: {...initialMockProfileData.holidays},
+          companyName: initialMockProfileData.companyName,
         };
         set({ profileData: userSpecificProfile });
       }
@@ -149,25 +160,22 @@ export const useProfileStore = create(
     {
       name: 'profile-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (!state || !state.profileData || !state.profileData.personal || !state.profileData.personal.name) {
-          console.log("Rehydrating profile store with initial mock data as it's empty or invalid.");
-          state.profileData = initialMockProfileData;
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+            console.error("Failed to rehydrate profile store", error);
+            state.profileData = initialMockProfileData;
+        } else if (!state || !state.profileData || !state.profileData.personal || !state.profileData.personal.name) {
+          console.log("Rehydrating profile store: store empty or invalid, using initial mock data.");
+          if (state) {
+            state.profileData = initialMockProfileData;
+          }
         }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('profile-storage');
-    if (!storedData || !JSON.parse(storedData)?.state?.profileData?.personal?.name) {
-      useProfileStore.setState({ profileData: initialMockProfileData });
-    } else {
-      // Persist middleware handles loading, this is more for explicit sync if needed
-      useProfileStore.getState().setProfileData(JSON.parse(storedData).state.profileData);
-    }
-}
+// Redundant client-side initialization block removed.
 
 export const DUMMY_EMPLOYEE_LIST_FOR_NOMINATION = [
   { name: "Priya Sharma" }, { name: "Rohan Mehra" }, { name: "Aisha Khan" },

@@ -6,7 +6,7 @@ import { initialEmployees as mockInitialEmployees } from '@/app/dashboard/employ
 export const useEmployeeStore = create(
   persist(
     (set, get) => ({
-      employees: [], // Initialize with empty array, persist will load or use mock
+      employees: mockInitialEmployees, // Initialize with mock data directly
       // Initialize with mock data if storage is empty
       _initializeEmployees: () => {
         if (get().employees.length === 0) {
@@ -32,26 +32,19 @@ export const useEmployeeStore = create(
     {
       name: 'employee-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-         // Ensure initial data is loaded if store was empty
-        if (!state || state.employees.length === 0) {
-          console.log("Rehydrating employee store with initial mock data.");
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate employee store", error);
           state.employees = mockInitialEmployees;
+        } else if (!state || !state.employees || state.employees.length === 0) {
+          console.log("Rehydrating employee store: store empty or invalid, using initial mock data.");
+          if (state) {
+            state.employees = mockInitialEmployees;
+          }
         }
       }
     }
   )
 );
 
-// Call initialization logic after store creation
-// This ensures that if localStorage is empty, it gets populated with mock data.
-// This needs to run on the client side.
-if (typeof window !== 'undefined') {
-    const storedEmployees = localStorage.getItem('employee-storage');
-    if (!storedEmployees || JSON.parse(storedEmployees)?.state?.employees?.length === 0) {
-      useEmployeeStore.setState({ employees: mockInitialEmployees });
-    } else {
-      // If there's data, ensure the store is synced (persist should handle this, but explicit sync can be added)
-      useEmployeeStore.getState().setEmployees(JSON.parse(storedEmployees).state.employees);
-    }
-}
+// Redundant client-side initialization block removed.

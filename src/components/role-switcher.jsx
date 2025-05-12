@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -25,17 +26,22 @@ export function RoleSwitcher() {
     }
   }, [user, getAvailableRolesForSwitching]);
 
-  if (loading || !user || (user.baseRole && user.baseRole.value === 'employee')) {
+  if (loading || !user || !user.baseRole || user.baseRole.value === 'employee') {
     return null;
   }
-
+  
   const effectiveAvailableRoles = getAvailableRolesForSwitching();
-  if (effectiveAvailableRoles.length <= 1 && user.baseRole.value !== 'superadmin') {
-     const canSwitchToEmployee = effectiveAvailableRoles.some(r => r.value === 'employee');
-     if (!canSwitchToEmployee) { // Only hide if "employee" isn't an option (for manager, hr, accounts to switch back)
+  
+  // Superadmin should always see the switcher if there are roles to switch to.
+  // Other roles (manager, hr, accounts) should see it if they can switch (e.g., to employee or their base role).
+  if (user.baseRole.value !== 'superadmin' && effectiveAvailableRoles.length <= 1) {
+    // If only one role available and it's the current base role, no need to show switcher unless it's to switch to "employee"
+     const canSwitchToEmployeeOrBase = effectiveAvailableRoles.some(r => r.value === 'employee' || r.value === user.baseRole.value);
+     if (!canSwitchToEmployeeOrBase && effectiveAvailableRoles.length === 1 && effectiveAvailableRoles[0].value === user.currentRole.value) {
         return null;
      }
   }
+  if (effectiveAvailableRoles.length === 0) return null;
 
 
   const handleRoleSwitch = (role) => {
@@ -44,11 +50,9 @@ export function RoleSwitcher() {
       title: "Role Switched",
       description: `You are now acting as ${role.name}.`,
     });
-    // Trigger a custom event that AppSidebar can listen to to re-render
-    window.dispatchEvent(new CustomEvent('authChanged'));
   };
 
-  if (!user || !user.currentRole) return null; // Ensure user and currentRole are defined
+  if (!user || !user.currentRole) return null; 
 
   const CurrentRoleIcon = user.currentRole.icon;
 
@@ -90,3 +94,4 @@ export function RoleSwitcher() {
     </DropdownMenu>
   );
 }
+

@@ -19,7 +19,7 @@ const initialTasksMock = [
 export const useTaskStore = create(
   persist(
     (set, get) => ({
-      tasks: [],
+      tasks: initialTasksMock, // Initialize with mock data directly
       _initializeTasks: () => {
         if (get().tasks.length === 0) {
           set({ tasks: initialTasksMock });
@@ -44,21 +44,19 @@ export const useTaskStore = create(
     {
       name: 'task-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (!state || state.tasks.length === 0) {
-           console.log("Rehydrating task store with initial mock data.");
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate task store", error);
           state.tasks = initialTasksMock;
+        } else if (!state || !state.tasks || state.tasks.length === 0) {
+           console.log("Rehydrating task store: store empty or invalid, using initial mock data.");
+           if (state) {
+             state.tasks = initialTasksMock;
+           }
         }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('task-storage');
-     if (!storedData || JSON.parse(storedData)?.state?.tasks?.length === 0) {
-      useTaskStore.setState({ tasks: initialTasksMock });
-    } else {
-       useTaskStore.getState().setTasks(JSON.parse(storedData).state.tasks);
-    }
-}
+// Redundant client-side initialization block removed.

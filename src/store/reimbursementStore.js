@@ -19,7 +19,7 @@ const initialReimbursementsMock = [
 export const useReimbursementStore = create(
   persist(
     (set, get) => ({
-      reimbursements: [],
+      reimbursements: initialReimbursementsMock, // Initialize with mock data directly
        _initializeReimbursements: () => {
         if (get().reimbursements.length === 0) {
           set({ reimbursements: initialReimbursementsMock });
@@ -44,21 +44,19 @@ export const useReimbursementStore = create(
     {
       name: 'reimbursement-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (!state || state.reimbursements.length === 0) {
-          console.log("Rehydrating reimbursement store with initial mock data.");
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate reimbursement store", error);
           state.reimbursements = initialReimbursementsMock;
+        } else if (!state || !state.reimbursements || state.reimbursements.length === 0) {
+          console.log("Rehydrating reimbursement store: store empty or invalid, using initial mock data.");
+          if (state) {
+            state.reimbursements = initialReimbursementsMock;
+          }
         }
       }
     }
   )
 );
 
-if (typeof window !== 'undefined') {
-    const storedData = localStorage.getItem('reimbursement-storage');
-    if (!storedData || JSON.parse(storedData)?.state?.reimbursements?.length === 0) {
-      useReimbursementStore.setState({ reimbursements: initialReimbursementsMock });
-    } else {
-      useReimbursementStore.getState().setReimbursements(JSON.parse(storedData).state.reimbursements);
-    }
-}
+// Redundant client-side initialization block removed.
