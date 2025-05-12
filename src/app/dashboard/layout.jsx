@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import * as React from "react";
@@ -6,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { useMockAuth } from "@/hooks/use-mock-auth";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
 import { useAttendanceStore } from "@/store/attendanceStore"; 
@@ -15,19 +12,20 @@ import { MorningCheckInDialog } from "@/components/attendance/morning-check-in-d
 import { EveningCheckoutDialog } from "@/components/attendance/evening-checkout-dialog";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function DashboardLayout({
   children,
 }) {
-  const { user, loading } = useMockAuth(); // loading here is authIsLoading
   const router = useRouter();
 
-  // Select state and functions from stores individually for stable references
+  const user = useAuthStore(state => state.user);
+  const loading = useAuthStore(state => state.loading); // authIsLoading
+
   const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
   const profileData = useProfileStore(state => state.profileData);
-  const profileUserEmail = profileData?.personal?.companyEmail;
-
+  
   const getAttendanceForUserAndDate = useAttendanceStore(state => state.getAttendanceForUserAndDate);
   const markMorningCheckIn = useAttendanceStore(state => state.markMorningCheckIn);
   const markEveningCheckout = useAttendanceStore(state => state.markEveningCheckout);
@@ -41,10 +39,12 @@ export default function DashboardLayout({
 
 
   React.useEffect(() => {
-    if (user && (!profileUserEmail || profileUserEmail !== user.email)) {
-      initializeProfile(user);
+    if (user && user.email) {
+      if (!profileData || !profileData.personal || profileData.personal.companyEmail !== user.email) {
+        initializeProfile(user);
+      }
     }
-  }, [user, initializeProfile, profileUserEmail]);
+  }, [user, initializeProfile, profileData]);
 
   React.useEffect(() => {
     if (user && !loading) {
@@ -69,7 +69,7 @@ export default function DashboardLayout({
       
       setCurrentAttendanceNotes(attendanceRecord?.notes || "");
     }
-  }, [user, loading, getAttendanceForUserAndDate, router.pathname]); // router.pathname can be removed if not strictly necessary for this logic
+  }, [user, loading, getAttendanceForUserAndDate]); 
 
   const handleSaveMorningCheckIn = React.useCallback((checkInData) => {
     if (!user) return;
@@ -83,7 +83,7 @@ export default function DashboardLayout({
         setShowCheckoutButton(true); 
     }
     setCurrentAttendanceNotes(checkInData.notes || "");
-  }, [user, markMorningCheckIn, toast]); // Removed setCurrentAttendanceNotes, setShowCheckoutButton from deps as they are stable state setters
+  }, [user, markMorningCheckIn, toast]); 
 
   const handleCloseMorningCheckInDialog = React.useCallback((saved = false) => {
     setIsMorningCheckInDialogOpen(false);
@@ -98,7 +98,7 @@ export default function DashboardLayout({
     const attendanceRecord = getAttendanceForUserAndDate(user.name, new Date());
     setCurrentAttendanceNotes(attendanceRecord?.notes || ""); 
     setIsEveningCheckoutDialogOpen(true);
-  }, [user, getAttendanceForUserAndDate]); // setCurrentAttendanceNotes is stable
+  }, [user, getAttendanceForUserAndDate]); 
 
   const handleSaveEveningCheckout = React.useCallback((checkoutData) => {
     if (!user) return;
@@ -109,16 +109,16 @@ export default function DashboardLayout({
     });
     setIsEveningCheckoutDialogOpen(false);
     setShowCheckoutButton(false); 
-  }, [user, markEveningCheckout, toast]); // setShowCheckoutButton is stable
+  }, [user, markEveningCheckout, toast]);
 
 
-  if (loading || !user) { // loading is authIsLoading from useMockAuth
+  if (loading || !user) { 
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <Skeleton className="h-4 w-[250px]" />
-          <Skeleton className="h-4 w-[200px]" />
+          <Skeleton className="h-12 w-12 rounded-full bg-muted" />
+          <Skeleton className="h-4 w-[250px] bg-muted" />
+          <Skeleton className="h-4 w-[200px] bg-muted" />
         </div>
       </div>
     );
@@ -129,7 +129,7 @@ export default function DashboardLayout({
       <AppSidebar onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} />
       <SidebarInset>
         <AppHeader onCheckoutClick={handleOpenEveningCheckoutDialog} showCheckoutButton={showCheckoutButton} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-secondary/40 dark:bg-background">
           {children}
         </main>
       </SidebarInset>
