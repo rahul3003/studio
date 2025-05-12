@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import * as React from "react";
@@ -25,7 +26,8 @@ export default function DashboardLayout({
   const authStoreLogout = useAuthStore(state => state.logout);
 
   const storeInitializeProfile = useProfileStore(state => state.initializeProfileForUser);
-  const profileData = useProfileStore(state => state.profileData);
+  // No longer selecting profileData here directly if it causes issues in useEffect dependency.
+  // const profileData = useProfileStore(state => state.profileData); 
   
   const getAttendanceForUserAndDate = useAttendanceStore(state => state.getAttendanceForUserAndDate);
   const markMorningCheckIn = useAttendanceStore(state => state.markMorningCheckIn);
@@ -45,11 +47,13 @@ export default function DashboardLayout({
 
   React.useEffect(() => {
     if (user && user.email && !loading) {
-      if (!profileData || !profileData.personal || profileData.personal.companyEmail !== user.email) {
+      // Directly get current profile data from store for the check to avoid dependency loop
+      const currentProfileInStore = useProfileStore.getState().profileData;
+      if (!currentProfileInStore || !currentProfileInStore.personal || currentProfileInStore.personal.companyEmail !== user.email) {
         initializeProfile(user);
       }
     }
-  }, [user, loading, initializeProfile, profileData]);
+  }, [user, loading, initializeProfile]); // Removed profileData from dependencies
 
   React.useEffect(() => {
     if (user && !loading) {
