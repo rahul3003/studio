@@ -6,10 +6,11 @@ import { RoleSwitcher } from "@/components/role-switcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
-import { Home, Bell, Award } from "lucide-react";
+import { Home, Bell, Award, LogOut as LogOutIcon } from "lucide-react"; // Added LogOutIcon
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
+import { useAttendanceStore } from "@/store/attendanceStore"; // Added attendance store
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns"; // Added date-fns
 
 function getBreadcrumbs(pathname) {
   const pathParts = pathname.split('/').filter(part => part);
@@ -38,15 +40,33 @@ const mockNotifications = [
 ];
 
 
-export function AppHeader() {
+export function AppHeader({ onCheckoutClick }) { // Added onCheckoutClick prop
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
   const { user, loading } = useAuthStore();
   const profileData = useProfileStore((state) => state.profileData);
   const rewardsPoints = profileData?.rewards?.pointsAvailable || 0;
 
+  const { getAttendanceForUserAndDate } = useAttendanceStore(); // Get attendance function
+
   const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
+
+  const [showCheckoutButton, setShowCheckoutButton] = React.useState(false);
+
+  React.useEffect(() => {
+    if (user) {
+      const today = new Date();
+      const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
+      if (attendanceRecord && attendanceRecord.checkInTimeCategory && !attendanceRecord.checkOutTimeCategory) {
+        setShowCheckoutButton(true);
+      } else {
+        setShowCheckoutButton(false);
+      }
+    } else {
+      setShowCheckoutButton(false);
+    }
+  }, [user, getAttendanceForUserAndDate, pathname]); // Re-check on pathname change if needed, or listen to store updates
 
 
   return (
@@ -75,6 +95,13 @@ export function AppHeader() {
       <div className="flex items-center gap-3">
         {canSwitchRoles && <RoleSwitcher />}
         
+        {showCheckoutButton && (
+          <Button variant="outline" size="sm" onClick={onCheckoutClick} className="animate-pulse bg-green-500/10 border-green-500 text-green-700 hover:bg-green-500/20">
+            <LogOutIcon className="mr-2 h-4 w-4" />
+            Check Out
+          </Button>
+        )}
+
         <div className="flex items-center gap-1 px-2 py-1 rounded-md border border-input bg-background hover:bg-accent/50 transition-colors cursor-pointer">
           <Award className="h-4 w-4 text-yellow-500" />
           <span className="text-sm font-medium text-foreground">{rewardsPoints}</span>
@@ -124,3 +151,4 @@ export function AppHeader() {
     </header>
   );
 }
+

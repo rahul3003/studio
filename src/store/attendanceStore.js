@@ -85,12 +85,22 @@ export const useAttendanceStore = create(
           const userRecords = state.allUsersAttendance[userName] || {};
           const existingRecord = userRecords[dateString] || createDefaultAttendanceRecord();
           
+          const updatedRecord = { ...existingRecord, ...attendanceData };
+
+          // If status is not 'Present', clear out present-specific fields
+          if (updatedRecord.status !== "Present") {
+            updatedRecord.checkInTimeCategory = null;
+            updatedRecord.workLocation = null;
+            updatedRecord.userCoordinates = null;
+            updatedRecord.checkOutTimeCategory = null;
+          }
+          
           return {
             allUsersAttendance: {
               ...state.allUsersAttendance,
               [userName]: {
                 ...userRecords,
-                [dateString]: { ...existingRecord, ...attendanceData },
+                [dateString]: updatedRecord,
               },
             },
           };
@@ -98,18 +108,31 @@ export const useAttendanceStore = create(
       // Specific action for morning check-in
       markMorningCheckIn: (userName, date, { checkInTimeCategory, workLocation, userCoordinates, status, notes }) => {
         const attendanceData = {
-          status: status || "Present", // Default to Present if status not explicitly 'Leave'
+          status: status || "Present", 
           checkInTimeCategory,
           workLocation,
           userCoordinates,
           notes: notes || (status === "Leave" ? "Marked as Leave" : "Checked in"),
-          // Reset other fields if marking as leave
-          ...(status === "Leave" && {
-            checkInTimeCategory: null,
-            workLocation: null,
-            userCoordinates: null,
-            checkOutTimeCategory: null,
-          }),
+          checkOutTimeCategory: null, // Ensure checkout is null on check-in
+        };
+        get().saveAttendance(userName, date, attendanceData);
+      },
+
+      markEveningCheckout: (userName, date, { checkOutTimeCategory, notes }) => {
+        const dateString = format(date, "yyyy-MM-dd");
+        const userRecords = get().allUsersAttendance[userName] || {};
+        const existingRecord = userRecords[dateString] || createDefaultAttendanceRecord();
+
+        if (existingRecord.status !== "Present") {
+            // If not marked present, checkout doesn't make sense or should update status too.
+            // For now, we'll assume checkout is only for 'Present' status.
+            console.warn("Cannot mark checkout for non-present status or no check-in found.");
+            return; 
+        }
+
+        const attendanceData = {
+            checkOutTimeCategory,
+            notes: notes || existingRecord.notes || "Checked out", // Append to existing notes or set new
         };
         get().saveAttendance(userName, date, attendanceData);
       },

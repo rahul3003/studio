@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import Link from "next/link";
@@ -10,19 +11,24 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
-  useSidebar, // Import useSidebar
+  useSidebar, 
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Rocket } from "lucide-react";
+import { LogOut, Settings, Rocket, LogOut as LogOutIcon } from "lucide-react"; // Added LogOutIcon for consistency
 import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/store/authStore"; // Import auth store
+import { useAuthStore } from "@/store/authStore"; 
 import { ROLE_NAV_CONFIG } from "@/config/roles";
+import { useAttendanceStore } from "@/store/attendanceStore"; // Added attendance store
+import { format } from "date-fns"; // Added date-fns
 
-export function AppSidebar() { // Removed user prop
+export function AppSidebar({ onCheckoutClick }) { // Added onCheckoutClick prop
   const pathname = usePathname();
-  const { user, logout } = useAuthStore(); // Get user and logout from store
-  const { state: sidebarState, isMobile } = useSidebar(); // Get sidebar state
+  const { user, logout } = useAuthStore(); 
+  const { state: sidebarState, isMobile } = useSidebar(); 
+  const { getAttendanceForUserAndDate } = useAttendanceStore();
+
+  const [showCheckoutButtonInSidebar, setShowCheckoutButtonInSidebar] = React.useState(false);
 
 
   const navItemsForRole = React.useMemo(() => {
@@ -32,15 +38,33 @@ export function AppSidebar() { // Removed user prop
     return [];
   }, [user]);
 
+  React.useEffect(() => {
+    if (user) {
+      const today = new Date();
+      const attendanceRecord = getAttendanceForUserAndDate(user.name, today);
+      // Logic for sidebar button visibility (can be different from header)
+      // For example, maybe only show in sidebar if it's collapsed and user is checked in
+      const shouldShow = !!(attendanceRecord && attendanceRecord.checkInTimeCategory && !attendanceRecord.checkOutTimeCategory);
+      setShowCheckoutButtonInSidebar(shouldShow && sidebarState === 'collapsed' && !isMobile); // Example: only if collapsed and on desktop
+    } else {
+      setShowCheckoutButtonInSidebar(false);
+    }
+  }, [user, getAttendanceForUserAndDate, sidebarState, isMobile]);
+
+
   const getTooltipContent = (label) => {
     if (isMobile || sidebarState === "expanded") {
-      return null; // No tooltip if sidebar is expanded or on mobile
+      return null; 
     }
     return label;
   };
 
   return (
-    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} variant="inset">
+    <Sidebar 
+        collapsible={isMobile ? "offcanvas" : "icon"} 
+        variant="inset"
+        className="transition-all duration-300 ease-in-out"
+    >
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
           <Rocket className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
@@ -68,7 +92,18 @@ export function AppSidebar() { // Removed user prop
               </Link>
             </SidebarMenuItem>
           ))}
-           {/* Settings always available */}
+           {showCheckoutButtonInSidebar && ( // Conditional rendering for checkout button in sidebar
+            <SidebarMenuItem>
+                 <SidebarMenuButton
+                    onClick={onCheckoutClick}
+                    tooltip={getTooltipContent("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
+                    className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
+                 >
+                    <LogOutIcon />
+                    <span>Check Out</span>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
+           )}
           <SidebarMenuItem>
             <Link href="/dashboard/settings" legacyBehavior passHref>
               <SidebarMenuButton
@@ -128,3 +163,4 @@ export function AppSidebar() { // Removed user prop
     </Sidebar>
   );
 }
+
