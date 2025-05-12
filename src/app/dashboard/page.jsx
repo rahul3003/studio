@@ -5,14 +5,14 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import Image from "next/image";
-import { BarChart, LineChart, PieChart, User, Building2, FolderKanban, ListTodo, BriefcaseBusiness, Receipt, Clock } from "lucide-react";
+import { BarChart, LineChart, PieChart, User, Building2, FolderKanban as FolderKanbanIcon, ListTodo as ListTodoIcon, BriefcaseBusiness as BriefcaseBusinessIcon, Receipt as ReceiptIcon, Clock, Users as UsersIcon, Building as BuildingIcon, UsersRound as UsersRoundIcon } from "lucide-react";
 import { AdminAnalytics } from "@/components/dashboard/admin-analytics";
 import { ManagerAnalytics } from "@/components/dashboard/manager-analytics";
 import { HrAnalytics } from "@/components/dashboard/hr-analytics";
 import { AccountsAnalytics } from "@/components/dashboard/accounts-analytics";
 import { EmployeeAnalytics } from "@/components/dashboard/employee-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { initialEmployees } from "@/app/dashboard/employees/page"; // Import employee data
+import { initialEmployees } from "@/data/initial-employees"; // Import employee data from the new location
 
 // Function to aggregate department data (total headcount)
 const getHeadcountByDept = (employees) => {

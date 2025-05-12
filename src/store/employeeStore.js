@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { initialEmployees as mockInitialEmployees } from '@/app/dashboard/employees/page'; // Adjusted path
+import { initialEmployees as mockInitialEmployees } from '@/data/initial-employees'; // Import from the new data file
 
 export const useEmployeeStore = create(
   persist(
