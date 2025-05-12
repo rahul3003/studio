@@ -20,6 +20,12 @@ const nextConfig = {
         hostname: 'i.pravatar.cc',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.pesuventurelabs.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
