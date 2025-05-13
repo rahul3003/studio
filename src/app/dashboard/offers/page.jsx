@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // Added import for Label
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useJobStore } from "@/store/jobStore";
@@ -33,7 +34,7 @@ const statusVariantMap = {
   "Offer Sent": "default",
   "Offer Accepted": "default",
   "Offer Rejected": "destructive",
-  Hired: "default", // Typically green, but default is primary
+  Hired: "default", 
   "Not Selected": "secondary",
   "On Hold": "secondary",
   "Rejected (Application)": "destructive",
@@ -52,7 +53,7 @@ export default function OffersPage() {
   const _initializeApplicants = useApplicantStore((state) => state._initializeApplicants);
   
   const addEmployee = useEmployeeStore((state) => state.addEmployee);
-  const updateEmployee = useEmployeeStore((state) => state.updateEmployee); // To save joining letter to employee
+  const updateEmployee = useEmployeeStore((state) => state.updateEmployee); 
   const _initializeEmployees = useEmployeeStore((state) => state._initializeEmployees);
   const allEmployees = useEmployeeStore((state) => state.employees || []);
 
@@ -65,6 +66,8 @@ export default function OffersPage() {
 
   const [selectedApplicantForOffer, setSelectedApplicantForOffer] = React.useState(null);
   const [selectedApplicantForOnboarding, setSelectedApplicantForOnboarding] = React.useState(null);
+  const [currentEmployeeForJoiningLetter, setCurrentEmployeeForJoiningLetter] = React.useState(null);
+
 
   const [isOfferLetterDialogOpen, setIsOfferLetterDialogOpen] = React.useState(false);
   const [isJoiningFormOpen, setIsJoiningFormOpen] = React.useState(false);
@@ -99,12 +102,12 @@ export default function OffersPage() {
 
   const handleJobChange = (jobId) => {
     setSelectedJobId(jobId);
-    setStatusFilter(OFFER_STATUS_OPTIONS_FILTER[0]); // Reset status filter
+    setStatusFilter(OFFER_STATUS_OPTIONS_FILTER[0]); 
   };
 
   const handleOpenOfferLetterDialog = (applicant) => {
     setSelectedApplicantForOffer(applicant);
-    setGeneratedOfferLetterHtml(""); // Clear previous
+    setGeneratedOfferLetterHtml(applicant.offerLetterHtml || ""); 
     setIsOfferLetterDialogOpen(true);
   };
 
@@ -119,7 +122,7 @@ export default function OffersPage() {
         updateApplicant(selectedApplicantForOffer.id, { 
           offerStatus: "Offer Generated", 
           offeredSalary: offerData.salary,
-          offeredStartDate: offerData.startDate, // This will be formatted string from form
+          offeredStartDate: offerData.startDate, 
           offerLetterHtml: result.offerLetterText 
         });
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
@@ -145,7 +148,7 @@ export default function OffersPage() {
             candidateEmail: selectedApplicantForOffer.email,
             candidateName: selectedApplicantForOffer.name,
             offerLetterHtml: generatedOfferLetterHtml,
-            companyName: "PESU Venture Labs", // Or from form data if dynamic
+            companyName: "PESU Venture Labs", 
         });
         if (result.success) {
             updateApplicant(selectedApplicantForOffer.id, { offerStatus: "Offer Sent" });
@@ -211,13 +214,14 @@ export default function OffersPage() {
       id: newId,
       avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
       gender: employeeData.gender || "Other",
-      joiningLetterHtml: null, // Will be generated next
+      joiningLetterHtml: null, 
     };
     addEmployee(newEmployee);
+    setCurrentEmployeeForJoiningLetter(newEmployee); // Set current employee for joining letter
     updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
     toast({ title: "Employee Onboarded", description: `${newEmployee.name} has been added to employees.` });
     setIsJoiningFormOpen(false);
-    setSelectedApplicantForOnboarding(null); // Reset selected applicant for onboarding
+    // setSelectedApplicantForOnboarding(null); // Keep it selected to generate letter for this candidate
 
     // Generate and handle Joining Letter
     setIsLoadingJoiningLetter(true);
@@ -238,7 +242,7 @@ export default function OffersPage() {
         setGeneratedJoiningLetterHtml(result.joiningLetterHtml);
         updateEmployee(newEmployee.id, { ...newEmployee, joiningLetterHtml: result.joiningLetterHtml });
         toast({ title: "Joining Letter Generated", description: "Preview available." });
-        setIsJoiningLetterPreviewOpen(true); // Open preview dialog for joining letter
+        setIsJoiningLetterPreviewOpen(true); 
       } else {
         throw new Error("AI failed to generate joining letter content.");
       }
@@ -251,15 +255,11 @@ export default function OffersPage() {
   };
 
   const handleDownloadJoiningLetterPdf = () => {
-    if (!generatedJoiningLetterHtml || !addEmployee.id) { // Assuming addEmployee function doesn't have an ID, this condition might be wrong. Should check against current new employee.
-                                                        // This logic needs refinement for the employee who was just added.
+    if (!generatedJoiningLetterHtml || !currentEmployeeForJoiningLetter) { 
         toast({ title: "Error", description: "No joining letter content for the new employee.", variant: "destructive"});
         return;
     }
-    // This part needs to target the newly added employee, maybe store their details temporarily.
-    // For now, let's use a placeholder name for filename.
-    const employeeForFilename = allEmployees.find(e => e.joiningLetterHtml === generatedJoiningLetterHtml) || {name: "New_Employee"};
-
+    
     const tempElement = document.createElement('div');
     tempElement.style.position = 'absolute'; tempElement.style.left = '-9999px'; tempElement.style.top = '0px'; tempElement.style.width = '1000px';
     tempElement.innerHTML = generatedJoiningLetterHtml;
@@ -270,7 +270,7 @@ export default function OffersPage() {
         toast({ title: "PDF Error", description: "Could not find content for PDF.", variant: "destructive" });
         return;
     }
-    const filename = `${employeeForFilename.name.replace(/ /g, '_')}_Joining_Letter.pdf`;
+    const filename = `${currentEmployeeForJoiningLetter.name.replace(/ /g, '_')}_Joining_Letter.pdf`;
     const opt = { margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
     html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Joining letter saved." }))
@@ -279,22 +279,20 @@ export default function OffersPage() {
   };
 
   const handleEmailJoiningLetter = async () => {
-     // Needs logic similar to download to identify the correct employee to email for.
-    const newEmployee = allEmployees.find(e => e.joiningLetterHtml === generatedJoiningLetterHtml);
-    if (!generatedJoiningLetterHtml || !newEmployee) {
+    if (!generatedJoiningLetterHtml || !currentEmployeeForJoiningLetter) {
         toast({ title: "Error", description: "No joining letter or employee data for email.", variant: "destructive"});
         return;
     }
     setIsEmailingJoiningLetter(true);
     try {
         const result = await sendJoiningLetterEmail({
-            employeeEmail: newEmployee.email,
-            employeeName: newEmployee.name,
+            employeeEmail: currentEmployeeForJoiningLetter.email,
+            employeeName: currentEmployeeForJoiningLetter.name,
             joiningLetterHtml: generatedJoiningLetterHtml,
             companyName: "PESU Venture Labs",
         });
         if (result.success) {
-            toast({ title: "Email Sent", description: `Joining letter sent to ${newEmployee.email}.` });
+            toast({ title: "Email Sent", description: `Joining letter sent to ${currentEmployeeForJoiningLetter.email}.` });
         } else {
             throw new Error(result.message);
         }
@@ -305,7 +303,6 @@ export default function OffersPage() {
     }
   };
   
-  // Constants for employee form dropdowns
   const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
   const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior Developer", "Associate Developer", "Developer", "Senior Developer", "Team Lead", "Principal Engineer", "Junior Designer", "Designer", "Senior Designer", "HR Executive", "Senior HR", "Sales Rep", "Senior Sales Rep", "Analyst", "Senior Analyst", "Associate QA", "QA Engineer", "Senior QA", "DevOps Engineer", "Senior DevOps", "Product Manager", "Senior Product Manager", "Manager", "Director", "Administrator", "Accountant"];
   const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
@@ -409,7 +406,7 @@ export default function OffersPage() {
                             variant="outline" 
                             size="sm" 
                             onClick={() => handleOpenOfferLetterDialog(applicant)}
-                            disabled={applicant.offerStatus !== "Selected" && applicant.offerStatus !== "Offer Generated" && applicant.offerStatus !== "Offer Sent"}
+                            disabled={!(applicant.offerStatus === "Selected" || applicant.offerStatus === "Offer Generated" || applicant.offerStatus === "Offer Sent")}
                           >
                             <FileTextIcon className="mr-1 h-3.5 w-3.5" /> Offer
                           </Button>
@@ -461,9 +458,15 @@ export default function OffersPage() {
                     positionTitle: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.title || "",
                     department: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.department || "",
                     salary: selectedApplicantForOffer.offeredSalary || "",
-                    startDate: selectedApplicantForOffer.offeredStartDate || new Date().toISOString().split('T')[0], // Needs to be ISO for parseISO
-                    offerExpiryDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0], // Default to 7 days from now
-                } : {}}
+                    // Ensure date strings are in 'yyyy-MM-dd' for parseISO
+                    startDate: selectedApplicantForOffer.offeredStartDate ? (selectedApplicantForOffer.offeredStartDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offeredStartDate), "yyyy-MM-dd") : selectedApplicantForOffer.offeredStartDate) : format(new Date(), "yyyy-MM-dd"),
+                    offerExpiryDate: selectedApplicantForOffer.offerExpiryDate ? (selectedApplicantForOffer.offerExpiryDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offerExpiryDate), "yyyy-MM-dd") : selectedApplicantForOffer.offerExpiryDate) : format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),
+                    companyName: "PESU Venture Labs",
+                } : {
+                    companyName: "PESU Venture Labs",
+                    startDate: format(new Date(), "yyyy-MM-dd"),
+                    offerExpiryDate: format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),
+                }}
               />
             </div>
             <div className="lg:col-span-2">
@@ -515,11 +518,13 @@ export default function OffersPage() {
                 name: selectedApplicantForOnboarding.name, 
                 email: selectedApplicantForOnboarding.email,
                 role: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.title || "",
+                designation: "", // Default to empty, user should select
                 department: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.department || "",
-                joinDate: selectedApplicantForOnboarding.offeredStartDate ? parseISO(selectedApplicantForOnboarding.offeredStartDate) : new Date(),
-                status: "Probation", // Default status for new hires
+                joinDate: selectedApplicantForOnboarding.offeredStartDate ? (selectedApplicantForOnboarding.offeredStartDate.includes(" ") ? new Date(selectedApplicantForOnboarding.offeredStartDate) : parseISO(selectedApplicantForOnboarding.offeredStartDate)) : new Date(),
+                status: "Probation", 
                 salary: selectedApplicantForOnboarding.offeredSalary || "",
-                employeeType: "Full-time", // Default type
+                employeeType: "Full-time", 
+                gender: "", // User to select gender
               } : {}}
               onCancel={() => setIsJoiningFormOpen(false)}
               rolesOptions={ROLES_OPTIONS}
@@ -536,12 +541,18 @@ export default function OffersPage() {
         <Dialog open={isJoiningLetterPreviewOpen} onOpenChange={() => setIsJoiningLetterPreviewOpen(false)}>
             <DialogContent className="sm:max-w-3xl lg:max-w-4xl">
             <DialogHeader>
-                <DialogTitle>Joining Letter Preview for {allEmployees.find(e => e.joiningLetterHtml === generatedJoiningLetterHtml)?.name || "New Employee"}</DialogTitle>
+                <DialogTitle>Joining Letter Preview for {currentEmployeeForJoiningLetter?.name || "New Employee"}</DialogTitle>
             </DialogHeader>
             <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
                 {isLoadingJoiningLetter && <div className="flex justify-center items-center min-h-[200px]"><Loader2 className="h-8 w-8 animate-spin" /></div>}
                 {!isLoadingJoiningLetter && generatedJoiningLetterHtml && (
                 <div className="p-4 border rounded-md bg-white shadow-sm" dangerouslySetInnerHTML={{ __html: generatedJoiningLetterHtml }} />
+                )}
+                 {!isLoadingJoiningLetter && !generatedJoiningLetterHtml && (
+                 <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed rounded-md bg-muted/20">
+                    <FileTextIcon className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-lg text-muted-foreground">No letter generated or an error occurred.</p>
+                 </div>
                 )}
             </div>
             <DialogFooter className="mt-4 sm:justify-end gap-2">
