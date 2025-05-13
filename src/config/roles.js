@@ -1,4 +1,4 @@
-import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText, Calculator, UserCircle2, Award, DollarSign, CalendarDays } from "lucide-react";
+import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText, Calculator, UserCircle2, Award, DollarSign, CalendarDays, Mail } from "lucide-react";
 
 /**
  * @typedef {object} Role
@@ -11,6 +11,7 @@ import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, B
 /** @type {Role[]} */
 export const ROLES = [
   { name: "Super Admin", value: "superadmin", icon: Crown, description: "Full system access and control." },
+  { name: "Admin", value: "admin", icon: ShieldCheck, description: "Administrative access to most features." },
   { name: "Manager", value: "manager", icon: Briefcase, description: "Manages teams, projects, and approvals." },
   { name: "HR", value: "hr", icon: UserCog, description: "Manages employee data, recruitment, and HR processes." },
   { name: "Accounts", value: "accounts", icon: Calculator, description: "Manages finances, payroll, and reimbursements." },
@@ -26,7 +27,8 @@ export const getRole = (value) => ROLES.find(r => r.value === value);
 // Defines which roles can switch to which other roles
 /** @type {Record<string, string[]>} */
 export const ROLE_SWITCH_PERMISSIONS = {
-  superadmin: ["manager", "hr", "accounts", "employee"], 
+  superadmin: ["admin", "manager", "hr", "accounts", "employee"],
+  admin: ["manager", "hr", "accounts", "employee"], 
   manager: ["employee"], 
   hr: ["employee"], 
   accounts: ["employee"], 
@@ -38,6 +40,7 @@ export const ROLE_SWITCH_PERMISSIONS = {
  * @property {string} href
  * @property {string} label
  * @property {import("lucide-react").LucideIcon} icon
+ * @property {boolean} [showPoints] - Optional flag to show reward points badge
  */
 
 const commonManagementNavItems = [
@@ -53,7 +56,7 @@ const commonManagementNavItems = [
 
 const employeeProfileNavItems = [
   { href: "/dashboard/profile", label: "Personal Info", icon: UserCircle2 },
-  { href: "/dashboard/profile/rewards", label: "My Rewards", icon: Award },
+  { href: "/dashboard/profile/rewards", label: "My Rewards", icon: Award, showPoints: true },
   { href: "/dashboard/profile/my-attendance", label: "My Attendance", icon: CalendarCheck },
   { href: "/dashboard/profile/remuneration", label: "My Remuneration", icon: DollarSign },
   { href: "/dashboard/profile/my-documents", label: "My Documents", icon: FileText },
@@ -66,17 +69,24 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...employeeProfileNavItems,
     ...commonManagementNavItems,
+    { href: "/dashboard/offers", label: "Offers", icon: Mail },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  ],
+  admin: [ // Admin role inherits from common and employee profile, plus settings
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ...employeeProfileNavItems,
+    ...commonManagementNavItems,
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   manager: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...employeeProfileNavItems,
-    { href: "/dashboard/employees", label: "Team Members", icon: Users }, // Specific to manager
+    { href: "/dashboard/employees", label: "Team Members", icon: Users },
     { href: "/dashboard/projects", label: "Team Projects", icon: FolderKanban },
     { href: "/dashboard/tasks", label: "Team Tasks", icon: ListTodo },
-    { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck }, // Main attendance for team
+    { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck },
     { href: "/dashboard/reimbursements", label: "Approve Claims", icon: Receipt },
-    { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness }, // View jobs
+    { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness },
     { href: "/dashboard/documents", label: "Generate Docs", icon: FileText },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
@@ -86,25 +96,24 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/employees", label: "Manage Employees", icon: Users },
     { href: "/dashboard/departments", label: "Manage Departments", icon: Building2 },
     { href: "/dashboard/jobs", label: "Manage Jobs", icon: BriefcaseBusiness },
-    { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck }, // Main attendance
-    { href: "/dashboard/documents", label: "HR Documents", icon: FileText }, // Document generation
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt }, // View/process
+    { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck },
+    { href: "/dashboard/documents", label: "HR Documents", icon: FileText },
+    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   accounts: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...employeeProfileNavItems,
     { href: "/dashboard/reimbursements", label: "Manage Reimbursements", icon: Receipt },
-    { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText }, // Specific document generation
-    { href: "/dashboard/employees", label: "Employee List", icon: Users }, // View employees for payroll
+    { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText },
+    { href: "/dashboard/employees", label: "Employee List", icon: Users },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   employee: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...employeeProfileNavItems,
-    { href: "/dashboard/tasks", label: "My Tasks", icon: ListTodo }, // Tasks assigned to them
-    { href: "/dashboard/reimbursements", label: "My Reimbursements", icon: Receipt }, // Submit/view their claims
-    // { href: "/dashboard/projects", label: "My Projects", icon: FolderKanban }, // Projects they are part of - can be added if project assignment is detailed
+    { href: "/dashboard/tasks", label: "My Tasks", icon: ListTodo },
+    { href: "/dashboard/reimbursements", label: "My Reimbursements", icon: Receipt },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
 };
