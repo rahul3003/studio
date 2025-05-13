@@ -1,3 +1,4 @@
+
 // src/data/initial-employees.js
 export const initialEmployees = [
   {
@@ -11,6 +12,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2022-08-15",
     gender: "Female",
+    employeeType: "Full-time",
+    salary: "₹12,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP002",
@@ -23,6 +27,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2021-05-20",
     gender: "Male",
+    employeeType: "Full-time",
+    salary: "₹15,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP003",
@@ -35,6 +42,9 @@ export const initialEmployees = [
     status: "On Leave",
     joinDate: "2023-01-10",
     gender: "Female",
+    employeeType: "Full-time",
+    salary: "₹8,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP004",
@@ -47,6 +57,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2020-03-01",
     gender: "Male",
+    employeeType: "Full-time",
+    salary: "₹9,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP005",
@@ -59,6 +72,9 @@ export const initialEmployees = [
     status: "Terminated",
     joinDate: "2022-11-01",
     gender: "Male",
+    employeeType: "Full-time",
+    salary: "₹7,50,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP006",
@@ -71,6 +87,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2023-06-22",
     gender: "Female",
+    employeeType: "Full-time",
+    salary: "₹10,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP007",
@@ -83,6 +102,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2023-02-15",
     gender: "Male",
+    employeeType: "Part-time",
+    salary: "₹6,00,000 per annum",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP008",
@@ -95,6 +117,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2024-01-05",
     gender: "Female",
+    employeeType: "Intern",
+    salary: "₹3,00,000 per annum (stipend)",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP009",
@@ -107,6 +132,9 @@ export const initialEmployees = [
     status: "On Leave",
     joinDate: "2022-03-10",
     gender: "Male",
+    employeeType: "Contractor",
+    salary: "₹18,00,000 per annum (contract)",
+    joiningLetterHtml: null,
   },
   {
     id: "EMP010",
@@ -119,6 +147,9 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2021-09-01",
     gender: "Female",
+    employeeType: "Full-time",
+    salary: "₹16,00,000 per annum",
+    joiningLetterHtml: null,
   },
    {
     id: "EMP011",
@@ -131,5 +162,8 @@ export const initialEmployees = [
     status: "Active",
     joinDate: "2020-01-01",
     gender: "Other",
+    employeeType: "Full-time",
+    salary: "₹20,00,000 per annum",
+    joiningLetterHtml: null,
   }
 ];

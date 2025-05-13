@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,18 +25,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, Users as UsersIcon } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users as UsersIcon, Loader2, Download, Mail, FileText as FileTextIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { EmployeeForm } from "@/components/employee/employee-form";
-import { useEmployeeStore } from "@/store/employeeStore"; // Import the store
+import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form";
+import { useEmployeeStore } from "@/store/employeeStore";
+import { generateJoiningLetter } from "@/ai/flows/generate-joining-letter-flow";
+import { sendJoiningLetterEmail } from "@/ai/flows/send-joining-letter-email-flow";
+import html2pdf from 'html2pdf.js';
+import { format } from "date-fns";
 
-// initialEmployees is now sourced from src/data/initial-employees.js via the store.
-// No need to define or export it here anymore.
 
 const statusVariantMap = {
   Active: "default",
   "On Leave": "secondary",
   Terminated: "destructive",
+  Probation: "outline", // Added Probation
+  Resigned: "destructive" // Added Resigned
 };
 
 const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
@@ -45,7 +50,6 @@ const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resign
 
 export default function EmployeesPage() {
   const { toast } = useToast();
-  // Use Zustand store
   const employees = useEmployeeStore((state) => state.employees);
   const addEmployee = useEmployeeStore((state) => state.addEmployee);
   const updateEmployee = useEmployeeStore((state) => state.updateEmployee);
@@ -56,11 +60,16 @@ export default function EmployeesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+
+  const [isGeneratingLetter, setIsGeneratingLetter] = React.useState(false);
+  const [isEmailingLetter, setIsEmailingLetter] = React.useState(false);
+  const [generatedJoiningLetterHtml, setGeneratedJoiningLetterHtml] = React.useState("");
+  const [currentEmployeeForLetter, setCurrentEmployeeForLetter] = React.useState(null);
+  const [isJoiningLetterPreviewOpen, setIsJoiningLetterPreviewOpen] = React.useState(false);
   
   React.useEffect(() => {
-    initializeEmployees(); // Ensure store is initialized with mock data if empty
+    initializeEmployees(); 
   }, [initializeEmployees]);
-
 
   const handleAddEmployeeOpen = () => {
     setSelectedEmployee(null); 
@@ -84,11 +93,18 @@ export default function EmployeesPage() {
     setSelectedEmployee(null);
   };
 
-  const handleSaveEmployee = (employeeData) => {
+  const handleJoiningLetterDialogClose = () => {
+    setIsJoiningLetterPreviewOpen(false);
+    setGeneratedJoiningLetterHtml("");
+    setCurrentEmployeeForLetter(null);
+  };
+
+  const handleSaveEmployee = async (employeeData) => {
     if (selectedEmployee && selectedEmployee.id) {
       // Editing existing employee
       updateEmployee({ ...employeeData, avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || selectedEmployee.id}` });
       toast({ title: "Employee Updated", description: `${employeeData.name}'s details have been updated.` });
+      handleDialogClose();
     } else {
       // Adding new employee
       const newId = `EMP${String(Date.now()).slice(-4)}${String(employees.length + 1).padStart(3, '0')}`;
@@ -97,11 +113,44 @@ export default function EmployeesPage() {
         id: newId,
         avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
         gender: employeeData.gender || "Other", 
+        joiningLetterHtml: null, // Initialize with null
       };
       addEmployee(newEmployee);
-      toast({ title: "Employee Added", description: `${employeeData.name} has been added to the system.` });
+      toast({ title: "Employee Added", description: `${employeeData.name} has been added.` });
+      handleDialogClose();
+
+      // Generate Joining Letter for new employee
+      setIsGeneratingLetter(true);
+      setCurrentEmployeeForLetter(newEmployee);
+      try {
+        const joiningLetterInput = {
+          employeeName: newEmployee.name,
+          employeeEmail: newEmployee.email,
+          positionTitle: newEmployee.role, // Assuming 'role' is position title
+          department: newEmployee.department,
+          startDate: format(new Date(newEmployee.joinDate), "MMMM d, yyyy"), // Format date for prompt
+          salary: newEmployee.salary || "As per discussion",
+          employeeType: newEmployee.employeeType,
+          companyName: "PESU Venture Labs", // Or from a config/store
+          companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
+          // reportingManager: newEmployee.reportingManager || "To be assigned", // Add if this field exists in employeeData
+        };
+        const result = await generateJoiningLetter(joiningLetterInput);
+        if (result?.joiningLetterHtml) {
+          setGeneratedJoiningLetterHtml(result.joiningLetterHtml);
+          updateEmployee({ ...newEmployee, joiningLetterHtml: result.joiningLetterHtml }); // Save letter HTML to store
+          toast({ title: "Joining Letter Generated", description: "Preview available." });
+          setIsJoiningLetterPreviewOpen(true);
+        } else {
+          throw new Error("AI failed to generate joining letter content.");
+        }
+      } catch (error) {
+        console.error("Error generating joining letter:", error);
+        toast({ title: "Letter Generation Failed", description: error.message, variant: "destructive" });
+      } finally {
+        setIsGeneratingLetter(false);
+      }
     }
-    handleDialogClose();
   };
 
   const handleConfirmDelete = () => {
@@ -111,6 +160,63 @@ export default function EmployeesPage() {
     }
     handleDialogClose();
   };
+
+  const handleDownloadJoiningLetterPdf = () => {
+    if (!generatedJoiningLetterHtml || !currentEmployeeForLetter) {
+      toast({ title: "Error", description: "No joining letter content to download.", variant: "destructive" });
+      return;
+    }
+    const tempElement = document.createElement('div');
+    tempElement.style.position = 'absolute';
+    tempElement.style.left = '-9999px';
+    tempElement.style.top = '0px';
+    tempElement.style.width = '1000px';
+    tempElement.innerHTML = generatedJoiningLetterHtml;
+    document.body.appendChild(tempElement);
+
+    const documentToCapture = tempElement.querySelector('.joining-letter-container');
+    if (!documentToCapture) {
+      document.body.removeChild(tempElement);
+      toast({ title: "PDF Error", description: "Could not find content for PDF.", variant: "destructive" });
+      return;
+    }
+    const filename = `${currentEmployeeForLetter.name.replace(/ /g, '_')}_Joining_Letter.pdf`;
+    const opt = {
+      margin: [10, 10, 10, 10], filename, image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } // Changed to A4
+    };
+    html2pdf().from(documentToCapture).set(opt).save()
+      .then(() => toast({ title: "PDF Downloaded", description: "Joining letter saved." }))
+      .catch(err => toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }))
+      .finally(() => document.body.removeChild(tempElement));
+  };
+
+  const handleEmailJoiningLetter = async () => {
+    if (!generatedJoiningLetterHtml || !currentEmployeeForLetter) {
+      toast({ title: "Error", description: "No letter or employee data for email.", variant: "destructive" });
+      return;
+    }
+    setIsEmailingLetter(true);
+    try {
+      const result = await sendJoiningLetterEmail({
+        employeeEmail: currentEmployeeForLetter.email,
+        employeeName: currentEmployeeForLetter.name,
+        joiningLetterHtml: generatedJoiningLetterHtml,
+        companyName: "PESU Venture Labs",
+      });
+      if (result.success) {
+        toast({ title: "Email Sent", description: `Joining letter sent to ${currentEmployeeForLetter.email}.` });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      toast({ title: "Email Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsEmailingLetter(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -141,6 +247,7 @@ export default function EmployeesPage() {
                   <TableHead>Job Title</TableHead>
                   <TableHead>Designation</TableHead>
                   <TableHead>Department</TableHead>
+                  <TableHead>Type</TableHead> {/* Added Type column */}
                   <TableHead>Gender</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -167,6 +274,7 @@ export default function EmployeesPage() {
                     <TableCell>{employee.role}</TableCell> 
                     <TableCell>{employee.designation}</TableCell>
                     <TableCell>{employee.department}</TableCell>
+                    <TableCell>{employee.employeeType}</TableCell> {/* Display Type */}
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
                       {new Date(employee.joinDate).toLocaleDateString("en-IN", {
@@ -213,6 +321,7 @@ export default function EmployeesPage() {
         </CardContent>
       </Card>
 
+      {/* Add/Edit Employee Dialog */}
       <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
@@ -230,11 +339,13 @@ export default function EmployeesPage() {
               designationOptions={DESIGNATION_OPTIONS}
               departmentsOptions={DEPARTMENTS_OPTIONS}
               statusOptions={STATUS_OPTIONS}
+              employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS} // Pass type options
             />
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -252,6 +363,48 @@ export default function EmployeesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Joining Letter Preview Dialog */}
+      <Dialog open={isJoiningLetterPreviewOpen} onOpenChange={handleJoiningLetterDialogClose}>
+        <DialogContent className="sm:max-w-3xl lg:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Joining Letter Preview for {currentEmployeeForLetter?.name}</DialogTitle>
+            <DialogDescription>
+              Review the generated joining letter. You can download it as a PDF or email it directly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
+            {isGeneratingLetter && (
+              <div className="flex flex-col items-center justify-center min-h-[300px]">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-2 text-muted-foreground">Generating letter...</p>
+              </div>
+            )}
+            {!isGeneratingLetter && generatedJoiningLetterHtml && (
+              <div 
+                className="p-4 border rounded-md bg-white shadow-sm overflow-auto prose prose-sm max-w-none dark:bg-slate-900 dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: generatedJoiningLetterHtml }}
+              />
+            )}
+            {!isGeneratingLetter && !generatedJoiningLetterHtml && (
+                 <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed rounded-md bg-muted/20">
+                    <FileTextIcon className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-lg text-muted-foreground">No letter generated or an error occurred.</p>
+                 </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4 sm:justify-end gap-2">
+            <Button variant="outline" onClick={handleJoiningLetterDialogClose}>Close</Button>
+            <Button onClick={handleDownloadJoiningLetterPdf} disabled={!generatedJoiningLetterHtml || isGeneratingLetter || isEmailingLetter}>
+              <Download className="mr-2 h-4 w-4" /> Download PDF
+            </Button>
+            <Button onClick={handleEmailJoiningLetter} disabled={!generatedJoiningLetterHtml || isGeneratingLetter || isEmailingLetter}>
+              {isEmailingLetter ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              {isEmailingLetter ? "Sending..." : "Email Letter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

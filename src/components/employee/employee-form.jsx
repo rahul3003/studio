@@ -5,7 +5,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, parseISO } from "date-fns"; // Added parseISO
+import { format, parseISO } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,9 +36,12 @@ const employeeFormSchema = z.object({
   gender: z.string().min(1, { message: "Gender is required." }),
   joinDate: z.date({ required_error: "Join date is required." }),
   status: z.string().min(1, { message: "Status is required." }),
+  employeeType: z.string().min(1, { message: "Employee type is required." }), // Added employeeType
+  salary: z.string().min(3, {message: "Salary must be provided (e.g., ₹ XXXXX per annum)."}).optional(), // Added for joining letter
 });
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
+export const EMPLOYEE_TYPE_OPTIONS = ["Full-time", "Part-time", "Contractor", "Intern"]; // Export for use in EmployeesPage
 
 export function EmployeeForm({
   onSubmit,
@@ -48,6 +51,7 @@ export function EmployeeForm({
   designationOptions,
   departmentsOptions,
   statusOptions,
+  employeeTypeOptions, // Added prop
 }) {
   const { toast } = useToast();
   const form = useForm({
@@ -59,6 +63,8 @@ export function EmployeeForm({
                       ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
                       : undefined,
           gender: initialData.gender || "",
+          employeeType: initialData.employeeType || "", // Initialize employeeType
+          salary: initialData.salary || "", // Initialize salary
         }
       : {
           name: "",
@@ -69,6 +75,8 @@ export function EmployeeForm({
           gender: "",
           joinDate: undefined,
           status: "Active",
+          employeeType: "", // Default employeeType
+          salary: "", // Default salary
         },
   });
   
@@ -80,6 +88,8 @@ export function EmployeeForm({
                       ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
                       : undefined,
           gender: initialData.gender || "",
+          employeeType: initialData.employeeType || "", // Reset employeeType
+          salary: initialData.salary || "", // Reset salary
         }
       : {
           name: "",
@@ -90,6 +100,8 @@ export function EmployeeForm({
           gender: "",
           joinDate: undefined,
           status: "Active",
+          employeeType: "", // Reset employeeType
+          salary: "", // Reset salary
         });
   }, [initialData, form]);
 
@@ -110,7 +122,7 @@ export function EmployeeForm({
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. John Doe" {...field} />
+                <Input placeholder="e.g. Priya Sharma" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -123,7 +135,7 @@ export function EmployeeForm({
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                <Input type="email" placeholder="e.g. priya.sharma@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -267,6 +279,46 @@ export function EmployeeForm({
                 )}
             />
         </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <FormField
+                control={form.control}
+                name="employeeType"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Employee Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select employee type" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {employeeTypeOptions.map((type) => (
+                        <SelectItem key={type} value={type}>
+                            {type}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+              control={form.control}
+              name="salary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Salary (e.g., ₹ XXXXX per annum)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="₹ 6,00,000 per annum" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        </div>
+
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
