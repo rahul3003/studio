@@ -55,7 +55,9 @@ export function EmployeeForm({
     defaultValues: initialData
       ? {
           ...initialData,
-          joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
+          joinDate: initialData.joinDate 
+                      ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
+                      : undefined,
           gender: initialData.gender || "",
         }
       : {
@@ -74,7 +76,9 @@ export function EmployeeForm({
     form.reset(initialData
       ? {
           ...initialData,
-          joinDate: initialData.joinDate ? parseISO(initialData.joinDate) : undefined,
+          joinDate: initialData.joinDate 
+                      ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
+                      : undefined,
           gender: initialData.gender || "",
         }
       : {

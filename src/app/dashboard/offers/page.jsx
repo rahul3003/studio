@@ -139,7 +139,7 @@ export default function OffersPage() {
     
     setIsGeneratingOffer(true);
     try {
-        // offerDataFromForm already contains formatted dates and all necessary fields from OfferLetterForm
+        // offerDataFromForm already contains formatted dates (MMMM d, yyyy) and all necessary fields from OfferLetterForm
       const result = await generateOfferLetter(offerDataFromForm);
       if (result && result.offerLetterText) {
         setGeneratedOfferHtml(result.offerLetterText);
@@ -147,7 +147,7 @@ export default function OffersPage() {
           offerStatus: 'Offer Generated', 
           offerLetterHtml: result.offerLetterText,
           offeredSalary: offerDataFromForm.salary, // Store the salary from the form
-          offeredStartDate: offerDataFromForm.startDate, // Store formatted date
+          offeredStartDate: offerDataFromForm.startDate, // Store MMMM d, yyyy formatted date
         });
         toast({ title: "Offer Generated", description: `Offer letter for ${selectedApplicant.name} created.` });
       } else {
@@ -207,7 +207,16 @@ export default function OffersPage() {
   const handleCreateEmployee = (employeeData) => {
     if (!selectedApplicant) return;
     
-    addEmployee(employeeData); // Employee store will handle ID generation and avatar.
+    const newEmployee = {
+        ...employeeData,
+        // Employee store will handle ID generation and avatar.
+        // Salary information is usually managed separately (e.g. in remuneration/payroll)
+        // For this example, it's assumed EmployeeForm collected necessary fields
+        // and employeeData contains those.
+        // If salary needs to be explicitly passed, it would be from selectedApplicant.offeredSalary
+    };
+
+    addEmployee(newEmployee); 
     updateApplicant(selectedApplicant.id, { offerStatus: 'Hired' });
     toast({ title: "Employee Created", description: `${employeeData.name} added to employees.` });
     setIsEmployeeFormOpen(false);
@@ -426,9 +435,8 @@ export default function OffersPage() {
                   role: jobs.find(j => j.id === selectedApplicant.jobId)?.title, 
                   designation: "", // To be selected in form
                   department: jobs.find(j => j.id === selectedApplicant.jobId)?.department, 
-                  joinDate: selectedApplicant.offeredStartDate ? parseISO(selectedApplicant.offeredStartDate) : new Date(), 
+                  joinDate: selectedApplicant.offeredStartDate ? new Date(selectedApplicant.offeredStartDate) : new Date(), 
                   status: "Probation", 
-                  // Salary is not directly part of employee object, but managed in remuneration
                 }}
                 rolesOptions={ROLES_OPTIONS_EMPLOYEE}
                 designationOptions={DESIGNATION_OPTIONS_EMPLOYEE}
@@ -442,3 +450,4 @@ export default function OffersPage() {
     </div>
   );
 }
+
