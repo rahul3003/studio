@@ -43,7 +43,7 @@ import { useJobStore } from "@/store/jobStore";
 import { useApplicantStore } from "@/store/applicantStore";
 import { useEmployeeStore } from "@/store/employeeStore";
 import { OfferLetterForm } from "@/components/document/offer-letter-form";
-import { EmployeeForm } from "@/components/employee/employee-form"; 
+import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form"; 
 import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
 import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow"; 
 import { format, addDays, parseISO } from "date-fns";
@@ -435,13 +435,16 @@ export default function OffersPage() {
                   role: jobs.find(j => j.id === selectedApplicant.jobId)?.title, 
                   designation: "", // To be selected in form
                   department: jobs.find(j => j.id === selectedApplicant.jobId)?.department, 
-                  joinDate: selectedApplicant.offeredStartDate ? new Date(selectedApplicant.offeredStartDate) : new Date(), 
+                  joinDate: selectedApplicant.offeredStartDate ? parseISO(selectedApplicant.offeredStartDate) : new Date(), 
                   status: "Probation", 
+                  employeeType: "Full-time", // Defaulting type, can be made configurable
+                  salary: selectedApplicant.offeredSalary || ""
                 }}
                 rolesOptions={ROLES_OPTIONS_EMPLOYEE}
                 designationOptions={DESIGNATION_OPTIONS_EMPLOYEE}
                 departmentsOptions={DEPARTMENTS_OPTIONS_EMPLOYEE}
                 statusOptions={STATUS_OPTIONS_EMPLOYEE}
+                employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS}
               />
             )}
           </div>
@@ -450,4 +453,3 @@ export default function OffersPage() {
     </div>
   );
 }
-
