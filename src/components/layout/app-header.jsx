@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -41,16 +42,18 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const breadcrumbs = getBreadcrumbs(pathname);
 
   const user = useAuthStore(state => state.user);
-  const loading = useAuthStore(state => state.loading); // Use auth loading state
+  const loading = useAuthStore(state => state.loading);
   const profileData = useProfileStore(state => state.profileData);
   
   const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
 
   const canSwitchRoles = React.useMemo(() => {
-    if (loading || !user || !user.baseRole) return false;
+    if (loading || !user || !user.baseRole) {
+      return false;
+    }
     // Employee role cannot switch. Others (superadmin, admin, manager, hr, accounts) can.
     return user.baseRole.value !== 'employee';
-  }, [user, loading]);
+  }, [user, loading]); // Depends on user object (which includes baseRole) and loading state
 
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
 
@@ -136,3 +139,4 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
     </header>
   );
 }
+
