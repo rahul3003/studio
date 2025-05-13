@@ -160,6 +160,7 @@ const Sidebar = React.forwardRef(
       collapsible = "offcanvas",
       className,
       children,
+      hoverPeek, // Destructure hoverPeek to prevent it from being spread by ...props
       ...props
     },
     ref
@@ -209,6 +210,7 @@ const Sidebar = React.forwardRef(
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
+        data-hover-peek={hoverPeek} // Use hoverPeek to set a data attribute for CSS targeting
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -233,7 +235,7 @@ const Sidebar = React.forwardRef(
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
-          {...props}
+          {...props} // Spread props here
         >
           <div
             data-sidebar="sidebar"
@@ -489,6 +491,8 @@ const SidebarMenuButton = React.forwardRef(
       size = "default",
       tooltip,
       className,
+      icon,
+      children: labelContent, // Renamed from children to labelContent
       ...props
     },
     ref
@@ -496,19 +500,28 @@ const SidebarMenuButton = React.forwardRef(
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
 
-    const button = (
+    const buttonElement = (
       <Comp
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
         {...props}
-      />
+      >
+        {/* Render icon and labelContent as direct children */}
+        {icon}
+        <span className={cn(
+          "truncate",
+          "group-data-[collapsible=icon]:hidden group-data-[hover-peek=true]:group-data-[collapsible=icon]:delay-300 group-data-[hover-peek=true]:group-data-[collapsible=icon]:opacity-0 group-data-[hover-peek=true]:group-data-[collapsible=icon]:group-hover/sidebar:w-auto group-data-[hover-peek=true]:group-data-[collapsible=icon]:group-hover/sidebar:opacity-100"
+        )}>
+          {labelContent}
+        </span>
+      </Comp>
     )
 
     if (!tooltip) {
-      return button
+      return buttonElement
     }
 
     if (typeof tooltip === "string") {
@@ -516,10 +529,14 @@ const SidebarMenuButton = React.forwardRef(
         children: tooltip,
       }
     }
+    
+    // Ensure TooltipTrigger correctly wraps the buttonElement
+    const TooltipComp = asChild ? TooltipTrigger : "div";
+
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild={asChild || Comp === Slot}>{buttonElement}</TooltipTrigger> 
         <TooltipContent
           side="right"
           align="center"
