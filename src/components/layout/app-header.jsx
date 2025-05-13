@@ -41,19 +41,10 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
 
-  const user = useAuthStore(state => state.user);
-  const loading = useAuthStore(state => state.loading);
   const profileData = useProfileStore(state => state.profileData);
   
-  const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
+  const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData?.rewards?.accruedPoints]);
 
-  const canSwitchRoles = React.useMemo(() => {
-    if (loading || !user || !user.baseRole) {
-      return false;
-    }
-    // Employee role cannot switch. Others (superadmin, admin, manager, hr, accounts) can.
-    return user.baseRole.value !== 'employee';
-  }, [user, loading]); // Depends on user object (which includes baseRole) and loading state
 
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
 
@@ -81,7 +72,7 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        {canSwitchRoles && <RoleSwitcher />}
+        <RoleSwitcher /> {/* RoleSwitcher will handle its own visibility */}
         
         {showCheckoutButton && (
           <Button variant="outline" size="sm" onClick={onCheckoutClick} className="animate-pulse bg-green-500/10 border-green-500 text-green-700 hover:bg-green-500/20 dark:bg-green-700/20 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-700/30">
@@ -139,4 +130,3 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
     </header>
   );
 }
-
