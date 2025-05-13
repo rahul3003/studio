@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Users, FileText, UserPlus, Send, CheckCircle, XCircle, Briefcase, Loader2, Eye } from "lucide-react";
+import { Mail, Users, FileText, UserPlus, Send, CheckCircle, XCircle, Briefcase, Loader2, Eye, UserCheck, UserX } from "lucide-react";
 
 import { useJobStore } from "@/store/jobStore";
 import { useApplicantStore } from "@/store/applicantStore";
@@ -46,7 +46,7 @@ import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { EmployeeForm } from "@/components/employee/employee-form"; 
 import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
 import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow"; 
-import { format } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 
 const ROLES_OPTIONS_EMPLOYEE = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
 const DESIGNATION_OPTIONS_EMPLOYEE = ["Intern", "Trainee", "Junior Developer", "Associate Developer", "Developer", "Senior Developer", "Team Lead", "Principal Engineer", "Junior Designer", "Designer", "Senior Designer", "HR Executive", "Senior HR", "Sales Rep", "Senior Sales Rep", "Analyst", "Senior Analyst", "Associate QA", "QA Engineer", "Senior QA", "DevOps Engineer", "Senior DevOps", "Product Manager", "Senior Product Manager", "Manager", "Director", "Administrator", "Accountant"];
@@ -60,18 +60,17 @@ export default function OffersPage() {
 
   const applicants = useApplicantStore((state) => state.applicants);
   const getApplicantsByJobId = useApplicantStore((state) => state.getApplicantsByJobId);
-  const getApplicantById = useApplicantStore((state) => state.getApplicantById);
   const updateApplicant = useApplicantStore((state) => state.updateApplicant);
   const initializeApplicants = useApplicantStore((state) => state._initializeApplicants);
 
   const addEmployee = useEmployeeStore((state) => state.addEmployee);
-  const allEmployees = useEmployeeStore((state) => state.employees);
 
 
   const [selectedJobId, setSelectedJobId] = React.useState("");
   const [filteredApplicants, setFilteredApplicants] = React.useState([]);
   
   const [selectedApplicant, setSelectedApplicant] = React.useState(null);
+  const [offerFormInitialData, setOfferFormInitialData] = React.useState(null);
   const [isOfferFormOpen, setIsOfferFormOpen] = React.useState(false);
   const [isViewOfferOpen, setIsViewOfferOpen] = React.useState(false);
   const [isEmployeeFormOpen, setIsEmployeeFormOpen] = React.useState(false);
@@ -97,9 +96,35 @@ export default function OffersPage() {
     setSelectedJobId(jobId);
   };
 
+  const handleMarkApplicantSelected = (applicantId) => {
+    updateApplicant(applicantId, { offerStatus: 'Selected' });
+    toast({ title: "Applicant Selected", description: "Applicant marked as selected for offer." });
+  };
+
+  const handleMarkApplicantRejectedApp = (applicantId) => {
+    updateApplicant(applicantId, { offerStatus: 'Rejected (Application)' });
+    toast({ title: "Applicant Rejected", description: "Applicant marked as rejected at application stage.", variant: "destructive" });
+  };
+
   const handleOpenOfferForm = (applicant) => {
+    const job = jobs.find(j => j.id === selectedJobId);
+    if (!job) {
+        toast({title: "Error", description: "Selected job not found.", variant: "destructive"});
+        return;
+    }
     setSelectedApplicant(applicant);
-    setGeneratedOfferHtml(""); // Clear previous offer
+    setGeneratedOfferHtml(""); 
+    setOfferFormInitialData({
+        candidateName: applicant.name,
+        candidateEmail: applicant.email,
+        positionTitle: job.title,
+        department: job.department,
+        companyName: job.companyName || "PESU Venture Labs",
+        // Sensible defaults for dates, salary will be set by form
+        startDate: format(addDays(new Date(), 14), "yyyy-MM-dd"), // Default start date 2 weeks from now
+        offerExpiryDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), // Default expiry 1 week from now
+        salary: applicant.offeredSalary || job.salaryRange || "₹ Discussed Amount per annum", // Use applicant's offered if available, then job, then placeholder
+    });
     setIsOfferFormOpen(true);
   };
   
@@ -109,37 +134,22 @@ export default function OffersPage() {
     setIsViewOfferOpen(true);
   };
 
-  const handleGenerateOfferSubmit = async (offerData) => {
+  const handleGenerateOfferSubmit = async (offerDataFromForm) => {
     if (!selectedApplicant || !selectedJobId) return;
-    const job = jobs.find(j => j.id === selectedJobId);
-    if (!job) return;
-
+    
     setIsGeneratingOffer(true);
     try {
-      const fullOfferInput = {
-        candidateName: selectedApplicant.name,
-        candidateEmail: selectedApplicant.email,
-        positionTitle: job.title,
-        department: job.department,
-        startDate: offerData.startDate, // This is already formatted 'MMMM d, yyyy' from OfferLetterForm
-        salary: offerData.salary,
-        reportingManager: offerData.reportingManager, // Assuming OfferLetterForm collects this
-        offerExpiryDate: offerData.offerExpiryDate, // Also formatted
-        companyName: job.companyName || "PESU Venture Labs", // Default if not in job data
-      };
-
-      const result = await generateOfferLetter(fullOfferInput);
+        // offerDataFromForm already contains formatted dates and all necessary fields from OfferLetterForm
+      const result = await generateOfferLetter(offerDataFromForm);
       if (result && result.offerLetterText) {
         setGeneratedOfferHtml(result.offerLetterText);
         updateApplicant(selectedApplicant.id, { 
           offerStatus: 'Offer Generated', 
           offerLetterHtml: result.offerLetterText,
-          offeredSalary: fullOfferInput.salary,
-          offeredStartDate: fullOfferInput.startDate, // Store the formatted date
+          offeredSalary: offerDataFromForm.salary, // Store the salary from the form
+          offeredStartDate: offerDataFromForm.startDate, // Store formatted date
         });
         toast({ title: "Offer Generated", description: `Offer letter for ${selectedApplicant.name} created.` });
-        // Keep dialog open to show preview, or close and show in a new dialog
-        // For now, let's assume we show preview in a different step/dialog or below form
       } else {
         throw new Error("Failed to generate offer letter content.");
       }
@@ -148,7 +158,6 @@ export default function OffersPage() {
       toast({ title: "Offer Generation Failed", description: error.message, variant: "destructive" });
     } finally {
       setIsGeneratingOffer(false);
-      // Don't close offer form yet, allow preview and sending
     }
   };
   
@@ -168,9 +177,10 @@ export default function OffersPage() {
         });
         updateApplicant(selectedApplicant.id, { offerStatus: 'Offer Sent' });
         toast({title: "Offer Sent", description: `Offer letter emailed to ${selectedApplicant.name}.`});
-        setIsOfferFormOpen(false); // Close form after sending
+        setIsOfferFormOpen(false); 
         setGeneratedOfferHtml("");
         setSelectedApplicant(null);
+        setOfferFormInitialData(null);
     } catch (error) {
         console.error("Error sending email:", error);
         toast({title: "Email Failed", description: error.message, variant: "destructive"});
@@ -185,8 +195,8 @@ export default function OffersPage() {
   };
   
   const handleMarkOfferRejected = (applicantId) => {
-    updateApplicant(applicantId, { offerStatus: 'Offer Rejected' });
-    toast({ title: "Offer Rejected", description: "Applicant marked as rejected." });
+    updateApplicant(applicantId, { offerStatus: 'Offer Rejected (Offer)' });
+    toast({ title: "Offer Rejected", description: "Applicant marked as rejected the offer." });
   };
 
   const handleOpenEmployeeForm = (applicant) => {
@@ -196,16 +206,8 @@ export default function OffersPage() {
 
   const handleCreateEmployee = (employeeData) => {
     if (!selectedApplicant) return;
-    const job = jobs.find(j => j.id === selectedApplicant.jobId);
-
-    const newEmployee = {
-      ...employeeData, // Data from EmployeeForm
-      // id: `EMP${String(Date.now()).slice(-4)}${String(allEmployees.length + 1).padStart(3, '0')}`, (Store handles ID)
-      avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email}`,
-      // salary: selectedApplicant.offeredSalary, // This should be part of remuneration setup, not directly in employee object
-      // joinDate: selectedApplicant.offeredStartDate, // This is already in employeeData from the form
-    };
-    addEmployee(newEmployee);
+    
+    addEmployee(employeeData); // Employee store will handle ID generation and avatar.
     updateApplicant(selectedApplicant.id, { offerStatus: 'Hired' });
     toast({ title: "Employee Created", description: `${employeeData.name} added to employees.` });
     setIsEmployeeFormOpen(false);
@@ -216,11 +218,13 @@ export default function OffersPage() {
   const getStatusBadgeVariant = (status) => {
     switch (status) {
       case 'Pending': return 'secondary';
-      case 'Offer Generated': return 'outline';
+      case 'Selected': return 'outline';
+      case 'Offer Generated': return 'default';
       case 'Offer Sent': return 'default';
-      case 'Offer Accepted': return 'default'; // Success-like variant
-      case 'Offer Rejected': return 'destructive';
-      case 'Hired': return 'default'; // Success-like variant
+      case 'Offer Accepted': return 'default'; 
+      case 'Offer Rejected (Application)': return 'destructive';
+      case 'Offer Rejected (Offer)': return 'destructive';
+      case 'Hired': return 'default'; 
       default: return 'secondary';
     }
   };
@@ -235,7 +239,7 @@ export default function OffersPage() {
             <CardTitle className="text-3xl">Manage Job Offers</CardTitle>
           </div>
           <CardDescription>
-            Select a job to view applicants, generate offers, and manage onboarding.
+            Select a job to view applicants, manage statuses, generate offers, and onboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -285,11 +289,21 @@ export default function OffersPage() {
                           </TableCell>
                           <TableCell className="text-right space-x-1">
                             {applicant.offerStatus === 'Pending' && (
-                              <Button variant="outline" size="sm" onClick={() => handleOpenOfferForm(applicant)}>
+                                <>
+                                <Button variant="outline" size="sm" onClick={() => handleMarkApplicantSelected(applicant.id)}>
+                                    <UserCheck className="mr-1 h-4 w-4" /> Mark Selected
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleMarkApplicantRejectedApp(applicant.id)}>
+                                    <UserX className="mr-1 h-4 w-4" /> Reject
+                                </Button>
+                                </>
+                            )}
+                            {applicant.offerStatus === 'Selected' && (
+                              <Button variant="default" size="sm" onClick={() => handleOpenOfferForm(applicant)}>
                                 <FileText className="mr-1 h-4 w-4" /> Generate Offer
                               </Button>
                             )}
-                            {(applicant.offerStatus === 'Offer Generated' || applicant.offerStatus === 'Offer Sent') && applicant.offerLetterHtml && (
+                            {(applicant.offerStatus === 'Offer Generated' || applicant.offerStatus === 'Offer Sent' || applicant.offerStatus === 'Offer Accepted') && applicant.offerLetterHtml && (
                                <Button variant="outline" size="sm" onClick={() => handleViewOffer(applicant)}>
                                 <Eye className="mr-1 h-4 w-4" /> View Offer
                               </Button>
@@ -305,8 +319,8 @@ export default function OffersPage() {
                                 </>
                             )}
                             {applicant.offerStatus === 'Offer Accepted' && (
-                              <Button variant="default" size="sm" onClick={() => handleOpenEmployeeForm(applicant)}>
-                                <UserPlus className="mr-1 h-4 w-4" /> Create Employee
+                              <Button variant="default" size="sm" onClick={() => handleOpenEmployeeForm(applicant)} className="bg-blue-600 hover:bg-blue-700">
+                                <UserPlus className="mr-1 h-4 w-4" /> Onboard Employee
                               </Button>
                             )}
                           </TableCell>
@@ -324,7 +338,7 @@ export default function OffersPage() {
       </Card>
 
       {/* Generate/Edit Offer Dialog */}
-      <Dialog open={isOfferFormOpen} onOpenChange={setIsOfferFormOpen}>
+      <Dialog open={isOfferFormOpen} onOpenChange={(open) => { if(!open) {setIsOfferFormOpen(false); setOfferFormInitialData(null); setSelectedApplicant(null); setGeneratedOfferHtml(""); } else {setIsOfferFormOpen(true); }}}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Generate Offer Letter for {selectedApplicant?.name}</DialogTitle>
@@ -333,20 +347,13 @@ export default function OffersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 max-h-[70vh] overflow-y-auto pr-2 space-y-4">
-            <OfferLetterForm 
-              onSubmit={handleGenerateOfferSubmit} 
-              isLoading={isGeneratingOffer}
-              // Pass initial data if needed for editing an existing offer, though current flow is for new generation
-              // initialData={ selectedApplicant && jobs.find(j => j.id === selectedJobId) ? { 
-              //   candidateName: selectedApplicant.name, 
-              //   candidateEmail: selectedApplicant.email,
-              //   positionTitle: jobs.find(j => j.id === selectedJobId)?.title,
-              //   department: jobs.find(j => j.id === selectedJobId)?.department,
-              //   companyName: jobs.find(j => j.id === selectedJobId)?.companyName || "PESU Venture Labs",
-              //   salary: selectedApplicant.offeredSalary || "", // if editing
-              //   startDate: selectedApplicant.offeredStartDate ? new Date(selectedApplicant.offeredStartDate) : undefined, // if editing
-              //  } : undefined }
-            />
+            {offerFormInitialData && 
+              <OfferLetterForm 
+                onSubmit={handleGenerateOfferSubmit} 
+                isLoading={isGeneratingOffer}
+                initialData={offerFormInitialData}
+              />
+            }
             {isGeneratingOffer && (
                 <div className="flex items-center justify-center p-4">
                     <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
@@ -361,7 +368,7 @@ export default function OffersPage() {
                   dangerouslySetInnerHTML={{ __html: generatedOfferHtml }}
                 />
                 <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={() => setIsOfferFormOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => {setIsOfferFormOpen(false); setOfferFormInitialData(null); setSelectedApplicant(null); setGeneratedOfferHtml("");}}>Cancel</Button>
                     <Button onClick={handleSendOfferEmail} disabled={isSendingEmail}>
                         {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4" />}
                         {isSendingEmail ? "Sending..." : "Send Offer via Email"}
@@ -416,11 +423,12 @@ export default function OffersPage() {
                 initialData={{
                   name: selectedApplicant.name,
                   email: selectedApplicant.email,
-                  role: jobs.find(j => j.id === selectedApplicant.jobId)?.title, // Pre-fill role from job
-                  designation: "", // Needs to be selected
-                  department: jobs.find(j => j.id === selectedApplicant.jobId)?.department, // Pre-fill dept from job
-                  joinDate: selectedApplicant.offeredStartDate ? new Date(selectedApplicant.offeredStartDate) : new Date(), // Use offered start date
-                  status: "Probation", // Default status for new hires
+                  role: jobs.find(j => j.id === selectedApplicant.jobId)?.title, 
+                  designation: "", // To be selected in form
+                  department: jobs.find(j => j.id === selectedApplicant.jobId)?.department, 
+                  joinDate: selectedApplicant.offeredStartDate ? parseISO(selectedApplicant.offeredStartDate) : new Date(), 
+                  status: "Probation", 
+                  // Salary is not directly part of employee object, but managed in remuneration
                 }}
                 rolesOptions={ROLES_OPTIONS_EMPLOYEE}
                 designationOptions={DESIGNATION_OPTIONS_EMPLOYEE}

@@ -5,7 +5,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,31 +26,42 @@ const offerLetterFormSchema = z.object({
   positionTitle: z.string().min(3, { message: "Position title must be at least 3 characters." }),
   department: z.string().min(2, { message: "Department must be at least 2 characters." }),
   startDate: z.date({ required_error: "Start date is required." }),
-  salary: z.string().min(3, { message: "Salary details must be provided (e.g., ₹ 5,00,000 per year)." }), // Updated placeholder
+  salary: z.string().min(3, { message: "Salary details must be provided (e.g., ₹ 5,00,000 per year)." }), 
   reportingManager: z.string().min(2, { message: "Reporting manager name must be at least 2 characters." }),
   offerExpiryDate: z.date({ required_error: "Offer expiry date is required." }),
   companyName: z.string().min(2, { message: "Company name is required."}),
-}).refine(data => data.offerExpiryDate > data.startDate, {
-    message: "Offer expiry date must be after the start date.",
+}).refine(data => data.offerExpiryDate >= data.startDate, { // Changed to >= to allow same day expiry for immediate offers
+    message: "Offer expiry date must be on or after the start date.",
     path: ["offerExpiryDate"],
 });
 
 
-export function OfferLetterForm({ onSubmit, isLoading }) {
+export function OfferLetterForm({ onSubmit, isLoading, initialData }) { // Added initialData to props
   const form = useForm({
     resolver: zodResolver(offerLetterFormSchema),
     defaultValues: {
-      candidateName: "",
-      candidateEmail: "",
-      positionTitle: "",
-      department: "",
-      startDate: undefined,
-      salary: "₹ 7,00,000 per annum plus standard benefits", // Indian context
+      // Sensible defaults
+      salary: "₹ 7,00,000 per annum plus standard benefits", 
+      companyName: "PESU Venture Labs",
       reportingManager: "",
-      offerExpiryDate: undefined,
-      companyName: "PESU Venture Labs", 
+      // Spread initialData to override defaults if present
+      ...initialData,
+      // Ensure dates are Date objects for DatePicker
+      startDate: initialData?.startDate ? parseISO(initialData.startDate) : undefined,
+      offerExpiryDate: initialData?.offerExpiryDate ? parseISO(initialData.offerExpiryDate) : undefined,
     },
   });
+
+  React.useEffect(() => {
+    if (initialData) {
+        form.reset({
+            ...initialData,
+            startDate: initialData?.startDate ? parseISO(initialData.startDate) : undefined,
+            offerExpiryDate: initialData?.offerExpiryDate ? parseISO(initialData.offerExpiryDate) : undefined,
+        });
+    }
+  }, [initialData, form]);
+
 
   const handleSubmit = (values) => {
     const formattedValues = {
