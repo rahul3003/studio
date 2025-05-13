@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -577,7 +578,7 @@ export default function OffersPage() {
                 )}
             </div>
             <DialogFooter className="mt-4 sm:justify-end gap-2">
-                <Button variant="outline" onClick={()={() => setIsJoiningLetterPreviewOpen(false)}}>Close</Button>
+                <Button variant="outline" onClick={() => setIsJoiningLetterPreviewOpen(false)}>Close</Button>
                 <Button onClick={handleDownloadJoiningLetterPdf} disabled={!generatedJoiningLetterHtml || isLoadingJoiningLetter || isEmailingJoiningLetter}>
                     <Download className="mr-2 h-4 w-4" /> PDF
                 </Button>
