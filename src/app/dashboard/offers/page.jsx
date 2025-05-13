@@ -5,10 +5,10 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"; // DialogClose removed as it is part of DialogContent
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; // Added import for Label
+// Input removed as it's not directly used here, but might be in sub-components
+import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useJobStore } from "@/store/jobStore";
@@ -18,11 +18,7 @@ import { format, parseISO } from "date-fns";
 import { Loader2, Mail, UserPlus, Eye, FileText as FileTextIcon, BriefcaseBusiness, Download, Send } from "lucide-react";
 import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form";
-
-import { generateOfferLetter } from "@/ai/flows/generate-offer-letter-flow";
-import { sendOfferLetterEmail } from "@/ai/flows/send-offer-letter-email-flow";
-import { generateJoiningLetter } from "@/ai/flows/generate-joining-letter-flow";
-import { sendJoiningLetterEmail } from "@/ai/flows/send-joining-letter-email-flow";
+import { sendEmail } from '@/services/emailService'; // Import direct email service
 import html2pdf from 'html2pdf.js';
 
 export const OFFER_STATUS_OPTIONS = ["Pending", "Selected", "Offer Generated", "Offer Sent", "Offer Accepted", "Offer Rejected", "Hired", "Not Selected", "On Hold", "Rejected (Application)"];
@@ -40,6 +36,63 @@ const statusVariantMap = {
   "Rejected (Application)": "destructive",
 };
 
+// Placeholder HTML generation functions (copied from documents/page.jsx for brevity, consider moving to a shared util)
+const generatePlaceholderOfferLetterHtml = (data) => {
+  const currentDate = format(new Date(), "MMMM d, yyyy");
+  return `
+<div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 30px; border: 1px solid #cccccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">
+  <img src="https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png" alt="${data.companyName} Logo" style="display: block; margin-bottom: 20px; max-height: 50px;" data-ai-hint="company logo PESU Venture Labs" />
+  <h1 style="font-size: 1.5em; color: #333; margin-bottom: 5px;">${data.companyName}</h1>
+  <p style="margin-bottom: 15px; font-size: 0.9em; color: #555;">PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085</p>
+  <p style="text-align: right; margin-bottom: 20px;"><strong>Date:</strong> ${currentDate}</p>
+  <p style="margin-top: 20px; margin-bottom: 15px;">Dear ${data.candidateName},</p>
+  <p>Following our recent discussions, we are delighted to extend an offer of employment to you for the position of <strong>${data.positionTitle}</strong> at <strong>${data.companyName}</strong>.</p>
+  <h3 style="font-size: 14px; color: #444; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Offer Details</h3>
+  <p><strong>Position Title:</strong> ${data.positionTitle}</p>
+  <p><strong>Department:</strong> ${data.department}</p>
+  <p><strong>Reporting Manager:</strong> ${data.reportingManager}</p>
+  <p><strong>Proposed Start Date:</strong> ${data.startDate}</p>
+  <h3 style="font-size: 14px; color: #444; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Compensation & Benefits</h3>
+  <p><strong>Salary:</strong> ${data.salary}</p>
+  <p>Further details on benefits will be shared upon joining.</p>
+  <p>To accept this offer, please sign and return this letter by <strong>${data.offerExpiryDate}</strong>. You can reply to this email with your signed acceptance.</p>
+  <p style="margin-top: 25px;">We are very excited about the possibility of you joining our team and look forward to welcoming you to <strong>${data.companyName}</strong>.</p>
+  <p style="margin-top: 30px;">Sincerely,</p>
+  <p style="margin-top: 20px; font-weight: bold;">The Hiring Team</p>
+  <p style="font-size: 0.95em;">${data.companyName}</p>
+</div>`;
+};
+
+const generatePlaceholderJoiningLetterHtml = (data) => {
+  const currentDate = format(new Date(), "MMMM d, yyyy");
+  return `
+<div class="joining-letter-container" style="font-family: 'Arial', sans-serif; max-width: 800px; margin: 30px auto; padding: 40px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">
+  <img src="https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png" alt="${data.companyName} Logo" style="display: block; margin: 0 auto 25px auto; max-height: 60px;" data-ai-hint="company logo PESU Venture Labs"/>
+  <h1 style="font-size: 1.7em; text-align: center; color: #2c3e50; margin-bottom: 5px;">${data.companyName}</h1>
+  <p style="text-align: center; margin-bottom: 20px; font-size: 0.9em; color: #555;">${data.companyAddress}</p>
+  <p style="text-align: right; margin-bottom: 25px;"><strong>Date:</strong> ${currentDate}</p>
+  <p style="margin-bottom: 5px;"><strong>To,</strong></p>
+  <p style="margin-bottom: 5px;"><strong>${data.employeeName}</strong></p>
+  <p style="margin-top: 20px; margin-bottom: 15px;">Dear ${data.employeeName},</p>
+  <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 15px; color: #333;">Subject: Joining Letter for the Position of ${data.positionTitle}</h3>
+  <p>We are pleased to confirm your appointment at <strong>${data.companyName}</strong> for the position of <strong>${data.positionTitle}</strong> in the <strong>${data.department}</strong> department. We are excited to have you join our team!</p>
+  <p>Your employment will commence on <strong>${data.startDate}</strong>. ${data.reportingManager ? `You will be reporting to <strong>${data.reportingManager}</strong>.` : 'Further details about your reporting structure will be shared upon joining.'}</p>
+  <p>This is a <strong>${data.employeeType}</strong> position. Your starting salary will be <strong>${data.salary}</strong>, subject to statutory deductions.</p>
+  <p>You will be on a probation period of six (6) months from your date of joining. Your performance will be reviewed during this period, and your confirmation will be based on a satisfactory review.</p>
+  <p>Please bring the following documents on your first day for verification:</p>
+  <ul style="margin-left: 20px; margin-bottom: 15px;"><li>Proof of Identity (Aadhaar/PAN Card)</li><li>Proof of Address</li><li>Educational Certificates (Highest Qualification)</li><li>Previous Employment Documents (if applicable)</li></ul>
+  <p>Your employment will be governed by the policies and procedures of <strong>${data.companyName}</strong>, which will be shared with you during your induction.</p>
+  <p style="margin-top: 25px;">We look forward to your joining and wish you a successful career with <strong>${data.companyName}</strong>.</p>
+  <p style="margin-top: 30px;">Sincerely,</p>
+  <div style="margin-top: 20px;">
+    <p style="font-weight: bold;">For ${data.companyName}</p>
+    <div style="height: 50px; width: 200px; border-bottom: 1px solid #000; margin-top: 10px; margin-bottom:5px;"></div>
+    <p style="font-size: 0.95em;">Authorized Signatory</p>
+    <p style="font-size: 0.95em;">(HR Department / Hiring Manager)</p>
+  </div>
+</div>`;
+};
+
 
 export default function OffersPage() {
   const { toast } = useToast();
@@ -48,7 +101,7 @@ export default function OffersPage() {
   const _initializeJobs = useJobStore((state) => state._initializeJobs);
 
   const applicants = useApplicantStore((state) => state.applicants || []);
-  const getApplicantById = useApplicantStore((state) => state.getApplicantById);
+  // const getApplicantById = useApplicantStore((state) => state.getApplicantById); // Not used, safe to remove if confirmed
   const updateApplicant = useApplicantStore((state) => state.updateApplicant);
   const _initializeApplicants = useApplicantStore((state) => state._initializeApplicants);
   
@@ -116,14 +169,16 @@ export default function OffersPage() {
     setIsLoadingOfferLetter(true);
     setGeneratedOfferLetterHtml("");
     try {
-      const result = await generateOfferLetter(offerData);
-      if (result?.offerLetterText) {
-        setGeneratedOfferLetterHtml(result.offerLetterText);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate generation
+      const htmlContent = generatePlaceholderOfferLetterHtml(offerData);
+      
+      if (htmlContent) {
+        setGeneratedOfferLetterHtml(htmlContent);
         updateApplicant(selectedApplicantForOffer.id, { 
           offerStatus: "Offer Generated", 
           offeredSalary: offerData.salary,
-          offeredStartDate: offerData.startDate, 
-          offerLetterHtml: result.offerLetterText 
+          offeredStartDate: offerData.startDate, // This is already formatted "MMMM d, yyyy"
+          offerLetterHtml: htmlContent 
         });
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
       } else {
@@ -144,16 +199,21 @@ export default function OffersPage() {
     }
     setIsEmailingOfferLetter(true);
     try {
-        const result = await sendOfferLetterEmail({
-            candidateEmail: selectedApplicantForOffer.email,
-            candidateName: selectedApplicantForOffer.name,
-            offerLetterHtml: generatedOfferLetterHtml,
-            companyName: "PESU Venture Labs", 
+        const emailBody = `<p>Dear ${selectedApplicantForOffer.name},</p><p>Please find your offer letter attached.</p><p>Sincerely,<br/>PESU Venture Labs HR</p>`;
+        const result = await sendEmail({
+            to: selectedApplicantForOffer.email,
+            subject: `Job Offer from PESU Venture Labs for ${selectedApplicantForOffer.name}`,
+            htmlBody: emailBody,
+            attachments: [{
+                filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
+                content: generatedOfferLetterHtml,
+                contentType: 'text/html',
+            }]
         });
         if (result.success) {
             updateApplicant(selectedApplicantForOffer.id, { offerStatus: "Offer Sent" });
             toast({ title: "Offer Letter Emailed", description: `Sent to ${selectedApplicantForOffer.email}.` });
-            setIsOfferLetterDialogOpen(false);
+            setIsOfferLetterDialogOpen(false); // Close dialog on successful send
         } else {
             throw new Error(result.message);
         }
@@ -170,10 +230,7 @@ export default function OffersPage() {
         return;
     }
     const tempElement = document.createElement('div');
-    tempElement.style.position = 'absolute';
-    tempElement.style.left = '-9999px';
-    tempElement.style.top = '0px';
-    tempElement.style.width = '1000px';
+    tempElement.style.position = 'absolute'; tempElement.style.left = '-9999px'; tempElement.style.top = '0px'; tempElement.style.width = '1000px';
     tempElement.innerHTML = generatedOfferLetterHtml;
     document.body.appendChild(tempElement);
 
@@ -186,12 +243,12 @@ export default function OffersPage() {
     const filename = `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`;
     const opt = {
       margin: [10, 10, 10, 10], filename, image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+      html2canvas: { scale: 2, useCORS: true, logging: false, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
      html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Offer letter saved." }))
-      .catch(err => toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }))
+      .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
       .finally(() => document.body.removeChild(tempElement));
   };
 
@@ -207,50 +264,56 @@ export default function OffersPage() {
 
   const handleOnboardEmployee = async (employeeData) => {
     if (!selectedApplicantForOnboarding) return;
+    setIsLoadingJoiningLetter(true);
 
     const newId = `EMP${String(Date.now()).slice(-4)}${String(allEmployees.length + 1).padStart(3, '0')}`;
-    const newEmployee = {
+    const newEmployeeBase = {
       ...employeeData,
       id: newId,
       avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
       gender: employeeData.gender || "Other",
-      joiningLetterHtml: null, 
     };
-    addEmployee(newEmployee);
-    setCurrentEmployeeForJoiningLetter(newEmployee); // Set current employee for joining letter
-    updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
-    toast({ title: "Employee Onboarded", description: `${newEmployee.name} has been added to employees.` });
-    setIsJoiningFormOpen(false);
-    // setSelectedApplicantForOnboarding(null); // Keep it selected to generate letter for this candidate
+    
+    setCurrentEmployeeForJoiningLetter(newEmployeeBase);
 
-    // Generate and handle Joining Letter
-    setIsLoadingJoiningLetter(true);
     try {
       const joiningLetterInput = {
-        employeeName: newEmployee.name,
-        employeeEmail: newEmployee.email,
-        positionTitle: newEmployee.role,
-        department: newEmployee.department,
-        startDate: format(new Date(newEmployee.joinDate), "MMMM d, yyyy"),
-        salary: newEmployee.salary || "As per offer",
-        employeeType: newEmployee.employeeType,
+        employeeName: newEmployeeBase.name,
+        employeeEmail: newEmployeeBase.email,
+        positionTitle: newEmployeeBase.role,
+        department: newEmployeeBase.department,
+        startDate: format(new Date(newEmployeeBase.joinDate), "MMMM d, yyyy"),
+        salary: newEmployeeBase.salary || "As per offer",
+        employeeType: newEmployeeBase.employeeType,
         companyName: "PESU Venture Labs",
         companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
+        reportingManager: newEmployeeBase.reportingManager || "To be assigned"
       };
-      const result = await generateJoiningLetter(joiningLetterInput);
-      if (result?.joiningLetterHtml) {
-        setGeneratedJoiningLetterHtml(result.joiningLetterHtml);
-        updateEmployee(newEmployee.id, { ...newEmployee, joiningLetterHtml: result.joiningLetterHtml });
-        toast({ title: "Joining Letter Generated", description: "Preview available." });
+      
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate generation
+      const htmlContent = generatePlaceholderJoiningLetterHtml(joiningLetterInput);
+
+      if (htmlContent) {
+        setGeneratedJoiningLetterHtml(htmlContent);
+        const newEmployeeWithLetter = { ...newEmployeeBase, joiningLetterHtml: htmlContent };
+        addEmployee(newEmployeeWithLetter);
+        updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
+        toast({ title: "Employee Onboarded & Joining Letter Generated", description: `${newEmployeeBase.name} added. Preview letter.` });
         setIsJoiningLetterPreviewOpen(true); 
       } else {
-        throw new Error("AI failed to generate joining letter content.");
+        throw new Error("Failed to generate joining letter content.");
       }
     } catch (error) {
       console.error("Error generating joining letter:", error);
       toast({ title: "Joining Letter Failed", description: error.message, variant: "destructive" });
+      // Still add employee and update applicant status
+      addEmployee(newEmployeeBase);
+      updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
+      toast({ title: "Employee Onboarded (Letter Failed)", description: `${newEmployeeBase.name} added. Letter generation failed.`});
     } finally {
       setIsLoadingJoiningLetter(false);
+      setIsJoiningFormOpen(false); 
+      // Keep selectedApplicantForOnboarding to allow letter actions if dialog opens
     }
   };
 
@@ -271,10 +334,10 @@ export default function OffersPage() {
         return;
     }
     const filename = `${currentEmployeeForJoiningLetter.name.replace(/ /g, '_')}_Joining_Letter.pdf`;
-    const opt = { margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
+    const opt = { margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
     html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Joining letter saved." }))
-      .catch(err => toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }))
+      .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
       .finally(() => document.body.removeChild(tempElement));
   };
 
@@ -285,11 +348,16 @@ export default function OffersPage() {
     }
     setIsEmailingJoiningLetter(true);
     try {
-        const result = await sendJoiningLetterEmail({
-            employeeEmail: currentEmployeeForJoiningLetter.email,
-            employeeName: currentEmployeeForJoiningLetter.name,
-            joiningLetterHtml: generatedJoiningLetterHtml,
-            companyName: "PESU Venture Labs",
+        const emailBody = `<p>Dear ${currentEmployeeForJoiningLetter.name},</p><p>Welcome to PESU Venture Labs! Your joining letter is attached.</p><p>Sincerely,<br/>PESU Venture Labs HR</p>`;
+        const result = await sendEmail({
+            to: currentEmployeeForJoiningLetter.email,
+            subject: `Welcome to PESU Venture Labs - Your Joining Letter`,
+            htmlBody: emailBody,
+            attachments: [{
+                filename: `${currentEmployeeForJoiningLetter.name.replace(/ /g, '_')}_Joining_Letter.html`,
+                content: generatedJoiningLetterHtml,
+                contentType: 'text/html'
+            }]
         });
         if (result.success) {
             toast({ title: "Email Sent", description: `Joining letter sent to ${currentEmployeeForJoiningLetter.email}.` });
@@ -379,7 +447,7 @@ export default function OffersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <a href={applicant.resumeLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          <a href={applicant.resumeLink || "#"} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                             View Resume
                           </a>
                         </TableCell>
@@ -458,7 +526,6 @@ export default function OffersPage() {
                     positionTitle: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.title || "",
                     department: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.department || "",
                     salary: selectedApplicantForOffer.offeredSalary || "",
-                    // Ensure date strings are in 'yyyy-MM-dd' for parseISO
                     startDate: selectedApplicantForOffer.offeredStartDate ? (selectedApplicantForOffer.offeredStartDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offeredStartDate), "yyyy-MM-dd") : selectedApplicantForOffer.offeredStartDate) : format(new Date(), "yyyy-MM-dd"),
                     offerExpiryDate: selectedApplicantForOffer.offerExpiryDate ? (selectedApplicantForOffer.offerExpiryDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offerExpiryDate), "yyyy-MM-dd") : selectedApplicantForOffer.offerExpiryDate) : format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),
                     companyName: "PESU Venture Labs",
@@ -518,13 +585,13 @@ export default function OffersPage() {
                 name: selectedApplicantForOnboarding.name, 
                 email: selectedApplicantForOnboarding.email,
                 role: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.title || "",
-                designation: "", // Default to empty, user should select
+                designation: "", 
                 department: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.department || "",
                 joinDate: selectedApplicantForOnboarding.offeredStartDate ? (selectedApplicantForOnboarding.offeredStartDate.includes(" ") ? new Date(selectedApplicantForOnboarding.offeredStartDate) : parseISO(selectedApplicantForOnboarding.offeredStartDate)) : new Date(),
                 status: "Probation", 
                 salary: selectedApplicantForOnboarding.offeredSalary || "",
                 employeeType: "Full-time", 
-                gender: "", // User to select gender
+                gender: "", 
               } : {}}
               onCancel={() => setIsJoiningFormOpen(false)}
               rolesOptions={ROLES_OPTIONS}
@@ -570,5 +637,3 @@ export default function OffersPage() {
     </div>
   );
 }
-
-    

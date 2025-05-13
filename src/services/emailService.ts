@@ -12,11 +12,19 @@
 
 import nodemailer from 'nodemailer';
 
+export interface EmailAttachment {
+  filename: string;
+  content: string; // For HTML content string or base64 encoded string for other file types
+  contentType?: string; // e.g., 'text/html', 'application/pdf'
+  encoding?: string; // e.g., 'base64' if content is base64 encoded
+}
+
 export interface SendEmailParams {
   to: string;
   subject: string;
-  htmlBody: string;
-  from?: string; // Optional: from email address, defaults to EMAIL_FROM env var
+  htmlBody: string; // Main body of the email
+  from?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -25,14 +33,14 @@ export interface SendEmailParams {
  * @returns A promise that resolves with a success or error message.
  */
 export async function sendEmail(params: SendEmailParams): Promise<{ success: boolean; message: string }> {
-  const { to, subject, htmlBody } = params;
+  const { to, subject, htmlBody, attachments } = params;
 
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_FROM) {
     console.error("Email service misconfiguration: Missing one or more required SMTP environment variables (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM).");
     return { success: false, message: "Email service is not configured. Please contact administrator." };
   }
   
-  const fromAddress = params.from || process.env.EMAIL_FROM; // EMAIL_FROM is now guaranteed by the check above.
+  const fromAddress = params.from || process.env.EMAIL_FROM;
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -43,25 +51,28 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
       pass: process.env.EMAIL_PASS,
     },
     tls: {
-        // do not fail on invalid certs if using self-signed certificates for local development
         rejectUnauthorized: process.env.NODE_ENV === 'production', 
     }
   });
 
-  const mailOptions = {
+  const mailOptions: nodemailer.SendMailOptions = { // Explicitly type mailOptions
     from: fromAddress,
     to: to,
     subject: subject,
     html: htmlBody,
+    attachments: attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content,
+      contentType: att.contentType,
+      encoding: att.encoding as ('base64' | undefined), // Cast encoding to accepted types
+    })),
   };
 
   try {
-    await transporter.verify(); // Verify connection configuration
+    await transporter.verify(); 
     console.log("SMTP Connection verified. Attempting to send email...");
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully: %s", info.messageId);
-    // For testing with services like Ethereal:
-    // console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
     return { success: true, message: `Email successfully sent to ${to}. Message ID: ${info.messageId}` };
   } catch (error) {
     console.error("Error sending email:", error);

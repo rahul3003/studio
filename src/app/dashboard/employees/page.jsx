@@ -29,24 +29,55 @@ import { PlusCircle, Edit, Trash2, Users as UsersIcon, Loader2, Download, Mail, 
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form";
 import { useEmployeeStore } from "@/store/employeeStore";
-import { generateJoiningLetter } from "@/ai/flows/generate-joining-letter-flow";
-import { sendJoiningLetterEmail } from "@/ai/flows/send-joining-letter-email-flow";
+import { sendEmail } from '@/services/emailService'; // Import direct email service
 import html2pdf from 'html2pdf.js';
 import { format } from "date-fns";
-
 
 const statusVariantMap = {
   Active: "default",
   "On Leave": "secondary",
   Terminated: "destructive",
-  Probation: "outline", // Added Probation
-  Resigned: "destructive" // Added Resigned
+  Probation: "outline",
+  Resigned: "destructive"
 };
 
 const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
 const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior Developer", "Associate Developer", "Developer", "Senior Developer", "Team Lead", "Principal Engineer", "Junior Designer", "Designer", "Senior Designer", "HR Executive", "Senior HR", "Sales Rep", "Senior Sales Rep", "Analyst", "Senior Analyst", "Associate QA", "QA Engineer", "Senior QA", "DevOps Engineer", "Senior DevOps", "Product Manager", "Senior Product Manager", "Manager", "Director", "Administrator", "Accountant"];
 const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
 const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
+
+// Placeholder HTML generation function for Joining Letter
+const generatePlaceholderJoiningLetterHtml = (data) => {
+  const currentDate = format(new Date(), "MMMM d, yyyy");
+  return `
+<div class="joining-letter-container" style="font-family: 'Arial', sans-serif; max-width: 800px; margin: 30px auto; padding: 40px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); line-height: 1.6; font-size: 12px;">
+  <img src="https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png" alt="${data.companyName} Logo" style="display: block; margin: 0 auto 25px auto; max-height: 60px;" data-ai-hint="company logo PESU Venture Labs"/>
+  <h1 style="font-size: 1.7em; text-align: center; color: #2c3e50; margin-bottom: 5px;">${data.companyName}</h1>
+  <p style="text-align: center; margin-bottom: 20px; font-size: 0.9em; color: #555;">${data.companyAddress}</p>
+  <p style="text-align: right; margin-bottom: 25px;"><strong>Date:</strong> ${currentDate}</p>
+  <p style="margin-bottom: 5px;"><strong>To,</strong></p>
+  <p style="margin-bottom: 5px;"><strong>${data.employeeName}</strong></p>
+  <p style="margin-top: 20px; margin-bottom: 15px;">Dear ${data.employeeName},</p>
+  <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 15px; color: #333;">Subject: Joining Letter for the Position of ${data.positionTitle}</h3>
+  <p>We are pleased to confirm your appointment at <strong>${data.companyName}</strong> for the position of <strong>${data.positionTitle}</strong> in the <strong>${data.department}</strong> department. We are excited to have you join our team!</p>
+  <p>Your employment will commence on <strong>${data.startDate}</strong>. ${data.reportingManager ? `You will be reporting to <strong>${data.reportingManager}</strong>.` : 'Further details about your reporting structure will be shared upon joining.'}</p>
+  <p>This is a <strong>${data.employeeType}</strong> position. Your starting salary will be <strong>${data.salary}</strong>, subject to statutory deductions.</p>
+  <p>You will be on a probation period of six (6) months from your date of joining. Your performance will be reviewed during this period, and your confirmation will be based on a satisfactory review.</p>
+  <p>Please bring the following documents on your first day for verification:</p>
+  <ul style="margin-left: 20px; margin-bottom: 15px;"><li>Proof of Identity (Aadhaar/PAN Card)</li><li>Proof of Address</li><li>Educational Certificates (Highest Qualification)</li><li>Previous Employment Documents (if applicable)</li></ul>
+  <p>Your employment will be governed by the policies and procedures of <strong>${data.companyName}</strong>, which will be shared with you during your induction.</p>
+  <p style="margin-top: 25px;">We look forward to your joining and wish you a successful career with <strong>${data.companyName}</strong>.</p>
+  <p style="margin-top: 30px;">Sincerely,</p>
+  <div style="margin-top: 20px;">
+    <p style="font-weight: bold;">For ${data.companyName}</p>
+    <div style="height: 50px; width: 200px; border-bottom: 1px solid #000; margin-top: 10px; margin-bottom:5px;"></div>
+    <p style="font-size: 0.95em;">Authorized Signatory</p>
+    <p style="font-size: 0.95em;">(HR Department / Hiring Manager)</p>
+  </div>
+</div>
+  `;
+};
+
 
 export default function EmployeesPage() {
   const { toast } = useToast();
@@ -107,48 +138,52 @@ export default function EmployeesPage() {
       handleDialogClose();
     } else {
       // Adding new employee
+      setIsGeneratingLetter(true); // Set loading state for letter generation
       const newId = `EMP${String(Date.now()).slice(-4)}${String(employees.length + 1).padStart(3, '0')}`;
-      const newEmployee = {
+      const newEmployeeBase = {
         ...employeeData,
         id: newId,
         avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
         gender: employeeData.gender || "Other", 
-        joiningLetterHtml: null, // Initialize with null
       };
-      addEmployee(newEmployee);
-      toast({ title: "Employee Added", description: `${employeeData.name} has been added.` });
-      handleDialogClose();
+      
+      setCurrentEmployeeForLetter(newEmployeeBase); // For dialog title
 
-      // Generate Joining Letter for new employee
-      setIsGeneratingLetter(true);
-      setCurrentEmployeeForLetter(newEmployee);
       try {
         const joiningLetterInput = {
-          employeeName: newEmployee.name,
-          employeeEmail: newEmployee.email,
-          positionTitle: newEmployee.role, // Assuming 'role' is position title
-          department: newEmployee.department,
-          startDate: format(new Date(newEmployee.joinDate), "MMMM d, yyyy"), // Format date for prompt
-          salary: newEmployee.salary || "As per discussion",
-          employeeType: newEmployee.employeeType,
-          companyName: "PESU Venture Labs", // Or from a config/store
+          employeeName: newEmployeeBase.name,
+          employeeEmail: newEmployeeBase.email,
+          positionTitle: newEmployeeBase.role, 
+          department: newEmployeeBase.department,
+          startDate: format(new Date(newEmployeeBase.joinDate), "MMMM d, yyyy"), 
+          salary: newEmployeeBase.salary || "As per discussion",
+          employeeType: newEmployeeBase.employeeType,
+          companyName: "PESU Venture Labs",
           companyAddress: "PESU Venture Labs, PES University, 100 Feet Ring Road, Banashankari Stage III, Bengaluru, Karnataka 560085",
-          // reportingManager: newEmployee.reportingManager || "To be assigned", // Add if this field exists in employeeData
+          reportingManager: newEmployeeBase.reportingManager || "To be assigned",
         };
-        const result = await generateJoiningLetter(joiningLetterInput);
-        if (result?.joiningLetterHtml) {
-          setGeneratedJoiningLetterHtml(result.joiningLetterHtml);
-          updateEmployee({ ...newEmployee, joiningLetterHtml: result.joiningLetterHtml }); // Save letter HTML to store
-          toast({ title: "Joining Letter Generated", description: "Preview available." });
+        
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate generation delay
+        const htmlContent = generatePlaceholderJoiningLetterHtml(joiningLetterInput);
+        
+        if (htmlContent) {
+          setGeneratedJoiningLetterHtml(htmlContent);
+          const newEmployeeWithLetter = { ...newEmployeeBase, joiningLetterHtml: htmlContent };
+          addEmployee(newEmployeeWithLetter);
+          toast({ title: "Employee Added & Joining Letter Generated", description: `${newEmployeeBase.name} added. Preview letter.` });
           setIsJoiningLetterPreviewOpen(true);
         } else {
-          throw new Error("AI failed to generate joining letter content.");
+          throw new Error("Failed to generate joining letter content.");
         }
       } catch (error) {
         console.error("Error generating joining letter:", error);
         toast({ title: "Letter Generation Failed", description: error.message, variant: "destructive" });
+        // Still add employee without letter if generation fails
+        addEmployee(newEmployeeBase); 
+        toast({ title: "Employee Added (Letter Failed)", description: `${newEmployeeBase.name} added. Letter generation failed.`});
       } finally {
         setIsGeneratingLetter(false);
+        handleDialogClose(); // Close the employee form dialog
       }
     }
   };
@@ -183,8 +218,8 @@ export default function EmployeesPage() {
     const filename = `${currentEmployeeForLetter.name.replace(/ /g, '_')}_Joining_Letter.pdf`;
     const opt = {
       margin: [10, 10, 10, 10], filename, image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } // Changed to A4
+      html2canvas: { scale: 2, useCORS: true, logging: false, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Joining letter saved." }))
@@ -199,11 +234,16 @@ export default function EmployeesPage() {
     }
     setIsEmailingLetter(true);
     try {
-      const result = await sendJoiningLetterEmail({
-        employeeEmail: currentEmployeeForLetter.email,
-        employeeName: currentEmployeeForLetter.name,
-        joiningLetterHtml: generatedJoiningLetterHtml,
-        companyName: "PESU Venture Labs",
+      const emailBody = `<p>Dear ${currentEmployeeForLetter.name},</p><p>Welcome to PESU Venture Labs! Please find your joining letter attached.</p><p>Sincerely,<br/>The PESU Venture Labs HR Team</p>`;
+      const result = await sendEmail({
+        to: currentEmployeeForLetter.email,
+        subject: `Welcome to PESU Venture Labs - Your Joining Letter`,
+        htmlBody: emailBody,
+        attachments: [{
+            filename: `${currentEmployeeForLetter.name.replace(/ /g, '_')}_Joining_Letter.html`,
+            content: generatedJoiningLetterHtml,
+            contentType: 'text/html',
+        }]
       });
       if (result.success) {
         toast({ title: "Email Sent", description: `Joining letter sent to ${currentEmployeeForLetter.email}.` });
@@ -247,7 +287,7 @@ export default function EmployeesPage() {
                   <TableHead>Job Title</TableHead>
                   <TableHead>Designation</TableHead>
                   <TableHead>Department</TableHead>
-                  <TableHead>Type</TableHead> {/* Added Type column */}
+                  <TableHead>Type</TableHead>
                   <TableHead>Gender</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -274,7 +314,7 @@ export default function EmployeesPage() {
                     <TableCell>{employee.role}</TableCell> 
                     <TableCell>{employee.designation}</TableCell>
                     <TableCell>{employee.department}</TableCell>
-                    <TableCell>{employee.employeeType}</TableCell> {/* Display Type */}
+                    <TableCell>{employee.employeeType}</TableCell>
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
                       {new Date(employee.joinDate).toLocaleDateString("en-IN", {
@@ -339,7 +379,7 @@ export default function EmployeesPage() {
               designationOptions={DESIGNATION_OPTIONS}
               departmentsOptions={DEPARTMENTS_OPTIONS}
               statusOptions={STATUS_OPTIONS}
-              employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS} // Pass type options
+              employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS}
             />
           </div>
         </DialogContent>
