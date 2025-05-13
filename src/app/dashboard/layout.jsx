@@ -49,18 +49,22 @@ export default function DashboardLayout({
     if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
       initializeProfile(user);
     }
-  }, [user?.email]); // Only depend on user.email to prevent unnecessary re-initialization
+  }, [user, profileData, initializeProfile]); // Added profileData and initializeProfile to dependencies
 
   const handleLogout = React.useCallback(() => {
     authStoreLogout();
     router.push('/login');
   }, [authStoreLogout, router]);
 
-  if (loading || (!user && typeof window !== 'undefined' && window.location.pathname !== '/login')) { 
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login' && !user && !loading) {
-      router.push('/login'); 
-      return null; 
+  // Moved router.push into useEffect
+  React.useEffect(() => {
+    if (!loading && !user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      router.push('/login');
     }
+  }, [loading, user, router]);
+
+
+  if (loading) { 
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -72,17 +76,26 @@ export default function DashboardLayout({
     );
   }
   
-  if (!user) {
+  // If not loading and no user, and not on login page, the useEffect above will handle redirect.
+  // Render null here to avoid rendering children while redirecting.
+  if (!user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
     return null; 
   }
-  
-  return (
-    <SidebarProvider defaultOpen>
-      <AttendanceProvider user={user}>
-        <DashboardContent onLogout={handleLogout}>
-          {children}
-        </DashboardContent>
-      </AttendanceProvider>
-    </SidebarProvider>
-  );
+
+  // If user exists, render the dashboard
+  if (user) {
+    return (
+      <SidebarProvider defaultOpen>
+        <AttendanceProvider user={user}>
+          <DashboardContent onLogout={handleLogout}>
+            {children}
+          </DashboardContent>
+        </AttendanceProvider>
+      </SidebarProvider>
+    );
+  }
+
+  // Fallback for scenarios where user is null and on login page (or SSR where window is undefined initially)
+  return null; 
 }
+
