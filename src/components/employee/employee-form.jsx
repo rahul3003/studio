@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -36,12 +35,13 @@ const employeeFormSchema = z.object({
   gender: z.string().min(1, { message: "Gender is required." }),
   joinDate: z.date({ required_error: "Join date is required." }),
   status: z.string().min(1, { message: "Status is required." }),
-  employeeType: z.string().min(1, { message: "Employee type is required." }), // Added employeeType
-  salary: z.string().min(3, {message: "Salary must be provided (e.g., ₹ XXXXX per annum)."}).optional(), // Added for joining letter
+  employeeType: z.string().min(1, { message: "Employee type is required." }),
+  salary: z.string().min(3, {message: "Salary must be provided (e.g., ₹ XXXXX per annum)."}).optional(),
+  reportingManager: z.string().min(1, { message: "Reporting Manager is required." }),
 });
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
-export const EMPLOYEE_TYPE_OPTIONS = ["Full-time", "Part-time", "Contractor", "Intern"]; // Export for use in EmployeesPage
+export const EMPLOYEE_TYPE_OPTIONS = ["Full-time", "Part-time", "Contractor", "Intern"];
 
 export function EmployeeForm({
   onSubmit,
@@ -51,7 +51,8 @@ export function EmployeeForm({
   designationOptions,
   departmentsOptions,
   statusOptions,
-  employeeTypeOptions, // Added prop
+  employeeTypeOptions,
+  reportingManagerOptions, // Added prop
 }) {
   const { toast } = useToast();
   const form = useForm({
@@ -63,8 +64,9 @@ export function EmployeeForm({
                       ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
                       : undefined,
           gender: initialData.gender || "",
-          employeeType: initialData.employeeType || "", // Initialize employeeType
-          salary: initialData.salary || "", // Initialize salary
+          employeeType: initialData.employeeType || "",
+          salary: initialData.salary || "",
+          reportingManager: initialData.reportingManager || "", // Initialize reportingManager
         }
       : {
           name: "",
@@ -75,8 +77,9 @@ export function EmployeeForm({
           gender: "",
           joinDate: undefined,
           status: "Active",
-          employeeType: "", // Default employeeType
-          salary: "", // Default salary
+          employeeType: "",
+          salary: "",
+          reportingManager: "", // Default reportingManager
         },
   });
   
@@ -88,8 +91,9 @@ export function EmployeeForm({
                       ? (typeof initialData.joinDate === 'string' ? parseISO(initialData.joinDate) : initialData.joinDate) 
                       : undefined,
           gender: initialData.gender || "",
-          employeeType: initialData.employeeType || "", // Reset employeeType
-          salary: initialData.salary || "", // Reset salary
+          employeeType: initialData.employeeType || "",
+          salary: initialData.salary || "",
+          reportingManager: initialData.reportingManager || "", // Reset reportingManager
         }
       : {
           name: "",
@@ -100,15 +104,16 @@ export function EmployeeForm({
           gender: "",
           joinDate: undefined,
           status: "Active",
-          employeeType: "", // Reset employeeType
-          salary: "", // Reset salary
+          employeeType: "",
+          salary: "",
+          reportingManager: "", // Reset reportingManager
         });
   }, [initialData, form]);
 
   const handleSubmit = (values) => {
     onSubmit({
       ...values,
-      joinDate: format(values.joinDate, "yyyy-MM-dd"), // Store date as string
+      joinDate: format(values.joinDate, "yyyy-MM-dd"), 
     });
   };
 
@@ -318,6 +323,30 @@ export function EmployeeForm({
               )}
             />
         </div>
+        <FormField
+            control={form.control}
+            name="reportingManager"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reporting Manager</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a Reporting Manager" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {(reportingManagerOptions || []).map((manager) => (
+                      <SelectItem key={manager} value={manager}>
+                        {manager}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
@@ -331,4 +360,3 @@ export function EmployeeForm({
     </Form>
   );
 }
-

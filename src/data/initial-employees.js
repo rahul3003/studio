@@ -1,4 +1,3 @@
-
 // src/data/initial-employees.js
 export const initialEmployees = [
   {
@@ -15,6 +14,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹12,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Rohan Mehra",
   },
   {
     id: "EMP002",
@@ -30,6 +30,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹15,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Admin User", // Example: Rohan reports to Admin
   },
   {
     id: "EMP003",
@@ -45,6 +46,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹8,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Rohan Mehra",
   },
   {
     id: "EMP004",
@@ -60,6 +62,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹9,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Admin User",
   },
   {
     id: "EMP005",
@@ -75,6 +78,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹7,50,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Priya Sharma",
   },
   {
     id: "EMP006",
@@ -90,6 +94,7 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹10,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Admin User", // Assuming admin is overall head for sales in this small setup
   },
   {
     id: "EMP007",
@@ -105,6 +110,7 @@ export const initialEmployees = [
     employeeType: "Part-time",
     salary: "₹6,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Rohan Mehra", // Assuming Project Manager might oversee marketing tasks
   },
   {
     id: "EMP008",
@@ -120,6 +126,7 @@ export const initialEmployees = [
     employeeType: "Intern",
     salary: "₹3,00,000 per annum (stipend)",
     joiningLetterHtml: null,
+    reportingManager: "Priya Sharma",
   },
   {
     id: "EMP009",
@@ -135,6 +142,7 @@ export const initialEmployees = [
     employeeType: "Contractor",
     salary: "₹18,00,000 per annum (contract)",
     joiningLetterHtml: null,
+    reportingManager: "Priya Sharma",
   },
   {
     id: "EMP010",
@@ -150,13 +158,14 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹16,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: "Admin User",
   },
    {
     id: "EMP011",
     name: "Admin User", 
     email: "admin@example.com",
     avatarUrl: "https://i.pravatar.cc/150?u=admin.user",
-    role: "System Administrator",
+    role: "System Administrator", // This could be a manager role too
     designation: "Administrator",
     department: "IT",
     status: "Active",
@@ -165,5 +174,6 @@ export const initialEmployees = [
     employeeType: "Full-time",
     salary: "₹20,00,000 per annum",
     joiningLetterHtml: null,
+    reportingManager: null, // Admin user might not have a reporting manager or reports to Super Admin
   }
 ];

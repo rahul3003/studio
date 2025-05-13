@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -19,6 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const offerLetterFormSchema = z.object({
   candidateName: z.string().min(2, { message: "Candidate name must be at least 2 characters." }),
@@ -27,26 +33,23 @@ const offerLetterFormSchema = z.object({
   department: z.string().min(2, { message: "Department must be at least 2 characters." }),
   startDate: z.date({ required_error: "Start date is required." }),
   salary: z.string().min(3, { message: "Salary details must be provided (e.g., ₹ 5,00,000 per year)." }), 
-  reportingManager: z.string().min(2, { message: "Reporting manager name must be at least 2 characters." }),
+  reportingManager: z.string().min(1, { message: "Reporting manager is required." }), // Updated validation
   offerExpiryDate: z.date({ required_error: "Offer expiry date is required." }),
   companyName: z.string().min(2, { message: "Company name is required."}),
-}).refine(data => data.offerExpiryDate >= data.startDate, { // Changed to >= to allow same day expiry for immediate offers
+}).refine(data => data.offerExpiryDate >= data.startDate, {
     message: "Offer expiry date must be on or after the start date.",
     path: ["offerExpiryDate"],
 });
 
 
-export function OfferLetterForm({ onSubmit, isLoading, initialData }) { // Added initialData to props
+export function OfferLetterForm({ onSubmit, isLoading, initialData, managerOptions = [] }) { 
   const form = useForm({
     resolver: zodResolver(offerLetterFormSchema),
     defaultValues: {
-      // Sensible defaults
       salary: "₹ 7,00,000 per annum plus standard benefits", 
       companyName: "PESU Venture Labs",
-      reportingManager: "",
-      // Spread initialData to override defaults if present
       ...initialData,
-      // Ensure dates are Date objects for DatePicker
+      reportingManager: initialData?.reportingManager || "", // Ensure this is handled
       startDate: initialData?.startDate ? parseISO(initialData.startDate) : undefined,
       offerExpiryDate: initialData?.offerExpiryDate ? parseISO(initialData.offerExpiryDate) : undefined,
     },
@@ -56,6 +59,7 @@ export function OfferLetterForm({ onSubmit, isLoading, initialData }) { // Added
     if (initialData) {
         form.reset({
             ...initialData,
+            reportingManager: initialData?.reportingManager || "",
             startDate: initialData?.startDate ? parseISO(initialData.startDate) : undefined,
             offerExpiryDate: initialData?.offerExpiryDate ? parseISO(initialData.offerExpiryDate) : undefined,
         });
@@ -128,18 +132,29 @@ export function OfferLetterForm({ onSubmit, isLoading, initialData }) { // Added
           )}
         />
          <FormField
-          control={form.control}
-          name="reportingManager"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Reporting Manager</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Rahul Verma" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            control={form.control}
+            name="reportingManager"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reporting Manager</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Reporting Manager" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {managerOptions.map((manager) => (
+                      <SelectItem key={manager} value={manager}>
+                        {manager}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <FormField
           control={form.control}
           name="salary"

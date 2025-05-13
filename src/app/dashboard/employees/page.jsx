@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -50,6 +49,7 @@ const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior Developer", "Associate
 const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
 const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
 
+const managerRolesList = ['Manager', 'Super Admin', 'Admin', 'Project Manager', 'HR Specialist', 'Operations Head'];
 
 export default function EmployeesPage() {
   const { toast } = useToast();
@@ -58,6 +58,12 @@ export default function EmployeesPage() {
   const updateEmployee = useEmployeeStore((state) => state.updateEmployee);
   const deleteEmployee = useEmployeeStore((state) => state.deleteEmployee);
   const initializeEmployees = useEmployeeStore((state) => state._initializeEmployees);
+
+  const managerOptions = React.useMemo(() =>
+    employees
+        .filter(emp => managerRolesList.includes(emp.role))
+        .map(emp => emp.name)
+  , [employees]);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -261,6 +267,7 @@ export default function EmployeesPage() {
                   <TableHead>Type</TableHead>
                   <TableHead>Gender</TableHead>
                   <TableHead>Join Date</TableHead>
+                  <TableHead>Reporting Manager</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -294,6 +301,7 @@ export default function EmployeesPage() {
                         day: "numeric",
                       })}
                     </TableCell>
+                    <TableCell>{employee.reportingManager || "N/A"}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariantMap[employee.status] || "outline"}>
                         {employee.status}
@@ -351,6 +359,7 @@ export default function EmployeesPage() {
               departmentsOptions={DEPARTMENTS_OPTIONS}
               statusOptions={STATUS_OPTIONS}
               employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS}
+              reportingManagerOptions={managerOptions}
             />
           </div>
         </DialogContent>

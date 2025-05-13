@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -40,6 +39,8 @@ const statusVariantMap = {
   "Rejected (Application)": "destructive",
 };
 
+const managerRoles = ['Manager', 'Super Admin', 'Admin', 'Project Manager', 'HR Specialist', 'Operations Head'];
+
 export default function OffersPage() {
   const { toast } = useToast();
 
@@ -53,6 +54,12 @@ export default function OffersPage() {
   const addEmployee = useEmployeeStore((state) => state.addEmployee);
   const _initializeEmployees = useEmployeeStore((state) => state._initializeEmployees);
   const allEmployees = useEmployeeStore((state) => state.employees || []);
+
+  const managerOptions = React.useMemo(() =>
+    allEmployees
+        .filter(emp => managerRoles.includes(emp.role))
+        .map(emp => emp.name)
+  , [allEmployees]);
 
 
   const OFFER_STATUS_OPTIONS_FILTER = ["All", ...OFFER_STATUS_OPTIONS];
@@ -121,7 +128,7 @@ export default function OffersPage() {
         updateApplicant(selectedApplicantForOffer.id, { 
           offerStatus: "Offer Generated", 
           offeredSalary: offerData.salary,
-          offeredStartDate: offerData.startDate, 
+          offeredStartDate: offerData.startDate, // Assuming offerData.startDate is already formatted string
           offerLetterHtml: htmlContent 
         });
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
@@ -471,11 +478,14 @@ export default function OffersPage() {
                     startDate: selectedApplicantForOffer.offeredStartDate ? (selectedApplicantForOffer.offeredStartDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offeredStartDate), "yyyy-MM-dd") : selectedApplicantForOffer.offeredStartDate) : format(new Date(), "yyyy-MM-dd"),
                     offerExpiryDate: selectedApplicantForOffer.offerExpiryDate ? (selectedApplicantForOffer.offerExpiryDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offerExpiryDate), "yyyy-MM-dd") : selectedApplicantForOffer.offerExpiryDate) : format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),
                     companyName: "PESU Venture Labs",
+                    reportingManager: (jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.projectManager && managerOptions.includes(jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.projectManager)) ? jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.projectManager : "",
                 } : {
                     companyName: "PESU Venture Labs",
                     startDate: format(new Date(), "yyyy-MM-dd"),
                     offerExpiryDate: format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),
+                    reportingManager: "",
                 }}
+                managerOptions={managerOptions}
               />
             </div>
             <div className="lg:col-span-2">
@@ -534,6 +544,7 @@ export default function OffersPage() {
                 salary: selectedApplicantForOnboarding.offeredSalary || "",
                 employeeType: "Full-time", 
                 gender: "", 
+                reportingManager: (jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager && managerOptions.includes(jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager)) ? jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager : "",
               } : {}}
               onCancel={() => setIsJoiningFormOpen(false)}
               rolesOptions={ROLES_OPTIONS}
@@ -541,6 +552,7 @@ export default function OffersPage() {
               departmentsOptions={DEPARTMENTS_OPTIONS}
               statusOptions={STATUS_OPTIONS}
               employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS}
+              reportingManagerOptions={managerOptions}
             />
           </div>
         </DialogContent>
@@ -565,7 +577,7 @@ export default function OffersPage() {
                 )}
             </div>
             <DialogFooter className="mt-4 sm:justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsJoiningLetterPreviewOpen(false)}>Close</Button>
+                <Button variant="outline" onClick={()={() => setIsJoiningLetterPreviewOpen(false)}}>Close</Button>
                 <Button onClick={handleDownloadJoiningLetterPdf} disabled={!generatedJoiningLetterHtml || isLoadingJoiningLetter || isEmailingJoiningLetter}>
                     <Download className="mr-2 h-4 w-4" /> PDF
                 </Button>
