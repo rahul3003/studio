@@ -15,7 +15,7 @@ const fontRobotoMono = Roboto_Mono({ // Replaced geistMono with fontRobotoMono a
 });
 
 export const metadata = {
-  title: 'PESU Venture Labs',
+  title: 'HRMS Portal',
   description: 'Human Resource Management System for PESU Venture Labs',
 };
 

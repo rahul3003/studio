@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react';
@@ -12,7 +11,7 @@ export function useMockAuth() {
   const user = useAuthStore(state => state.user);
   const authIsLoading = useAuthStore(state => state.loading);
   const storeLogout = useAuthStore(state => state.logout);
-  const storeSwitchRole = useAuthStore(state => state.switchRole);
+  const storeSetCurrentRole = useAuthStore(state => state.setCurrentRole); // Use setCurrentRole
   const storeGetAvailableRoles = useAuthStore(state => state.getAvailableRolesForSwitching);
 
   useEffect(() => {
@@ -28,14 +27,15 @@ export function useMockAuth() {
     router.push('/login');
   };
 
-  const switchRole = (newRoleValue) => {
-    storeSwitchRole(newRoleValue);
+  // Renamed to match the store's function for clarity
+  const setCurrentRole = (newRoleValue) => { 
+    storeSetCurrentRole(newRoleValue);
   };
   
   const getAvailableRolesForSwitching = () => {
     return storeGetAvailableRoles();
   };
 
-  return { user, loading: authIsLoading, logout, switchRole, getAvailableRolesForSwitching };
+  return { user, loading: authIsLoading, logout, setCurrentRole, getAvailableRolesForSwitching };
 }
 

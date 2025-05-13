@@ -1,9 +1,8 @@
-
 "use client";
 
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuthStore } from "@/store/authStore"; // Changed from useMockAuth to useAuthStore
 import Image from "next/image";
 import { BarChart, LineChart, PieChart, User, Building2, FolderKanban as FolderKanbanIcon, ListTodo as ListTodoIcon, BriefcaseBusiness as BriefcaseBusinessIcon, Receipt as ReceiptIcon, Clock, Users as UsersIcon, Building as BuildingIcon, UsersRound as UsersRoundIcon } from "lucide-react";
 import { AdminAnalytics } from "@/components/dashboard/admin-analytics";
@@ -12,7 +11,7 @@ import { HrAnalytics } from "@/components/dashboard/hr-analytics";
 import { AccountsAnalytics } from "@/components/dashboard/accounts-analytics";
 import { EmployeeAnalytics } from "@/components/dashboard/employee-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { initialEmployees } from "@/data/initial-employees"; // Import employee data from the new location
+import { initialEmployees } from "@/data/initial-employees"; 
 
 // Function to aggregate department data (total headcount)
 const getHeadcountByDept = (employees) => {
@@ -83,28 +82,28 @@ const totalActiveEmployees = initialEmployees.filter(e => e.status === "Active")
 
 // Mock data - Replace with actual data fetching later
 const mockData = {
-  admin: {
+  admin: { // Covers superadmin and admin roles
     totalEmployees: initialEmployees.length,
     totalDepartments: new Set(initialEmployees.map(e => e.department)).size,
-    totalProjects: 12, // Keep as mock for now
-    totalTasks: 88, // Keep as mock for now
-    openJobs: 5, // Keep as mock for now
-    pendingReimbursements: 15, // Keep as mock for now
-    attendanceSummary: [ // Keep as mock for now
+    totalProjects: 12, 
+    totalTasks: 88, 
+    openJobs: 5, 
+    pendingReimbursements: 15, 
+    attendanceSummary: [ 
       { status: "Present", count: 850, fill: "hsl(var(--chart-1))" },
       { status: "Absent", count: 80, fill: "hsl(var(--chart-2))" },
       { status: "Leave", count: 70, fill: "hsl(var(--chart-3))" },
     ],
-    headcountByDept: headcountByDeptData, // Total headcount per department
-    genderDistribution: genderDistributionData, // Overall gender distribution
-    departmentGenderCounts: departmentGenderCountsData, // Department-wise gender breakdown
+    headcountByDept: headcountByDeptData, 
+    genderDistribution: genderDistributionData, 
+    departmentGenderCounts: departmentGenderCountsData, 
   },
   manager: {
     teamSize: 8,
     teamProjects: 3,
     teamTasksOpen: 12,
-    teamAttendanceRate: 92, // Percentage
-    pendingApprovals: 4, // Reimbursements or leave requests
+    teamAttendanceRate: 92, 
+    pendingApprovals: 4, 
      teamTaskStatus: [
         { status: 'To Do', count: 5, fill: 'hsl(var(--chart-1))' },
         { status: 'In Progress', count: 7, fill: 'hsl(var(--chart-2))' },
@@ -124,11 +123,11 @@ const mockData = {
         const today = new Date();
         return joinDate.getFullYear() === today.getFullYear() && joinDate.getMonth() === today.getMonth();
     }).length,
-    openPositions: 5, // Keep mock
-    avgTimeToFill: 35, // days, keep mock
-    employeeDistribution: genderDistributionData, // Use calculated gender data
-    headcountByDept: headcountByDeptData, // Use calculated department data
-     jobStatusDistribution: [ // Keep mock for now
+    openPositions: 5, 
+    avgTimeToFill: 35, 
+    employeeDistribution: genderDistributionData, 
+    headcountByDept: headcountByDeptData, 
+     jobStatusDistribution: [ 
         { status: 'Open', count: 5, fill: 'hsl(var(--chart-1))' },
         { status: 'Closed', count: 10, fill: 'hsl(var(--chart-2))' },
         { status: 'Filled', count: 8, fill: 'hsl(var(--chart-3))' },
@@ -178,7 +177,7 @@ const mockData = {
 };
 
 export default function DashboardPage() {
-  const { user, loading } = useMockAuth();
+  const { user, loading } = useAuthStore(); // Using useAuthStore
 
   if (loading || !user) {
     return (
@@ -202,7 +201,8 @@ export default function DashboardPage() {
   }
 
   const renderAnalytics = () => {
-    switch (user.currentRole.value) {
+    // Use user.currentRole.value to determine which analytics to show
+    switch (user.currentRole?.value) { 
       case 'superadmin':
       case 'admin': 
         return <AdminAnalytics data={mockData.admin} />;
@@ -224,7 +224,7 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="text-3xl">Welcome back, {user.name}!</CardTitle>
           <CardDescription>
-            You are currently acting as <span className="font-semibold text-accent">{user.currentRole.name}</span>.
+            You are currently acting as <span className="font-semibold text-accent">{user.currentRole?.name || 'Employee'}</span>.
             Here's a quick overview of your dashboard.
           </CardDescription>
         </CardHeader>

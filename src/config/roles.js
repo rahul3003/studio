@@ -68,53 +68,85 @@ const employeeProfileNavItems = [
 export const ROLE_NAV_CONFIG = {
   superadmin: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+    { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile", // Base path for the group
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href})) // ensure full path
+    },
     ...commonManagementNavItems,
     { href: "/dashboard/offers", label: "Offers", icon: Mail },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   admin: [ 
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+     { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile",
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
+    },
     ...commonManagementNavItems,
+    { href: "/dashboard/offers", label: "Offers", icon: Mail }, // Admin might need offer access
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   manager: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+     { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile",
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
+    },
     { href: "/dashboard/employees", label: "Team Members", icon: Users },
     { href: "/dashboard/projects", label: "Team Projects", icon: FolderKanban },
     { href: "/dashboard/tasks", label: "Team Tasks", icon: ListTodo },
     { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck },
     { href: "/dashboard/reimbursements", label: "Approve Claims", icon: Receipt },
     { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness },
-    { href: "/dashboard/documents", label: "Generate Docs", icon: FileText },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/documents", label: "Generate Docs", icon: FileText }, // If managers generate docs
+    // { href: "/dashboard/settings", label: "Settings", icon: Settings }, // Settings usually for admin/superadmin
   ],
   hr: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+     { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile",
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
+    },
     { href: "/dashboard/employees", label: "Manage Employees", icon: Users },
     { href: "/dashboard/departments", label: "Manage Departments", icon: Building2 },
     { href: "/dashboard/jobs", label: "Manage Jobs", icon: BriefcaseBusiness },
+    { href: "/dashboard/offers", label: "Manage Offers", icon: Mail },
     { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck },
     { href: "/dashboard/documents", label: "HR Documents", icon: FileText },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt }, // HR might view/process
+    // { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   accounts: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+     { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile",
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
+    },
     { href: "/dashboard/reimbursements", label: "Manage Reimbursements", icon: Receipt },
     { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText },
-    { href: "/dashboard/employees", label: "Employee List", icon: Users },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/employees", label: "Employee List (View)", icon: Users }, // View only for accounts
+    // { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   employee: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ...employeeProfileNavItems,
+     { 
+      label: "Profile", 
+      icon: UserCircle2, 
+      href:"/dashboard/profile",
+      children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
+    },
     { href: "/dashboard/tasks", label: "My Tasks", icon: ListTodo },
     { href: "/dashboard/reimbursements", label: "My Reimbursements", icon: Receipt },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    // { href: "/dashboard/settings", label: "Settings", icon: Settings }, // Employees usually don't have app settings access
   ],
 };

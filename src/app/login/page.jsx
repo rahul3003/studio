@@ -1,4 +1,3 @@
-
 "use client"; // Ensure this is a client component
 
 import * as React from "react";
@@ -195,7 +194,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
       <div className="mb-8 flex items-center space-x-2 text-primary">
         <Rocket className="h-10 w-10" />
-        <h1 className="text-4xl font-bold">PESU Venture Labs</h1>
+        <h1 className="text-4xl font-bold">HRMS Portal</h1>
       </div>
       <LoginForm />
     </div>

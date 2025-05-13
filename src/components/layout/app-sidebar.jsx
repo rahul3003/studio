@@ -83,10 +83,12 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
         return undefined;
       }, [tooltipLabel]);
 
-      const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+      const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dashboard/profile" && pathname.startsWith(item.href));
       const IconComponent = item.icon;
 
       if (item.children && item.children.length > 0) {
+        // Check if any child is active for parent highlighting
+        const isGroupActive = item.children.some(child => pathname.startsWith(child.href));
         return (
           <SidebarMenuItem key={item.label} className="group/menu-item relative">
              <Collapsible
@@ -98,7 +100,7 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
                 <SidebarMenuButton
                   tooltip={tooltipConfig}
                   className="justify-between w-full"
-                  isActive={pathname.startsWith(item.href)} // Group active if path starts with group href
+                  isActive={isGroupActive} 
                 >
                   <div className="flex items-center gap-2">
                     <IconComponent />
