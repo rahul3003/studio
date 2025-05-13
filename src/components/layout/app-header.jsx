@@ -41,16 +41,21 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const breadcrumbs = getBreadcrumbs(pathname);
 
   const user = useAuthStore(state => state.user);
-  const loading = useAuthStore(state => state.loading);
+  const loading = useAuthStore(state => state.loading); // Use auth loading state
   const profileData = useProfileStore(state => state.profileData);
   
   const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
 
-  const canSwitchRoles = !loading && user && user.baseRole && user.baseRole.value !== 'employee';
+  const canSwitchRoles = React.useMemo(() => {
+    if (loading || !user || !user.baseRole) return false;
+    // Employee role cannot switch. Others (superadmin, admin, manager, hr, accounts) can.
+    return user.baseRole.value !== 'employee';
+  }, [user, loading]);
+
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger />
         <nav className="hidden md:flex items-center gap-2 text-sm font-medium">

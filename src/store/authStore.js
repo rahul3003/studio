@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { getRole, ROLE_SWITCH_PERMISSIONS, ROLES } from '@/config/roles';
@@ -53,28 +52,30 @@ export const useAuthStore = create(
         set({ user: null, loading: false, error: null });
       },
 
-      switchRole: (newRoleValue) => {
+      setCurrentRole: (newRoleValue) => { // Renamed from switchRole for clarity
         const currentUser = get().user;
         if (currentUser && currentUser.baseRole) {
           const newRole = getRole(newRoleValue);
-          const allowedSwitches = ROLE_SWITCH_PERMISSIONS[currentUser.baseRole.value] || [];
+          const allowedSwitchesBasedOnBase = ROLE_SWITCH_PERMISSIONS[currentUser.baseRole.value] || [];
           
-          // An admin can switch to any role defined in their permissions.
-          // Non-admin roles can switch to 'employee' or back to their baseRole if they are currently acting as 'employee'.
           let canSwitch = false;
-          if (currentUser.baseRole.value === 'superadmin' || currentUser.baseRole.value === 'admin') {
-            canSwitch = newRoleValue === currentUser.baseRole.value || allowedSwitches.includes(newRoleValue);
-          } else { // manager, hr, accounts
-             canSwitch = newRoleValue === currentUser.baseRole.value || (newRoleValue === 'employee' && allowedSwitches.includes('employee'));
+          if (currentUser.baseRole.value === 'employee') {
+            // Employees cannot switch roles.
+            canSwitch = newRoleValue === currentUser.baseRole.value;
+          } else if (currentUser.baseRole.value === 'superadmin' || currentUser.baseRole.value === 'admin') {
+            // Superadmin/Admin can switch to any role in their permission list or back to their base role.
+            canSwitch = newRoleValue === currentUser.baseRole.value || allowedSwitchesBasedOnBase.includes(newRoleValue);
+          } else { // Manager, HR, Accounts
+             // Can switch to 'employee' if allowed, or back to their base role.
+             canSwitch = newRoleValue === currentUser.baseRole.value || (newRoleValue === 'employee' && allowedSwitchesBasedOnBase.includes('employee'));
           }
-
 
           if (newRole && canSwitch) {
             set(state => ({
               user: { ...state.user, currentRole: newRole }
             }));
           } else {
-            console.warn(`Role switch to ${newRoleValue} not allowed for base role ${currentUser.baseRole.value} or current role ${currentUser.currentRole.value}`);
+            console.warn(`Role switch to ${newRoleValue} not allowed for base role ${currentUser.baseRole.value}.`);
           }
         }
       },
@@ -84,14 +85,15 @@ export const useAuthStore = create(
          if (!currentUser || !currentUser.baseRole) {
           return [];
         }
-        // Employee role cannot switch to other roles.
-        if (currentUser.baseRole.value === 'employee') {
+
+        const baseRoleValue = currentUser.baseRole.value;
+        if (baseRoleValue === 'employee') {
             return [currentUser.baseRole]; 
         }
 
-        const baseRoleValue = currentUser.baseRole.value;
         const allowedSwitchValues = ROLE_SWITCH_PERMISSIONS[baseRoleValue] || [];
         
+        // Ensure the base role is always an option, plus what's in permissions.
         const availableRoleValues = Array.from(new Set([baseRoleValue, ...allowedSwitchValues]));
         
         return ROLES.filter(role => availableRoleValues.includes(role.value));
@@ -103,31 +105,26 @@ export const useAuthStore = create(
     {
       name: 'auth-storage', 
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state, error) => {
+      onRehydrateStorage: (state, error) => { // Changed to the correct signature
         if (error) {
             console.error("Failed to rehydrate auth store", error);
-            if (state) {
+            if (state) { // state might be partially hydrated or null
               state.user = null;
-              state.loading = false; // Ensure loading is false even on error
+              state.loading = false;
             } else {
-              // This case should be rare, but if state is null, set initial state
-              useAuthStore.setState({ user: null, loading: false, error: "Rehydration failed critically." });
+              // This ensures initial state is set if rehydration fails completely and state is null
+              useAuthStore.setState({ user: null, loading: false, error: "Rehydration failed." });
             }
-            return;
+            return; // Important to return to prevent further processing with potentially corrupted state
         }
         
         if (state) {
-          // If rehydration is successful or if state was already there (e.g. persisted state exists)
-          state.loading = false;
+          state.loading = false; // Set loading to false after successful rehydration
         } else {
-          // If state is null (e.g., storage was empty and persist middleware returned null for state)
-          // Set initial state with loading false.
-          useAuthStore.setState({ user: null, loading: false, error: null });
+          // If persist returns null for state (e.g. storage empty), set initial loading to false.
+           useAuthStore.setState({ user: null, loading: false, error: null });
         }
       }
     }
   )
 );
-
-// The problematic block that caused the error has been removed.
-// The loading state is handled by the onRehydrateStorage callback and initial state.

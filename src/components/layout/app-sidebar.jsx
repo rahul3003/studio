@@ -30,54 +30,18 @@ import {
   Clock,
   Rocket,
   Settings,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ROLE_NAV_CONFIG } from "@/config/roles";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
-const sidebarNavItems = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "Profile",
-    href: "/dashboard/profile",
-    icon: User,
-  },
-  {
-    title: "Attendance",
-    href: "/dashboard/attendance",
-    icon: Clock,
-  },
-  {
-    title: "Rewards",
-    href: "/dashboard/profile/rewards",
-    icon: Award,
-    showPoints: true,
-  },
-  {
-    title: "Remuneration",
-    href: "/dashboard/profile/remuneration",
-    icon: DollarSign,
-  },
-  {
-    title: "Documents",
-    href: "/dashboard/profile/documents",
-    icon: FileText,
-  },
-  {
-    title: "Holidays",
-    href: "/dashboard/profile/holidays",
-    icon: Calendar,
-  },
-  {
-    title: "Company",
-    href: "/dashboard/company",
-    icon: Building,
-  },
-];
 
 export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const pathname = usePathname();
@@ -86,12 +50,19 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const profileData = useProfileStore(state => state.profileData);
   const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
 
+  const [openCollapsibles, setOpenCollapsibles] = React.useState({});
+
+  const toggleCollapsible = (label) => {
+    setOpenCollapsibles(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
   const navItemsForRole = React.useMemo(() => {
     if (user && user.currentRole && user.currentRole.value) {
       return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || [];
     }
     return [];
-  }, [user]);
+  }, [user?.currentRole?.value]); // More specific dependency
+
 
   const shouldDisplayCheckoutInSidebar = showCheckoutButton && (sidebarState === 'collapsed' && !isMobile);
 
@@ -102,11 +73,86 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
     return label;
   }, [isMobile, sidebarState]);
 
+  const renderNavItems = (items, isSubmenu = false) => {
+    return items.map((item) => {
+      const tooltipLabel = getTooltipLabelForButton(item.label);
+      const tooltipConfig = React.useMemo(() => {
+        if (tooltipLabel) {
+          return { children: tooltipLabel, side: "right", align: "center" };
+        }
+        return undefined;
+      }, [tooltipLabel]);
+
+      const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+      const IconComponent = item.icon;
+
+      if (item.children && item.children.length > 0) {
+        return (
+          <SidebarMenuItem key={item.label} className="group/menu-item relative">
+             <Collapsible
+              open={openCollapsibles[item.label] || false}
+              onOpenChange={() => toggleCollapsible(item.label)}
+              className="w-full"
+            >
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton
+                  tooltip={tooltipConfig}
+                  className="justify-between w-full"
+                  isActive={pathname.startsWith(item.href)} // Group active if path starts with group href
+                >
+                  <div className="flex items-center gap-2">
+                    <IconComponent />
+                    <span>{item.label}</span>
+                  </div>
+                  {sidebarState === "expanded" && (
+                    openCollapsibles[item.label] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                  )}
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              {sidebarState === "expanded" && (
+                 <CollapsibleContent className="pl-4">
+                    <SidebarMenu className="border-l border-sidebar-border ml-3 py-1">
+                     {renderNavItems(item.children, true)}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+              )}
+            </Collapsible>
+          </SidebarMenuItem>
+        );
+      }
+
+      return (
+        <SidebarMenuItem key={item.href} className={cn(isSubmenu ? "pl-3" : "")}>
+          <Link href={item.href} legacyBehavior passHref>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              tooltip={tooltipConfig}
+              className="justify-start"
+            >
+              <a>
+                <IconComponent />
+                <span>{item.label}</span>
+                {item.showPoints && rewardsPoints > 0 && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {rewardsPoints}
+                  </Badge>
+                )}
+              </a>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      );
+    });
+  };
+
+
   return (
     <Sidebar
       collapsible={isMobile ? "offcanvas" : "icon"}
       variant="inset"
-      className="transition-all duration-300 ease-in-out"
+      className="transition-all duration-300 ease-in-out bg-sidebar" // Ensure bg-sidebar is applied
+      hoverPeek={!isMobile} // Enable hover peek for desktop
     >
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
@@ -117,73 +163,29 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
         </div>
       </SidebarHeader>
       <SidebarContent className="flex-1 p-2">
-        <SidebarMenu>
-          {navItemsForRole.map((item) => {
-            const tooltipLabel = getTooltipLabelForButton(item.label);
-            const tooltipConfig = React.useMemo(() => {
-              if (tooltipLabel) {
-                return { children: tooltipLabel, side: "right", align: "center" };
-              }
-              return undefined;
-            }, [tooltipLabel]);
-
-            return (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior passHref>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
-                    tooltip={tooltipConfig}
-                    className="justify-start"
-                  >
-                    <a>
-                      <item.icon />
-                      <span>{item.label}</span>
-                      {item.showPoints && (
-                        <Badge variant="secondary" className="ml-auto">
-                          {rewardsPoints}
-                        </Badge>
-                      )}
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
+        <ScrollArea className="h-full">
+          <SidebarMenu>
+            {renderNavItems(navItemsForRole)}
+            {shouldDisplayCheckoutInSidebar && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={onCheckoutClick}
+                  tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
+                  className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
+                >
+                  <LogOut />
+                  <span>Check Out</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
-            );
-          })}
-          {shouldDisplayCheckoutInSidebar && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={onCheckoutClick}
-                tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
-                className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
-              >
-                <LogOut />
-                <span>Check Out</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          <SidebarMenuItem>
-            <Link href="/dashboard/settings" legacyBehavior passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === "/dashboard/settings"}
-                tooltip={getTooltipLabelForButton("Settings") ? { children: "Settings", side: "right", align: "center" } : undefined}
-                className="justify-start"
-              >
-                <a>
-                  <Settings />
-                  <span>Settings</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
+            )}
+          </SidebarMenu>
+        </ScrollArea>
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter className="p-3">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.avatar} alt={user?.name} data-ai-hint="user avatar" />
+            <AvatarImage src={user?.avatar} alt={user?.name} data-ai-hint="user avatar"/>
             <AvatarFallback>
               {user?.name
                 ? user.name
