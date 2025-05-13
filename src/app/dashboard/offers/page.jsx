@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -453,7 +454,7 @@ export default function OffersPage() {
                             variant="default" 
                             size="sm" 
                             onClick={() => handleOpenOnboardingForm(applicant)}
-                            disabled={applicant.offerStatus !== "Offer Accepted"}
+                            disabled={applicant.offerStatus?.trim() !== "Offer Accepted"}
                           >
                             <UserPlus className="mr-1 h-3.5 w-3.5" /> Onboard
                           </Button>
@@ -613,3 +614,4 @@ export default function OffersPage() {
     </div>
   );
 }
+
