@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -160,7 +159,7 @@ const Sidebar = React.forwardRef(
       collapsible = "offcanvas",
       className,
       children,
-      hoverPeek, // Destructure hoverPeek to prevent it from being spread by ...props
+      hoverPeek, 
       ...props
     },
     ref
@@ -210,7 +209,7 @@ const Sidebar = React.forwardRef(
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
-        data-hover-peek={hoverPeek} // Use hoverPeek to set a data attribute for CSS targeting
+        data-hover-peek={hoverPeek ? "true" : undefined} // Ensure data attribute is set correctly
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -491,63 +490,58 @@ const SidebarMenuButton = React.forwardRef(
       size = "default",
       tooltip,
       className,
-      icon,
-      children: labelContent, // Renamed from children to labelContent
+      icon, 
+      children, 
       ...props
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state } = useSidebar(); 
 
-    const buttonElement = (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
-        {...props}
-      >
-        {/* Render icon and labelContent as direct children */}
+    const commonButtonProps = {
+      ref: ref,
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size, className })),
+      ...props,
+    };
+
+    const buttonElement = asChild ? (
+      <Slot {...commonButtonProps}>{children}</Slot>
+    ) : (
+      <button {...commonButtonProps}>
         {icon}
         <span className={cn(
           "truncate",
           "group-data-[collapsible=icon]:hidden group-data-[hover-peek=true]:group-data-[collapsible=icon]:delay-300 group-data-[hover-peek=true]:group-data-[collapsible=icon]:opacity-0 group-data-[hover-peek=true]:group-data-[collapsible=icon]:group-hover/sidebar:w-auto group-data-[hover-peek=true]:group-data-[collapsible=icon]:group-hover/sidebar:opacity-100"
         )}>
-          {labelContent}
+          {children}
         </span>
-      </Comp>
-    )
+      </button>
+    );
 
     if (!tooltip) {
-      return buttonElement
+      return buttonElement;
     }
 
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
-      }
-    }
+    const tooltipProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
     
-    // Ensure TooltipTrigger correctly wraps the buttonElement
-    const TooltipComp = asChild ? TooltipTrigger : "div";
-
-
     return (
       <Tooltip>
-        <TooltipTrigger asChild={asChild || Comp === Slot}>{buttonElement}</TooltipTrigger> 
+        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
+          {...tooltipProps}
         />
       </Tooltip>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
+
 
 const SidebarMenuAction = React.forwardRef(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
