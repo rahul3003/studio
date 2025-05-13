@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -36,7 +35,6 @@ const mockNotifications = [
   { id: 2, title: "Reimbursement Approved", description: "Your travel claim for $50 has been approved.", time: "1h ago", read: true },
   { id: 3, title: "Project Update", description: "HRMS Portal phase 2 started.", time: "3h ago", read: false },
 ];
-
 
 export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) { 
   const pathname = usePathname();

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -12,25 +11,13 @@ import { useAuthStore } from "@/store/authStore";
 import { useProfileStore, DUMMY_EMPLOYEE_LIST_FOR_NOMINATION, REWARD_REASON_CATEGORIES } from "@/store/profileStore";
 import { Award, Gift, Users, CalendarDays, CheckCircle, Edit } from "lucide-react";
 
-
 export default function RewardsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuthStore();
   const profileData = useProfileStore((state) => state.profileData);
   const addNominationInStore = useProfileStore((state) => state.addNomination);
-  const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
 
   const [isNominateRewardOpen, setIsNominateRewardOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
-      initializeProfile(user);
-    }
-    // If profileData exists, ensure rewards calculations are fresh (e.g. if month/year changed)
-    else if (user && profileData) {
-        initializeProfile(user); // This will re-check and update monthly/yearly resets
-    }
-  }, [user, profileData, initializeProfile]);
 
   if (authLoading || !user || !profileData || !profileData.rewards || !profileData.personal) {
     return <div>Loading rewards...</div>;
@@ -62,24 +49,39 @@ export default function RewardsPage() {
   
   const yearlySharableBalanceDisplay = `${pointsLeftThisYear} / ${rewardsData.totalAnnualSharablePoints || 0}`;
 
-
   return (
     <div className="space-y-8 p-4 md:p-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl"><Award /> Reward Zone</CardTitle>
-          <CardDescription>View your reward points, nominate colleagues, and manage your rewards activity.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-2xl"><Award /> Reward Zone</CardTitle>
+            <CardDescription>View your reward points, nominate colleagues, and manage your rewards activity.</CardDescription>
+          </div>
+          <Button 
+            onClick={() => setIsNominateRewardOpen(true)} 
+            disabled={actualAvailablePointsToShare <= 0}
+            className="h-10"
+          >
+            <Gift className="mr-2 h-4 w-4" /> 
+            {actualAvailablePointsToShare <= 0 ? "No Points to Share" : "Reward Colleague"}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="mb-6 p-4 border rounded-lg bg-muted/30">
-            <h3 className="text-lg font-semibold mb-1">Welcome, {personalData.name}!</h3>
-            <p className="text-2xl font-bold text-primary">{rewardsData.accruedPoints || 0} <span className="text-sm font-normal text-muted-foreground">Accrued Points</span></p>
-             <p className="text-sm text-muted-foreground mt-1">
-                Available points to share this year: <strong>{yearlySharableBalanceDisplay}</strong>.
-             </p>
-             <p className="text-xs text-muted-foreground">
-                You can share up to <strong>{rewardsData.monthlyShareLimit || 0}</strong> points this month. Points shared this month: <strong>{rewardsData.pointsSharedThisMonth || 0}</strong>.
-             </p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Balance Overview</h3>
+                <p className="text-2xl font-bold text-primary">{rewardsData.accruedPoints || 0} <span className="text-sm font-normal text-muted-foreground">Points Balance</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">
+                  Available to share: <strong>{yearlySharableBalanceDisplay}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Monthly limit: <strong>{rewardsData.monthlyShareLimit || 0}</strong> points
+                </p>
+              </div>
+            </div>
           </div>
 
           <Tabs defaultValue="my_nominations" className="w-full">
@@ -148,16 +150,22 @@ export default function RewardsPage() {
             </TabsContent>
 
             <TabsContent value="reward_someone" className="pt-6">
+              <div className="flex justify-start mb-4">
+                <Button 
+                  onClick={() => setIsNominateRewardOpen(true)} 
+                  disabled={actualAvailablePointsToShare <= 0}
+                  className="h-10"
+                >
+                  <Gift className="mr-2 h-4 w-4" />
+                  {actualAvailablePointsToShare <= 0 ? "No Points to Share" : "Reward Colleague"}
+                </Button>
+              </div>
               <h3 className="font-semibold mb-1 text-xl">Reward Someone</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 Recognize a colleague for their outstanding work. 
                 You have <strong>{actualAvailablePointsToShare}</strong> points available to share.
                 (Max {rewardsData.monthlyShareLimit} this month, {pointsLeftThisYear} left for the year).
               </p>
-              <Button onClick={() => setIsNominateRewardOpen(true)} disabled={actualAvailablePointsToShare <= 0}>
-                <Gift className="mr-2 h-4 w-4" /> 
-                {actualAvailablePointsToShare <= 0 ? "No Points to Share" : "Nominate Colleague"}
-              </Button>
             </TabsContent>
           </Tabs>
           

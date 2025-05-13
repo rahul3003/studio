@@ -42,22 +42,50 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
   const [notes, setNotes] = React.useState("");
   const [isLeave, setIsLeave] = React.useState(false);
 
-  const resetForm = () => {
+  const resetForm = React.useCallback(() => {
     setCheckInTimeCategory(CHECK_IN_TIME_OPTIONS[0]);
     setWorkLocation(Object.keys(WORK_LOCATION_OPTIONS)[0]);
     setUserCoordinates(null);
     setNotes("");
     setIsLeave(false);
     setIsLocating(false);
-  };
+  }, []);
 
   React.useEffect(() => {
     if (isOpen) {
-      resetForm(); 
+      resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
-  const handleGetLocation = () => {
+  const handleDialogClose = React.useCallback(() => {
+    onClose(false);
+  }, [onClose]);
+
+  const handleSubmit = React.useCallback(() => {
+    if (isLeave) {
+      onSave({ status: "Leave", notes: notes || "Marked as Leave" });
+    } else {
+      if (!workLocation) {
+        toast({ title: "Validation Error", description: "Please select a work location.", variant: "destructive" });
+        return;
+      }
+      if ((workLocation === "Office" || workLocation === "HomeWithPermission" || workLocation === "HomeWithoutPermission") && !userCoordinates && workLocation !== "Office") {
+        // Optional: make location mandatory for WFH
+        // toast({ title: "Location Required", description: "Please capture your location for WFH.", variant: "destructive" });
+        // return;
+      }
+      onSave({
+        status: "Present",
+        checkInTimeCategory,
+        workLocation,
+        userCoordinates,
+        notes,
+      });
+    }
+    onClose(true);
+  }, [isLeave, workLocation, userCoordinates, notes, onSave, onClose, toast]);
+
+  const handleGetLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
       toast({ title: "Geolocation Error", description: "Geolocation is not supported by your browser.", variant: "destructive" });
       return;
@@ -75,40 +103,11 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
       (error) => {
         console.error("Error getting location:", error);
         toast({ title: "Location Error", description: `Could not get location: ${error.message}`, variant: "destructive" });
-        setUserCoordinates(null); 
+        setUserCoordinates(null);
         setIsLocating(false);
       }
     );
-  };
-  
-  const handleSubmit = () => {
-    if (isLeave) {
-      onSave({ status: "Leave", notes: notes || "Marked as Leave" });
-    } else {
-      if (!workLocation) {
-        toast({ title: "Validation Error", description: "Please select a work location.", variant: "destructive" });
-        return;
-      }
-       if ((workLocation === "Office" || workLocation === "HomeWithPermission" || workLocation === "HomeWithoutPermission") && !userCoordinates && workLocation !== "Office") {
-         // Optional: make location mandatory for WFH
-         // toast({ title: "Location Required", description: "Please capture your location for WFH.", variant: "destructive" });
-         // return;
-      }
-      onSave({
-        status: "Present",
-        checkInTimeCategory,
-        workLocation,
-        userCoordinates,
-        notes,
-      });
-    }
-    onClose(true); // Indicate that data was saved
-  };
-
-  const handleDialogClose = () => {
-    onClose(false); // Indicate that dialog was closed without saving
-  };
-
+  }, [toast]);
 
   if (!isOpen) return null;
 
@@ -166,18 +165,18 @@ export function MorningCheckInDialog({ isOpen, onClose, onSave, userName }) {
                 </Select>
               </div>
               {(workLocation === "Office" || workLocation === "HomeWithPermission" || workLocation === "HomeWithoutPermission") && (
-                 <div className="space-y-2">
-                    <Label htmlFor="locationCapture">Capture Location</Label>
-                    <Button variant="outline" onClick={handleGetLocation} disabled={isLocating} className="w-full">
-                      {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
-                      {userCoordinates ? `Location Captured (${userCoordinates.latitude.toFixed(2)}, ${userCoordinates.longitude.toFixed(2)})` : "Get My Location"}
-                    </Button>
-                    {userCoordinates && <p className="text-xs text-muted-foreground">Lat: {userCoordinates.latitude.toFixed(4)}, Lon: {userCoordinates.longitude.toFixed(4)}</p>}
-                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="locationCapture">Capture Location</Label>
+                  <Button variant="outline" onClick={handleGetLocation} disabled={isLocating} className="w-full">
+                    {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
+                    {userCoordinates ? `Location Captured (${userCoordinates.latitude.toFixed(2)}, ${userCoordinates.longitude.toFixed(2)})` : "Get My Location"}
+                  </Button>
+                  {userCoordinates && <p className="text-xs text-muted-foreground">Lat: {userCoordinates.latitude.toFixed(4)}, Lon: {userCoordinates.longitude.toFixed(4)}</p>}
+                </div>
               )}
             </>
           )}
-           <div className="space-y-2">
+          <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
             <Textarea
               id="notes"

@@ -1,7 +1,9 @@
-
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { useProfileStore } from "@/store/profileStore";
 import {
   Sidebar,
   SidebarHeader,
@@ -11,19 +13,78 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
-  useSidebar, 
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import {
+  Home,
+  User,
+  Calendar,
+  Award,
+  DollarSign,
+  FileText,
+  LogOut,
+  Building,
+  Clock,
+  Rocket,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Rocket, LogOut as LogOutIcon } from "lucide-react"; 
-import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/store/authStore"; 
 import { ROLE_NAV_CONFIG } from "@/config/roles";
+import { Badge } from "@/components/ui/badge";
 
-export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) { 
+const sidebarNavItems = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+  },
+  {
+    title: "Profile",
+    href: "/dashboard/profile",
+    icon: User,
+  },
+  {
+    title: "Attendance",
+    href: "/dashboard/attendance",
+    icon: Clock,
+  },
+  {
+    title: "Rewards",
+    href: "/dashboard/profile/rewards",
+    icon: Award,
+    showPoints: true,
+  },
+  {
+    title: "Remuneration",
+    href: "/dashboard/profile/remuneration",
+    icon: DollarSign,
+  },
+  {
+    title: "Documents",
+    href: "/dashboard/profile/documents",
+    icon: FileText,
+  },
+  {
+    title: "Holidays",
+    href: "/dashboard/profile/holidays",
+    icon: Calendar,
+  },
+  {
+    title: "Company",
+    href: "/dashboard/company",
+    icon: Building,
+  },
+];
+
+export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const pathname = usePathname();
-  const { user } = useAuthStore(); 
-  const { state: sidebarState, isMobile } = useSidebar(); 
+  const { user } = useAuthStore();
+  const { state: sidebarState, isMobile } = useSidebar();
+  const profileData = useProfileStore(state => state.profileData);
+  const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
 
   const navItemsForRole = React.useMemo(() => {
     if (user && user.currentRole && user.currentRole.value) {
@@ -36,16 +97,16 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
 
   const getTooltipLabelForButton = React.useCallback((label) => {
     if (isMobile || sidebarState === "expanded") {
-      return null; 
+      return null;
     }
     return label;
   }, [isMobile, sidebarState]);
 
   return (
-    <Sidebar 
-        collapsible={isMobile ? "offcanvas" : "icon"} 
-        variant="inset"
-        className="transition-all duration-300 ease-in-out"
+    <Sidebar
+      collapsible={isMobile ? "offcanvas" : "icon"}
+      variant="inset"
+      className="transition-all duration-300 ease-in-out"
     >
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
@@ -78,32 +139,37 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
                     <a>
                       <item.icon />
                       <span>{item.label}</span>
+                      {item.showPoints && (
+                        <Badge variant="secondary" className="ml-auto">
+                          {rewardsPoints}
+                        </Badge>
+                      )}
                     </a>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
             );
           })}
-           {shouldDisplayCheckoutInSidebar && ( 
+          {shouldDisplayCheckoutInSidebar && (
             <SidebarMenuItem>
-                 <SidebarMenuButton
-                    onClick={onCheckoutClick}
-                    tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
-                    className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
-                 >
-                    <LogOutIcon />
-                    <span>Check Out</span>
-                 </SidebarMenuButton>
+              <SidebarMenuButton
+                onClick={onCheckoutClick}
+                tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
+                className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
+              >
+                <LogOut />
+                <span>Check Out</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
-           )}
+          )}
           <SidebarMenuItem>
             <Link href="/dashboard/settings" legacyBehavior passHref>
               <SidebarMenuButton
                 asChild
                 isActive={pathname === "/dashboard/settings"}
-                tooltip={getTooltipLabelForButton("Settings") ? {children: "Settings", side: "right", align: "center"} : undefined}
+                tooltip={getTooltipLabelForButton("Settings") ? { children: "Settings", side: "right", align: "center" } : undefined}
                 className="justify-start"
-                >
+              >
                 <a>
                   <Settings />
                   <span>Settings</span>
@@ -117,7 +183,7 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
       <SidebarFooter className="p-3">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.avatar} alt={user?.name} data-ai-hint="user avatar"/>
+            <AvatarImage src={user?.avatar} alt={user?.name} data-ai-hint="user avatar" />
             <AvatarFallback>
               {user?.name
                 ? user.name
@@ -142,15 +208,15 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
-         <Button
-            variant="ghost"
-            size="icon"
-            className="hidden h-8 w-8 group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:mx-auto mt-2"
-            onClick={onLogout}
-            aria-label="Logout"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden h-8 w-8 group-data-[collapsible=icon]:!flex group-data-[collapsible=icon]:mx-auto mt-2"
+          onClick={onLogout}
+          aria-label="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

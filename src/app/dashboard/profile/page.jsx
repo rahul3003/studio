@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -168,42 +167,73 @@ export default function ProfilePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle className="flex items-center gap-2 text-xl"><Award /> Rewards</CardTitle>
+          <Button 
+            onClick={() => setIsNominateRewardOpen(true)} 
+            disabled={(() => {
+              const rewards = profileData.rewards;
+              const pointsLeftThisMonth = Math.max(0, (rewards.monthlyShareLimit || 0) - (rewards.pointsSharedThisMonth || 0));
+              const pointsLeftThisYear = Math.max(0, (rewards.totalAnnualSharablePoints || 0) - (rewards.pointsSharedThisYear || 0));
+              const actualAvailablePointsToShare = Math.min(pointsLeftThisMonth, pointsLeftThisYear);
+              return actualAvailablePointsToShare <= 0;
+            })()}
+            className="h-10"
+          >
+            <Gift className="mr-2 h-4 w-4" />
+            {(() => {
+              const rewards = profileData.rewards;
+              const pointsLeftThisMonth = Math.max(0, (rewards.monthlyShareLimit || 0) - (rewards.pointsSharedThisMonth || 0));
+              const pointsLeftThisYear = Math.max(0, (rewards.totalAnnualSharablePoints || 0) - (rewards.pointsSharedThisYear || 0));
+              const actualAvailablePointsToShare = Math.min(pointsLeftThisMonth, pointsLeftThisYear);
+              return actualAvailablePointsToShare <= 0 ? "No Points to Share" : "Reward Colleague";
+            })()}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-6">
             <Card className="pt-4 pb-3 shadow-sm">
-              <CardTitle className="text-2xl">{profileData.rewards.pointsAvailable}</CardTitle>
-              <CardDescription>Points Available</CardDescription>
+              <CardTitle className="text-2xl">{profileData.rewards.accruedPoints || 0}</CardTitle>
+              <CardDescription>Points Balance</CardDescription>
             </Card>
             <Card className="pt-4 pb-3 shadow-sm">
               <CardTitle className="text-2xl">{profileData.rewards.pointsReceived}</CardTitle>
-              <CardDescription>Points Received</CardDescription>
+              <CardDescription>Total Points Received</CardDescription>
             </Card>
             <Card className="pt-4 pb-3 shadow-sm">
-              <CardTitle className="text-2xl">{profileData.rewards.pointsValue}</CardTitle>
-              <CardDescription>Approx. Value</CardDescription>
+              <CardTitle className="text-2xl">{(() => {
+                const rewards = profileData.rewards;
+                const pointsLeftThisMonth = Math.max(0, (rewards.monthlyShareLimit || 0) - (rewards.pointsSharedThisMonth || 0));
+                return pointsLeftThisMonth;
+              })()}</CardTitle>
+              <CardDescription>Remaining Monthly Balance</CardDescription>
             </Card>
           </div>
-          <Button onClick={() => setIsNominateRewardOpen(true)} className="mb-4"><Gift className="mr-2 h-4 w-4" /> Nominate for Reward</Button>
+          <div className="mb-4 text-right text-sm text-muted-foreground">
+            <span>Available to share: <strong>{(() => {
+              const rewards = profileData.rewards;
+              const pointsLeftThisYear = Math.max(0, (rewards.totalAnnualSharablePoints || 0) - (rewards.pointsSharedThisYear || 0));
+              return `${pointsLeftThisYear} / ${rewards.totalAnnualSharablePoints || 0}`;
+            })()}</strong></span>
+            <span className="ml-4">Monthly limit: <strong>{profileData.rewards.monthlyShareLimit || 0}</strong> points</span>
+          </div>
           <h4 className="font-semibold text-md mb-2 mt-2">My Nomination History:</h4>
-          {profileData.rewards.nominationHistory.length > 0 ? (
+          {profileData.rewards.nominationHistoryGiven.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>To</TableHead><TableHead>Points</TableHead><TableHead>Date</TableHead><TableHead>Approved By</TableHead><TableHead>Approved On</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>To</TableHead><TableHead>Points</TableHead><TableHead>Date</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
               <TableBody>
-                {profileData.rewards.nominationHistory.map(item => (
+                {profileData.rewards.nominationHistoryGiven.map(item => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.to}</TableCell><TableCell>{item.points}</TableCell>
+                    <TableCell>{item.nomineeName}</TableCell><TableCell>{item.points}</TableCell>
                     <TableCell>{new Date(item.date).toLocaleDateString('en-IN')}</TableCell>
-                    <TableCell>{item.approvedBy}</TableCell>
-                    <TableCell>{new Date(item.approvedOn).toLocaleDateString('en-IN')}</TableCell>
-                    <TableCell className="max-w-xs truncate" title={item.reason}>{item.reason}</TableCell>
+                    <TableCell>{item.feedbackText}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          ) : (<p className="text-sm text-muted-foreground">No nominations made yet.</p>)}
+          ) : (
+            <p className="text-muted-foreground">No nominations made yet.</p>
+          )}
         </CardContent>
       </Card>
 
