@@ -1,12 +1,11 @@
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, BriefcaseBusiness, MapPin, CalendarDays } from "lucide-react";
+import { Edit, Trash2, Eye, BriefcaseBusiness, MapPin, CalendarDays, Users2 as Users2Icon } from "lucide-react";
 
-export function JobCard({ job, onEdit, onDelete, onViewDetails }) {
+export function JobCard({ job, onEdit, onDelete, onViewDetails, onViewApplicants }) {
   const statusVariantMap = {
     Open: "default",
     Closed: "secondary",
@@ -40,14 +39,22 @@ export function JobCard({ job, onEdit, onDelete, onViewDetails }) {
           {job.description}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2 pt-4 mt-auto border-t">
-        <Button variant="ghost" size="sm" onClick={onViewDetails} className="text-primary hover:bg-primary/10">
-          <Eye className="mr-1 h-4 w-4" /> View
+      <CardFooter className="flex flex-wrap justify-end gap-2 pt-4 mt-auto border-t">
+        <Button variant="outline" size="sm" onClick={() => onViewDetails(job)} className="text-primary hover:bg-primary/10">
+          <Eye className="mr-1 h-4 w-4" /> Details
         </Button>
-        <Button variant="outline" size="sm" onClick={onEdit}>
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onViewApplicants(job)} 
+            className="text-green-600 hover:text-green-700 hover:bg-green-500/10 border-green-500 dark:text-green-400 dark:hover:text-green-300 dark:border-green-600 dark:hover:bg-green-500/20"
+        >
+          <Users2Icon className="mr-1 h-4 w-4" /> Applicants
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onEdit(job)}>
           <Edit className="mr-1 h-4 w-4" /> Edit
         </Button>
-        <Button variant="destructive" size="sm" onClick={onDelete} className="hover:bg-destructive/90">
+        <Button variant="destructive" size="sm" onClick={() => onDelete(job)} className="hover:bg-destructive/90">
           <Trash2 className="mr-1 h-4 w-4" /> Delete
         </Button>
       </CardFooter>

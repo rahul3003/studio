@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -19,6 +18,8 @@ import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form";
 import { sendEmail } from '@/services/emailService'; 
 import html2pdf from 'html2pdf.js';
+import { useSearchParams } from 'next/navigation'; // Import useSearchParams
+
 
 // Import HTML generation functions
 import { generatePlaceholderOfferLetterHtml } from '@/lib/document-templates/offer-letter';
@@ -44,6 +45,7 @@ const managerRoles = ['Manager', 'Super Admin', 'Admin', 'Project Manager', 'HR 
 
 export default function OffersPage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams(); // Initialize searchParams
 
   const jobs = useJobStore((state) => state.jobs || []);
   const _initializeJobs = useJobStore((state) => state._initializeJobs);
@@ -92,6 +94,25 @@ export default function OffersPage() {
     _initializeApplicants();
     _initializeEmployees();
   }, [_initializeJobs, _initializeApplicants, _initializeEmployees]);
+
+  React.useEffect(() => {
+    const queryJobId = searchParams.get('jobId');
+    if (queryJobId && jobs.length > 0) {
+      if (jobs.find(job => job.id === queryJobId)) {
+        setSelectedJobId(queryJobId);
+      } else {
+         console.warn(`Job ID "${queryJobId}" from query parameter not found.`);
+         // If navigating from elsewhere without a valid jobId, or if jobId is invalid, don't auto-select.
+         // If selectedJobId is already set (e.g., by user interaction), don't override unless queryJobId is new and valid.
+         if (!selectedJobId && jobs.length > 0) {
+            // setSelectedJobId(jobs[0].id); // Optionally default to first job if queryJobId is invalid and no job is selected
+         }
+      }
+    } else if (!queryJobId && jobs.length > 0 && !selectedJobId) {
+        // If no query param and no job selected, could default to first job, or leave empty
+        // setSelectedJobId(jobs[0].id); 
+    }
+  }, [searchParams, jobs, selectedJobId]); // Add selectedJobId to prevent re-running if it's already set by user
 
   React.useEffect(() => {
     if (selectedJobId) {

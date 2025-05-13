@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useJobStore } from "@/store/jobStore"; // Import job store
 import { useDepartmentStore } from "@/store/departmentStore"; // For department options
+import { useRouter } from "next/navigation"; // Import useRouter
 
 const JOB_STATUS_OPTIONS = ["Open", "Closed", "Filled", "Draft"];
 const JOB_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "Temporary"];
@@ -46,6 +47,7 @@ const statusBadgeVariant = (status) => {
 
 export default function JobsPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize router
   // Use Zustand stores
   const jobs = useJobStore((state) => state.jobs);
   const addJob = useJobStore((state) => state.addJob);
@@ -84,6 +86,10 @@ export default function JobsPage() {
   const handleViewJobOpen = (job) => {
     setSelectedJob(job);
     setIsViewDialogOpen(true);
+  };
+
+  const handleViewApplicantsOpen = (job) => {
+    router.push(`/dashboard/offers?jobId=${job.id}`);
   };
 
   const handleDialogClose = () => {
@@ -158,7 +164,8 @@ export default function JobsPage() {
                   job={job}
                   onEdit={() => handleEditJobOpen(job)}
                   onDelete={() => handleDeleteJobOpen(job)}
-                  onViewDetails={() => handleViewJobOpen(job)}
+                  onViewDetails={handleViewJobOpen}
+                  onViewApplicants={handleViewApplicantsOpen}
                 />
               ))}
             </div>
