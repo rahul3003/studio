@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import * as React from "react";
@@ -7,23 +8,23 @@ import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
-import { AttendanceProvider, useAttendance } from "@/components/attendance/attendance-manager";
+// import { AttendanceProvider, useAttendance } from "@/components/attendance/attendance-manager"; // Removed as per prior instruction
 import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardContent({ children, onLogout }) {
-  const { showCheckoutButton, onCheckoutClick } = useAttendance();
+  // const { showCheckoutButton, onCheckoutClick } = useAttendance(); // Removed
 
   return (
     <>
       <AppSidebar 
-        onCheckoutClick={onCheckoutClick} 
-        showCheckoutButton={showCheckoutButton} 
+        // onCheckoutClick={onCheckoutClick}  // Removed
+        // showCheckoutButton={showCheckoutButton} // Removed
         onLogout={onLogout}
       />
       <SidebarInset>
         <AppHeader 
-          onCheckoutClick={onCheckoutClick} 
-          showCheckoutButton={showCheckoutButton} 
+          // onCheckoutClick={onCheckoutClick} // Removed
+          // showCheckoutButton={showCheckoutButton} // Removed
           onLogout={onLogout} 
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-secondary/40 dark:bg-background">
@@ -44,27 +45,38 @@ export default function DashboardLayout({
   const profileData = useProfileStore(state => state.profileData);
   const initializeProfile = useProfileStore(state => state.initializeProfileForUser);
 
-  // Initialize profile only once when user changes
+  const [isClientRender, setIsClientRender] = React.useState(false);
+
+  React.useEffect(() => {
+    // This effect runs only on the client side, after the component has mounted.
+    setIsClientRender(true);
+  }, []);
+
+
   React.useEffect(() => {
     if (user && (!profileData || profileData.personal.companyEmail !== user.email)) {
       initializeProfile(user);
     }
-  }, [user, profileData, initializeProfile]); // Added profileData and initializeProfile to dependencies
+  }, [user, profileData, initializeProfile]); 
 
   const handleLogout = React.useCallback(() => {
     authStoreLogout();
     router.push('/login');
   }, [authStoreLogout, router]);
-
-  // Moved router.push into useEffect
+  
   React.useEffect(() => {
-    if (!loading && !user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    // This effect should only run on the client after isClientRender is true
+    // and the auth store has finished its initial loading/rehydration.
+    if (isClientRender && !loading && !user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
       router.push('/login');
     }
-  }, [loading, user, router]);
+  }, [isClientRender, loading, user, router]);
 
 
-  if (loading) { 
+  if (!isClientRender || loading) { 
+    // Render a consistent loading skeleton.
+    // This ensures server render (where loading from store is initially true)
+    // and initial client render (before isClientRender is true, or before store rehydrates loading to false) match.
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -76,9 +88,11 @@ export default function DashboardLayout({
     );
   }
   
-  // If not loading and no user, and not on login page, the useEffect above will handle redirect.
-  // Render null here to avoid rendering children while redirecting.
+  // At this point, isClientRender is true and loading (from authStore) is false.
+  // We can now safely check for user and redirect if necessary.
   if (!user && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    // The useEffect above has already initiated router.push.
+    // Return null to prevent rendering children while redirecting.
     return null; 
   }
 
@@ -86,16 +100,16 @@ export default function DashboardLayout({
   if (user) {
     return (
       <SidebarProvider defaultOpen>
-        <AttendanceProvider user={user}>
+        {/* <AttendanceProvider user={user}> // Removed */}
           <DashboardContent onLogout={handleLogout}>
             {children}
           </DashboardContent>
-        </AttendanceProvider>
+        {/* </AttendanceProvider> // Removed */}
       </SidebarProvider>
     );
   }
 
   // Fallback for scenarios where user is null and on login page (or SSR where window is undefined initially)
+  // Or if not on /login page and !user, but redirect hasn't visually completed.
   return null; 
 }
-
