@@ -19,17 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  Home,
-  User,
-  Calendar,
-  Award,
-  DollarSign,
-  FileText,
   LogOut,
-  Building,
-  Clock,
   Rocket,
-  Settings,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -40,10 +31,10 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 
 
-export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
+export function AppSidebar({ onLogout }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { state: sidebarState, isMobile } = useSidebar();
@@ -61,10 +52,8 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
       return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || [];
     }
     return [];
-  }, [user?.currentRole?.value]); // More specific dependency
+  }, [user?.currentRole?.value]);
 
-
-  const shouldDisplayCheckoutInSidebar = showCheckoutButton && (sidebarState === 'collapsed' && !isMobile);
 
   const getTooltipLabelForButton = React.useCallback((label) => {
     if (isMobile || sidebarState === "expanded") {
@@ -76,19 +65,16 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
   const renderNavItems = (items, isSubmenu = false) => {
     return items.map((item) => {
       const tooltipLabel = getTooltipLabelForButton(item.label);
-      const tooltipConfig = React.useMemo(() => {
-        if (tooltipLabel) {
-          return { children: tooltipLabel, side: "right", align: "center" };
-        }
-        return undefined;
-      }, [tooltipLabel]);
+      // Removed React.useMemo for tooltipConfig as it was causing hook order issues
+      const tooltipConfig = tooltipLabel
+        ? { children: tooltipLabel, side: "right", align: "center" }
+        : undefined;
 
       const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dashboard/profile" && pathname.startsWith(item.href));
       const IconComponent = item.icon;
 
       if (item.children && item.children.length > 0) {
-        // Check if any child is active for parent highlighting
-        const isGroupActive = item.children.some(child => pathname.startsWith(child.href));
+        const isGroupActive = item.children.some(child => pathname === child.href || (child.href !== "/dashboard" && child.href !== "/dashboard/profile" && pathname.startsWith(child.href)));
         return (
           <SidebarMenuItem key={item.label} className="group/menu-item relative">
              <Collapsible
@@ -153,8 +139,8 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
     <Sidebar
       collapsible={isMobile ? "offcanvas" : "icon"}
       variant="inset"
-      className="transition-all duration-300 ease-in-out bg-sidebar" // Ensure bg-sidebar is applied
-      hoverPeek={!isMobile} // Enable hover peek for desktop
+      className="transition-all duration-300 ease-in-out bg-sidebar"
+      hoverPeek={!isMobile}
     >
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
@@ -168,18 +154,6 @@ export function AppSidebar({ onCheckoutClick, showCheckoutButton, onLogout }) {
         <ScrollArea className="h-full">
           <SidebarMenu>
             {renderNavItems(navItemsForRole)}
-            {shouldDisplayCheckoutInSidebar && (
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={onCheckoutClick}
-                  tooltip={getTooltipLabelForButton("Check Out") ? { children: "Check Out", side: "right", align: "center" } : undefined}
-                  className="justify-start w-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
-                >
-                  <LogOut />
-                  <span>Check Out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </ScrollArea>
       </SidebarContent>
