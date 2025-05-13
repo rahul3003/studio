@@ -41,6 +41,7 @@ export const ROLE_SWITCH_PERMISSIONS = {
  * @property {string} label
  * @property {import("lucide-react").LucideIcon} icon
  * @property {boolean} [showPoints] - Optional flag to show reward points badge
+ * @property {NavItem[]} [children] - Optional children for collapsible submenus
  */
 
 const commonManagementNavItems = [
@@ -72,7 +73,7 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/offers", label: "Offers", icon: Mail },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  admin: [ // Admin role inherits from common and employee profile, plus settings
+  admin: [ 
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...employeeProfileNavItems,
     ...commonManagementNavItems,
