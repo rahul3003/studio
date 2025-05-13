@@ -1,0 +1,499 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Make sure to set this in your .env file
+}
+
+model Employee {
+  id                         String   @id @default(cuid())
+  name                       String
+  email                      String   @unique
+  passwordHash               String // For actual authentication
+  avatarUrl                  String?
+  role                       RoleType // Enum for job roles
+  designation                DesignationType // Enum for designations
+  departmentId               String?
+  department                 Department? @relation(fields: [departmentId], references: [id])
+  status                     EmployeeStatus // Enum for employment status
+  joinDate                   DateTime
+  gender                     Gender // Enum for gender
+  employeeType               EmployeeType // Enum for type of employment
+  salary                     String? // e.g., "₹12,00,000 per annum"
+  joiningLetterHtml          String?
+  reportingManagerId         String?
+  reportingManager           Employee? @relation("ReportingHierarchy", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reportsTo                  Employee[] @relation("ReportingHierarchy")
+  baseRole                   RoleType // Base role assigned at login
+  currentRole                RoleType // Current role user is acting as
+
+  personalInformation        PersonalInformation?
+  secondaryData              SecondaryData?
+  rewardsData                RewardsData?
+  attendanceSummaries        AttendanceSummaryItem[]
+  remuneration               Remuneration?
+  employeeReports            EmployeeReports? // Renamed to avoid conflict with general 'Reports'
+  companyHolidaysTaken       EmployeeHoliday[] // For tracking taken restricted holidays
+  
+  projectsManaged            Project[]       @relation("ManagedProjects")
+  tasksAssigned              Task[]          @relation("AssignedTasks")
+  reimbursements             Reimbursement[]
+  rewardNominationsGiven     RewardNomination[] @relation("NominationsGiven")
+  rewardNominationsReceived  RewardNomination[] @relation("NominationsReceived")
+  approvedNominations        RewardNomination[] @relation("ApprovedNominations")
+  attendanceRecords          AttendanceRecord[]
+
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([reportingManagerId])
+}
+
+model PersonalInformation {
+  id                   String   @id @default(cuid())
+  employeeId           String   @unique
+  employee             Employee @relation(fields: [employeeId], references: [id])
+  phone                String
+  address              String
+  personalEmail        String?
+  profilePhotoUrl      String?
+  profilePhotoFileName String?
+  idProofFileName      String?
+  addressProofFileName String?
+  city                 String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SecondaryData {
+  id                  String   @id @default(cuid())
+  employeeId          String   @unique
+  employee            Employee @relation(fields: [employeeId], references: [id])
+  currentPosition     String   // This might be redundant with Employee.designation. Kept as per store.
+  currentRemuneration String
+  annualLeaveBalance  Int
+  sickLeaveBalance    Int
+  totalAnnualLeave    Int
+  totalSickLeave      Int
+  // managerName and managerDepartment are derivable from Employee.reportingManager
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model RewardsData {
+  id                          String   @id @default(cuid())
+  employeeId                  String   @unique
+  employee                    Employee @relation(fields: [employeeId], references: [id])
+  accruedPoints               Int      @default(0)
+  totalAnnualSharablePoints   Int      @default(0)
+  pointsSharedThisYear        Int      @default(0)
+  monthlyShareLimit           Int      @default(100)
+  pointsSharedThisMonth       Int      @default(0)
+  lastMonthlyReset            DateTime
+  lastYearlyReset             DateTime
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model RewardNomination {
+  id               String    @id @default(cuid())
+  nominatorId      String
+  nominator        Employee  @relation("NominationsGiven", fields: [nominatorId], references: [id])
+  nomineeId        String
+  nominee          Employee  @relation("NominationsReceived", fields: [nomineeId], references: [id])
+  points           Int
+  date             DateTime
+  reasonCategory   String
+  feedbackText     String
+  approvedById     String?
+  approvedBy       Employee? @relation("ApprovedNominations", fields: [approvedById], references: [id])
+  approvedOn       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([nominatorId])
+  @@index([nomineeId])
+  @@index([approvedById])
+}
+
+model AttendanceSummaryItem {
+  id             String   @id @default(cuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  year           Int
+  month          String // e.g., "July" or "07"
+  presentDays    Int
+  leaveDays      Int
+  sickLeaveDays  Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([employeeId])
+}
+
+model Remuneration {
+  id                 String      @id @default(cuid())
+  employeeId         String      @unique
+  employee           Employee    @relation(fields: [employeeId], references: [id])
+  annualSalary       String      // e.g., "₹ 9,52,000"
+  monthlyGrossSalary String
+  netMonthlySalary   String
+  providentFund      String
+  professionalTax    String
+  incomeTax          String
+  payChanges         PayChange[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model PayChange {
+  id                  String       @id @default(cuid())
+  remunerationId      String
+  remuneration        Remuneration @relation(fields: [remunerationId], references: [id])
+  effectiveDate       DateTime
+  percentageIncrease  String       // e.g., "12%"
+  salaryPostIncrease  String       // e.g., "₹ 9,52,000 p.a."
+  reason              String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([remunerationId])
+}
+
+model EmployeeReports { // Renamed from Reports to avoid conflict
+  id               String   @id @default(cuid())
+  employeeId       String   @unique
+  employee         Employee @relation(fields: [employeeId], references: [id])
+  ndaPath          String?
+  form16Path       String?
+  digitalIdImage   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Holiday {
+  id        String      @id @default(cuid())
+  date      DateTime
+  name      String
+  type      HolidayType // Enum: Company, Restricted
+  year      Int         // For easy querying
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  employees EmployeeHoliday[] // For restricted holidays taken by employees
+
+  @@unique([date, name]) // Ensure holiday on a given date with a name is unique
+  @@index([year])
+}
+
+model EmployeeHoliday { // Junction table for M-N relation between Employee and restricted Holiday
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  holidayId  String
+  holiday    Holiday @relation(fields: [holidayId], references: [id])
+  takenOn    DateTime @default(now())
+
+  @@id([employeeId, holidayId])
+  @@index([holidayId])
+}
+
+
+model Department {
+  id             String        @id @default(cuid())
+  name           String        @unique
+  head           String        // HoD name, consider making it a relation to Employee if HoD is always an employee
+  description    String
+  creationDate   DateTime
+  employees      Employee[]
+  jobs           JobPosting[]
+  projects       Project[]     @relation("DepartmentProjects")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Project {
+  id                 String     @id @default(cuid())
+  name               String
+  description        String
+  projectManagerId   String
+  projectManager     Employee   @relation("ManagedProjects", fields: [projectManagerId], references: [id])
+  startDate          DateTime
+  endDate            DateTime?
+  status             ProjectStatus // Enum
+  teamMembersString  String?    // Consider a many-to-many relation with Employee for better structure
+  tasks              Task[]
+  departmentId       String?     // If projects are tied to a specific department
+  department         Department? @relation("DepartmentProjects", fields: [departmentId], references: [id])
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([projectManagerId])
+  @@index([departmentId])
+}
+
+model Task {
+  id             String        @id @default(cuid())
+  name           String
+  description    String
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id])
+  assigneeId     String
+  assignee       Employee      @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  dueDate        DateTime
+  priority       TaskPriority  // Enum
+  status         TaskStatus    // Enum
+  creationDate   DateTime
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+model Reimbursement {
+  id                  String   @id @default(cuid())
+  employeeId          String
+  employee            Employee @relation(fields: [employeeId], references: [id])
+  amount              Float
+  currency            Currency // Enum
+  description         String
+  submissionDate      DateTime
+  status              ReimbursementStatus // Enum
+  fileName            String?
+  reasonForRejection  String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([employeeId])
+}
+
+model JobPosting {
+  id                String      @id @default(cuid())
+  title             String
+  departmentId      String
+  department        Department  @relation(fields: [departmentId], references: [id])
+  location          String
+  type              JobType     // Enum
+  status            JobStatus   // Enum
+  applicationLink   String?
+  description       String      @db.Text
+  requirements      String      @db.Text
+  postedDate        DateTime
+  applicants        Applicant[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([departmentId])
+}
+
+model Applicant {
+  id                String      @id @default(cuid())
+  jobPostingId      String
+  jobPosting        JobPosting  @relation(fields: [jobPostingId], references: [id])
+  name              String
+  email             String
+  assertifyScore    Int?
+  offerStatus       OfferStatus // Enum
+  resumeLink        String?
+  offeredSalary     String?
+  offeredStartDate  DateTime?   // Stored as DateTime
+  offerLetterHtml   String?     @db.Text
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([jobPostingId])
+}
+
+model AttendanceRecord {
+  id                    String      @id @default(cuid())
+  employeeId            String
+  employee              Employee    @relation(fields: [employeeId], references: [id])
+  date                  DateTime    @db.Date // Store only date part
+  status                AttendanceStatus? // Enum: Present, Absent, Leave, Holiday
+  notes                 String?
+  checkInTimeCategory   String?     // e.g., "Before 9:30 AM"
+  workLocation          WorkLocationType? // Enum
+  checkInLatitude       Float?
+  checkInLongitude      Float?
+  checkOutTimeCategory  String?     // e.g., "After 7:00 PM"
+  checkOutLatitude      Float?
+  checkOutLongitude     Float?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@unique([employeeId, date]) // Ensures one record per employee per day
+  @@index([employeeId])
+}
+
+// Enums
+
+enum RoleType {
+  SUPERADMIN
+  ADMIN
+  MANAGER
+  HR
+  ACCOUNTS
+  EMPLOYEE
+  // Add other specific roles from employeeStore (Software Engineer, Project Manager etc.) or keep it generic like this
+  // If using specific roles, Employee.role could be this enum, and currentRole/baseRole could be the more generic RoleType.
+  // For now, using a single RoleType for all role fields for simplicity.
+  SOFTWARE_ENGINEER
+  PROJECT_MANAGER
+  UX_DESIGNER
+  HR_SPECIALIST
+  FRONTEND_DEVELOPER
+  SALES_EXECUTIVE
+  MARKETING_MANAGER
+  DATA_ANALYST
+  QA_ENGINEER
+  DEVOPS_ENGINEER
+  PRODUCT_OWNER
+  BUSINESS_ANALYST
+  SYSTEM_ADMINISTRATOR
+  OPERATIONS_HEAD
+  ACCOUNTANT
+}
+
+enum DesignationType {
+  INTERN
+  TRAINEE
+  JUNIOR_DEVELOPER
+  ASSOCIATE_DEVELOPER
+  DEVELOPER
+  SENIOR_DEVELOPER
+  TEAM_LEAD
+  PRINCIPAL_ENGINEER
+  JUNIOR_DESIGNER
+  DESIGNER
+  SENIOR_DESIGNER
+  HR_EXECUTIVE
+  SENIOR_HR
+  SALES_REP
+  SENIOR_SALES_REP
+  ANALYST
+  SENIOR_ANALYST
+  ASSOCIATE_QA
+  QA_ENGINEER
+  SENIOR_QA
+  DEVOPS_ENGINEER_DESIGNATION // Added _DESIGNATION to avoid conflict with RoleType
+  SENIOR_DEVOPS_ENGINEER
+  PRODUCT_MANAGER
+  SENIOR_PRODUCT_MANAGER
+  MANAGER_DESIGNATION // Added _DESIGNATION
+  DIRECTOR
+  ADMINISTRATOR
+  ACCOUNTANT_DESIGNATION // Added _DESIGNATION
+}
+
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  PROBATION
+  RESIGNED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EmployeeType {
+  FULL_TIME
+  PART_TIME
+  CONTRACTOR
+  INTERN
+  TEMPORARY
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TO_DO
+  IN_PROGRESS
+  PLANNING_TASK // Renamed to avoid conflict
+  BLOCKED
+  COMPLETED_TASK // Renamed
+  CANCELLED_TASK // Renamed
+}
+
+enum Currency {
+  INR
+  USD
+  EUR
+  GBP
+  JPY
+}
+
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  FILLED
+  DRAFT
+}
+
+enum JobType {
+  FULL_TIME_JOB // Renamed
+  PART_TIME_JOB // Renamed
+  CONTRACT_JOB // Renamed
+  INTERNSHIP_JOB // Renamed
+  TEMPORARY_JOB // Renamed
+}
+
+enum OfferStatus {
+  PENDING_OFFER // Renamed
+  SELECTED
+  OFFER_GENERATED
+  OFFER_SENT
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  HIRED
+  NOT_SELECTED
+  ON_HOLD_OFFER // Renamed
+  REJECTED_APPLICATION
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  HOLIDAY
+}
+
+enum WorkLocationType {
+  OFFICE
+  HOME_WITH_PERMISSION
+  HOME_WITHOUT_PERMISSION
+}
+
+enum HolidayType {
+  COMPANY
+  RESTRICTED
+}
