@@ -40,7 +40,13 @@ export function LoginForm() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = React.useState(false);
   const login = useAuthStore((state) => state.login);
-  const isLoading = useAuthStore((state) => state.loading);
+  const isLoadingFromStore = useAuthStore((state) => state.loading);
+
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -73,6 +79,8 @@ export function LoginForm() {
       form.setError("password", { type: "manual", message: result.error || "Invalid credentials" });
     }
   }
+  
+  const actualIsLoading = isLoadingFromStore || form.formState.isSubmitting;
 
   return (
     <Card className="w-full max-w-md shadow-xl">
@@ -134,8 +142,8 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading || form.formState.isSubmitting}>
-              {isLoading || form.formState.isSubmitting ? (
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!isClient || actualIsLoading}>
+              {!isClient || actualIsLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing In...
