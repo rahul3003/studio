@@ -10,7 +10,7 @@
  * - EMAIL_FROM: The "From" address for emails (e.g., "HRMS Portal <noreply@yourdomain.com>")
  */
 
-import nodemailer from 'nodemailer';
+import nodemailer, { TransportOptions } from 'nodemailer';
 
 export interface EmailAttachment {
   filename: string;
@@ -44,16 +44,16 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10),
-    secure: parseInt(process.env.EMAIL_PORT, 10) === 465, // true for 465, false for other ports
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
     tls: {
-        rejectUnauthorized: process.env.NODE_ENV === 'production', 
+      rejectUnauthorized: process.env.NODE_ENV === 'production', 
     }
-  });
+  } as TransportOptions);
 
   const mailOptions: nodemailer.SendMailOptions = { // Explicitly type mailOptions
     from: fromAddress,

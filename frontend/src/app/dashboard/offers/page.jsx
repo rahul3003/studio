@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -20,6 +19,10 @@ import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/emplo
 import { sendEmail } from '@/services/emailService'; 
 import html2pdf from 'html2pdf.js';
 import { useSearchParams } from 'next/navigation'; // Import useSearchParams
+import { OfferHistory } from "@/components/offer/offer-history";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 
 // Import HTML generation functions
@@ -43,6 +46,14 @@ const statusVariantMap = {
 };
 
 const managerRoles = ['Manager', 'Super Admin', 'Admin', 'Project Manager', 'HR Specialist', 'Operations Head'];
+
+const predefinedNotes = [
+  "Candidate requested more info",
+  "Waiting for documents",
+  "Manager follow-up needed",
+  "Offer revision discussed",
+  "Other"
+];
 
 export default function OffersPage() {
   const { toast } = useToast();
@@ -89,6 +100,21 @@ export default function OffersPage() {
   const [isEmailingJoiningLetter, setIsEmailingJoiningLetter] = React.useState(false);
   const [isJoiningLetterPreviewOpen, setIsJoiningLetterPreviewOpen] = React.useState(false);
 
+  // Add state for viewing history
+  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
+  const [historyApplicant, setHistoryApplicant] = React.useState(null);
+
+  // Add state for note dialog
+  const [noteDialogOpen, setNoteDialogOpen] = React.useState(false);
+  const [noteApplicant, setNoteApplicant] = React.useState(null);
+  const [selectedNote, setSelectedNote] = React.useState("");
+  const [customNote, setCustomNote] = React.useState("");
+
+  const addNoteToApplicant = useApplicantStore((state) => state.addNoteToApplicant);
+
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [newApplicant, setNewApplicant] = React.useState({ name: "", email: "", jobId: "", assertifyScore: "", resumeFile: null, resumeLink: "" });
+  const addApplicant = useApplicantStore((state) => state.addApplicant);
 
   React.useEffect(() => {
     _initializeJobs();
@@ -348,13 +374,57 @@ export default function OffersPage() {
   const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
   const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
 
+  const handleOpenNoteDialog = (applicant) => {
+    setNoteApplicant(applicant);
+    setSelectedNote("");
+    setCustomNote("");
+    setNoteDialogOpen(true);
+  };
+
+  const handleAddNote = () => {
+    if (!noteApplicant) return;
+    const noteText = selectedNote === "Other" ? customNote : selectedNote;
+    if (noteText && noteText.trim() !== "") {
+      addNoteToApplicant(noteApplicant.id, noteText.trim());
+      setNoteDialogOpen(false);
+      setSelectedNote("");
+      setCustomNote("");
+    }
+  };
+
+  const handleAddApplicant = () => {
+    if (!newApplicant.name.trim() || !newApplicant.email.trim() || !newApplicant.jobId || !newApplicant.assertifyScore || !newApplicant.resumeLink) return;
+    addApplicant({
+      name: newApplicant.name.trim(),
+      email: newApplicant.email.trim(),
+      jobId: newApplicant.jobId,
+      assertifyScore: Number(newApplicant.assertifyScore),
+      resumeLink: newApplicant.resumeLink,
+    });
+    setAddDialogOpen(false);
+    setNewApplicant({ name: "", email: "", jobId: "", assertifyScore: "", resumeFile: null, resumeLink: "" });
+  };
+
+  const handleResumeChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // For demo, use a local object URL. In production, upload to server/cloud and use the returned URL.
+      setNewApplicant((prev) => ({ ...prev, resumeFile: file, resumeLink: URL.createObjectURL(file) }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Mail className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Mail className="h-8 w-8 text-primary" />
+              <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
+            </div>
+            <Button onClick={() => setAddDialogOpen(true)} variant="default">
+              Add Applicant
+            </Button>
           </div>
           <CardDescription>
             Select a job to view applicants, generate offer letters, and onboard candidates.
@@ -405,6 +475,7 @@ export default function OffersPage() {
                       <TableHead>Assertify Score</TableHead>
                       <TableHead>Resume</TableHead>
                       <TableHead>Current Status</TableHead>
+                      <TableHead>Latest Note</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -441,23 +512,55 @@ export default function OffersPage() {
                              {applicant.offerStatus}
                            </Badge>
                         </TableCell>
+                        <TableCell>
+                          {applicant.notes && applicant.notes.length > 0 ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="max-w-xs truncate cursor-pointer font-medium"
+                                  title={applicant.notes[applicant.notes.length - 1].text}
+                                  onClick={() => handleOpenNoteDialog(applicant)}
+                                >
+                                  {applicant.notes[applicant.notes.length - 1].text}
+                                  <span className="ml-1 text-xs text-muted-foreground">
+                                    ({format(new Date(applicant.notes[applicant.notes.length - 1].date), "MMM d, yyyy")})
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {applicant.notes[applicant.notes.length - 1].text}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="space-x-1">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleOpenOfferLetterDialog(applicant)}
-                            disabled={!(applicant.offerStatus === "Selected" || applicant.offerStatus === "Offer Generated" || applicant.offerStatus === "Offer Sent")}
-                          >
-                            <FileTextIcon className="mr-1 h-3.5 w-3.5" /> Offer
-                          </Button>
-                          <Button 
-                            variant="default" 
-                            size="sm" 
-                            onClick={() => handleOpenOnboardingForm(applicant)}
-                            disabled={applicant.offerStatus?.trim() !== "Offer Accepted"}
-                          >
-                            <UserPlus className="mr-1 h-3.5 w-3.5" /> Onboard
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-5 w-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {(applicant.offerStatus === "Selected" || applicant.offerStatus === "Offer Generated" || applicant.offerStatus === "Offer Sent") && (
+                                <DropdownMenuItem onClick={() => handleOpenOfferLetterDialog(applicant)}>
+                                  Offer
+                                </DropdownMenuItem>
+                              )}
+                              {applicant.offerStatus?.trim() === "Offer Accepted" && (
+                                <DropdownMenuItem onClick={() => handleOpenOnboardingForm(applicant)}>
+                                  Onboard
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => { setHistoryApplicant(applicant); setHistoryDialogOpen(true); }}>
+                                View History
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenNoteDialog(applicant)}>
+                                Note
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -610,6 +713,160 @@ export default function OffersPage() {
             </DialogFooter>
             </DialogContent>
         </Dialog>
+
+      {/* Offer History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Offer Process History for {historyApplicant?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            {historyApplicant && <OfferHistory history={historyApplicant.offerHistory || []} />}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notes for {noteApplicant?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <div>
+              <div className="font-semibold mb-1">Existing Notes:</div>
+              {noteApplicant?.notes?.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-1">
+                  {noteApplicant.notes.map((n, idx) => (
+                    <li key={idx} className="text-sm">
+                      <span>{n.text}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">({format(new Date(n.date), "MMM d, yyyy h:mm a")})</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-muted-foreground">No notes yet.</div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Add Note:</label>
+              <select
+                className="w-full border rounded px-2 py-1 mb-2"
+                value={selectedNote}
+                onChange={e => setSelectedNote(e.target.value)}
+              >
+                <option value="">Select a note</option>
+                {predefinedNotes.map((note, idx) => (
+                  <option key={idx} value={note}>{note}</option>
+                ))}
+              </select>
+              {selectedNote === "Other" && (
+                <input
+                  className="w-full border rounded px-2 py-1 mt-1"
+                  value={customNote}
+                  onChange={e => setCustomNote(e.target.value)}
+                  placeholder="Enter custom note"
+                />
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddNote} disabled={!selectedNote || (selectedNote === "Other" && !customNote.trim())}>Add Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Applicant Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-lg md:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Applicant</DialogTitle>
+            <DialogDescription>
+              Fill in the details to add a new applicant to the selected job.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
+            <form
+              onSubmit={e => { e.preventDefault(); handleAddApplicant(); }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 font-medium">Name</label>
+                  <input
+                    className="w-full border rounded px-2 py-1"
+                    value={newApplicant.name}
+                    onChange={e => setNewApplicant({ ...newApplicant, name: e.target.value })}
+                    placeholder="Enter applicant name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 font-medium">Email</label>
+                  <input
+                    className="w-full border rounded px-2 py-1"
+                    value={newApplicant.email}
+                    onChange={e => setNewApplicant({ ...newApplicant, email: e.target.value })}
+                    placeholder="Enter applicant email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 font-medium">Job</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={newApplicant.jobId}
+                    onChange={e => setNewApplicant({ ...newApplicant, jobId: e.target.value })}
+                    required
+                  >
+                    <option value="">Select a job</option>
+                    {jobs.map((job) => (
+                      <option key={job.id} value={job.id}>{job.title} ({job.department})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 font-medium">Assertify Score</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="w-full border rounded px-2 py-1"
+                    value={newApplicant.assertifyScore}
+                    onChange={e => setNewApplicant({ ...newApplicant, assertifyScore: e.target.value })}
+                    placeholder="e.g., 85"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm mb-1 font-medium">Resume Upload</label>
+                <label className="flex items-center gap-2 cursor-pointer w-fit px-4 py-2 border border-dashed border-primary rounded-md hover:bg-accent/50 transition-colors">
+                  <span className="text-primary font-medium">Upload File</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={handleResumeChange}
+                    required
+                  />
+                </label>
+                {newApplicant.resumeFile && (
+                  <div className="text-xs mt-1 text-muted-foreground">Selected: {newApplicant.resumeFile.name}</div>
+                )}
+              </div>
+              <div className="flex flex-row justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={!newApplicant.name.trim() || !newApplicant.email.trim() || !newApplicant.jobId || !newApplicant.assertifyScore || !newApplicant.resumeLink}>Add Applicant</Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
