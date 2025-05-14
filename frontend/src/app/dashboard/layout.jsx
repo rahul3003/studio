@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import * as React from "react";
@@ -99,7 +98,7 @@ export default function DashboardLayout({
   // If user exists, render the dashboard
   if (user) {
     return (
-      <SidebarProvider defaultOpen>
+      <SidebarProvider defaultOpen={false}>
         {/* <AttendanceProvider user={user}> // Removed */}
           <DashboardContent onLogout={handleLogout}>
             {children}

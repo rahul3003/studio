@@ -1,0 +1,33 @@
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNTU4MjgsImV4cCI6MTc0NzM0MjIyOH0.CAVvURBxXEfit83RMjGhxNvK7b9lYrqEw7gCbArs2U0
+@baseUrl = http://localhost:5000/api/departments
+@departmentId = <replace_with_department_id>
+
+### Get all departments
+GET {{baseUrl}}
+Authorization: Bearer {{jwt}}
+
+### Create department (admin/superadmin only)
+POST {{baseUrl}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "Design",
+  "description": "Handles all design work.",
+  "headId": "30957daa-3516-4fdd-a784-e6a017a8cb3f"
+}
+
+### Update department (admin/superadmin only)
+PUT {{baseUrl}}/{{departmentId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "Development Updated",
+  "headId": "30957daa-3516-4fdd-a784-e6a017a8cb3f",
+  "description": "Handles all development work."
+}
+
+### Delete department (admin/superadmin only)
+DELETE {{baseUrl}}/{{departmentId}}
+Authorization: Bearer {{jwt}} 

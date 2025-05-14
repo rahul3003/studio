@@ -11,7 +11,8 @@ datasource db {
 }
 
 model Employee {
-  id                         String   @id @default(cuid())
+  id                         String   @id @default(uuid())
+  employeeCode               String?  @unique // You can generate this in your API logic
   name                       String
   email                      String   @unique
   passwordHash               String // For actual authentication
@@ -19,7 +20,7 @@ model Employee {
   role                       RoleType // Enum for job roles
   designation                DesignationType // Enum for designations
   departmentId               String?
-  department                 Department? @relation(fields: [departmentId], references: [id])
+  department                 Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
   status                     EmployeeStatus // Enum for employment status
   joinDate                   DateTime
   gender                     Gender // Enum for gender
@@ -29,8 +30,6 @@ model Employee {
   reportingManagerId         String?
   reportingManager           Employee? @relation("ReportingHierarchy", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reportsTo                  Employee[] @relation("ReportingHierarchy")
-  baseRole                   RoleType // Base role assigned at login
-  currentRole                RoleType // Current role user is acting as
 
   personalInformation        PersonalInformation?
   secondaryData              SecondaryData?
@@ -48,8 +47,14 @@ model Employee {
   approvedNominations        RewardNomination[] @relation("ApprovedNominations")
   attendanceRecords          AttendanceRecord[]
 
+  jwtToken                   String?
+
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
+
+  notifications              Notification[]
+
+  headsDepartment            Department[] @relation("DepartmentHead")
 
   @@index([departmentId])
   @@index([reportingManagerId])
@@ -206,10 +211,11 @@ model EmployeeHoliday { // Junction table for M-N relation between Employee and 
 model Department {
   id             String        @id @default(cuid())
   name           String        @unique
-  head           String        // HoD name, consider making it a relation to Employee if HoD is always an employee
+  headId         String
+  head           Employee      @relation("DepartmentHead", fields: [headId], references: [id])
   description    String
   creationDate   DateTime
-  employees      Employee[]
+  employees      Employee[]    @relation("DepartmentEmployees")
   jobs           JobPosting[]
   projects       Project[]     @relation("DepartmentProjects")
   createdAt      DateTime      @default(now())
@@ -298,11 +304,13 @@ model Applicant {
   name              String
   email             String
   assertifyScore    Int?
-  offerStatus       OfferStatus // Enum
+  offerStatus       OfferStatus
   resumeLink        String?
   offeredSalary     String?
-  offeredStartDate  DateTime?   // Stored as DateTime
+  offeredStartDate  DateTime?
   offerLetterHtml   String?     @db.Text
+  notes             Json?      // Array of notes (optional)
+  offerHistory      Json?      // Array of offer history (optional)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -330,6 +338,16 @@ model AttendanceRecord {
   @@index([employeeId])
 }
 
+model Notification {
+  id          String   @id @default(uuid())
+  type        String
+  message     String
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+  createdAt   DateTime @default(now())
+  read        Boolean  @default(false)
+}
+
 // Enums
 
 enum RoleType {
@@ -339,24 +357,6 @@ enum RoleType {
   HR
   ACCOUNTS
   EMPLOYEE
-  // Add other specific roles from employeeStore (Software Engineer, Project Manager etc.) or keep it generic like this
-  // If using specific roles, Employee.role could be this enum, and currentRole/baseRole could be the more generic RoleType.
-  // For now, using a single RoleType for all role fields for simplicity.
-  SOFTWARE_ENGINEER
-  PROJECT_MANAGER
-  UX_DESIGNER
-  HR_SPECIALIST
-  FRONTEND_DEVELOPER
-  SALES_EXECUTIVE
-  MARKETING_MANAGER
-  DATA_ANALYST
-  QA_ENGINEER
-  DEVOPS_ENGINEER
-  PRODUCT_OWNER
-  BUSINESS_ANALYST
-  SYSTEM_ADMINISTRATOR
-  OPERATIONS_HEAD
-  ACCOUNTANT
 }
 
 enum DesignationType {

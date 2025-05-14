@@ -1,0 +1,44 @@
+@jwt =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNTU4MjgsImV4cCI6MTc0NzM0MjIyOH0.CAVvURBxXEfit83RMjGhxNvK7b9lYrqEw7gCbArs2U0
+# Replace with a real employee UUID from your database
+@employeeId = 8182dbb7-1252-452f-bd03-afc8180c0c83
+@baseUrl = http://localhost:5000/api/employees
+
+### Get all employees
+GET {{baseUrl}}
+Authorization: Bearer {{jwt}}
+
+### Get employee by ID (UUID)
+GET {{baseUrl}}/{{employeeId}}
+Authorization: Bearer {{jwt}}
+
+### Create employee
+POST {{baseUrl}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "Anil Jayaprakash",
+  "email": "anil@pesuventurelabs.com",
+  "passwordHash": "Anil@123",
+  "role": "MANAGER",
+  "designation": "DEVELOPER",
+  "status": "ACTIVE",
+  "joinDate": "2024-06-01T00:00:00.000Z",
+  "gender": "MALE",
+  "employeeType": "FULL_TIME",
+  "salary": "500000",
+  "reportingManagerId":"b0a27150-0be6-48d1-8ffe-9934ffedca9f"
+}
+
+### Update employee (by UUID)
+PUT {{baseUrl}}/{{employeeId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "reportingManagerId":"30957daa-3516-4fdd-a784-e6a017a8cb3f"
+}
+
+### Delete employee (by UUID)
+DELETE {{baseUrl}}/{{employeeId}}
+Authorization: Bearer {{jwt}} 

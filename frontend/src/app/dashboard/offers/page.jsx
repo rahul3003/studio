@@ -23,6 +23,7 @@ import { OfferHistory } from "@/components/offer/offer-history";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ApplicantForm } from "@/components/applicant/applicant-form";
 
 
 // Import HTML generation functions
@@ -418,9 +419,9 @@ export default function OffersPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Mail className="h-8 w-8 text-primary" />
-              <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
+          <div className="flex items-center gap-2">
+            <Mail className="h-8 w-8 text-primary" />
+            <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
             </div>
             <Button onClick={() => setAddDialogOpen(true)} variant="default">
               Add Applicant
@@ -540,7 +541,7 @@ export default function OffersPage() {
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
                                 <MoreVertical className="h-5 w-5" />
-                              </Button>
+                          </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {(applicant.offerStatus === "Selected" || applicant.offerStatus === "Offer Generated" || applicant.offerStatus === "Offer Sent") && (
@@ -790,83 +791,24 @@ export default function OffersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
-            <form
-              onSubmit={e => { e.preventDefault(); handleAddApplicant(); }}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1 font-medium">Name</label>
-                  <input
-                    className="w-full border rounded px-2 py-1"
-                    value={newApplicant.name}
-                    onChange={e => setNewApplicant({ ...newApplicant, name: e.target.value })}
-                    placeholder="Enter applicant name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1 font-medium">Email</label>
-                  <input
-                    className="w-full border rounded px-2 py-1"
-                    value={newApplicant.email}
-                    onChange={e => setNewApplicant({ ...newApplicant, email: e.target.value })}
-                    placeholder="Enter applicant email"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1 font-medium">Job</label>
-                  <select
-                    className="w-full border rounded px-2 py-1"
-                    value={newApplicant.jobId}
-                    onChange={e => setNewApplicant({ ...newApplicant, jobId: e.target.value })}
-                    required
-                  >
-                    <option value="">Select a job</option>
-                    {jobs.map((job) => (
-                      <option key={job.id} value={job.id}>{job.title} ({job.department})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1 font-medium">Assertify Score</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="w-full border rounded px-2 py-1"
-                    value={newApplicant.assertifyScore}
-                    onChange={e => setNewApplicant({ ...newApplicant, assertifyScore: e.target.value })}
-                    placeholder="e.g., 85"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm mb-1 font-medium">Resume Upload</label>
-                <label className="flex items-center gap-2 cursor-pointer w-fit px-4 py-2 border border-dashed border-primary rounded-md hover:bg-accent/50 transition-colors">
-                  <span className="text-primary font-medium">Upload File</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
-                    onChange={handleResumeChange}
-                    required
-                  />
-                </label>
-                {newApplicant.resumeFile && (
-                  <div className="text-xs mt-1 text-muted-foreground">Selected: {newApplicant.resumeFile.name}</div>
-                )}
-              </div>
-              <div className="flex flex-row justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={!newApplicant.name.trim() || !newApplicant.email.trim() || !newApplicant.jobId || !newApplicant.assertifyScore || !newApplicant.resumeLink}>Add Applicant</Button>
-              </div>
-            </form>
+            <ApplicantForm
+              onSubmit={(values) => {
+                addApplicant({
+                  name: values.name,
+                  email: values.email,
+                  jobId: values.jobId,
+                  assertifyScore: values.assertifyScore,
+                  resumeFile: values.resumeFile,
+                  resumeLink: values.resumeLink,
+                });
+                setAddDialogOpen(false);
+              }}
+              onCancel={() => setAddDialogOpen(false)}
+              jobOptions={jobs}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+        </Dialog>
 
     </div>
   );

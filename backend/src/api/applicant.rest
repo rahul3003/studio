@@ -1,0 +1,43 @@
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNTU4MjgsImV4cCI6MTc0NzM0MjIyOH0.CAVvURBxXEfit83RMjGhxNvK7b9lYrqEw7gCbArs2U0
+@baseUrl = http://localhost:5000/api/applicants
+@applicantId = <replace_with_applicant_id>
+
+### Get all applicants
+GET {{baseUrl}}
+
+### Get applicant by ID
+GET {{baseUrl}}/{{applicantId}}
+
+### Create applicant (admin/superadmin only)
+POST {{baseUrl}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "jobPostingId": "cmaohjrgg0001vinwer6nsccq",
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "assertifyScore": 85,
+  "offerStatus": "PENDING_OFFER",
+  "resumeLink": "https://example.com/resume.pdf",
+  "offerHistory": [
+    {
+      "status": "Applied",
+      "date": "2024-06-15T12:00:00.000Z",
+      "note": "Applicant created"
+    }
+  ]
+}
+
+### Update applicant (admin/superadmin only)
+PUT {{baseUrl}}/{{applicantId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "offerStatus": "OFFER_ACCEPTED"
+}
+
+### Delete applicant (admin/superadmin only)
+DELETE {{baseUrl}}/{{applicantId}}
+Authorization: Bearer {{jwt}} 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -37,15 +36,11 @@ const mockNotifications = [
   { id: 3, title: "Project Update", description: "HRMS Portal phase 2 started.", time: "3h ago", read: false },
 ];
 
-export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) { 
+export function AppHeader({ onLogout }) { 
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
-
   const profileData = useProfileStore(state => state.profileData);
-  
   const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData?.rewards?.accruedPoints]);
-
-
   const unreadNotificationsCount = mockNotifications.filter(n => !n.read).length;
 
   return (
@@ -72,15 +67,8 @@ export function AppHeader({ onCheckoutClick, showCheckoutButton, onLogout }) {
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        <RoleSwitcher /> {/* RoleSwitcher will handle its own visibility */}
+        <RoleSwitcher />
         
-        {showCheckoutButton && (
-          <Button variant="outline" size="sm" onClick={onCheckoutClick} className="animate-pulse bg-green-500/10 border-green-500 text-green-700 hover:bg-green-500/20 dark:bg-green-700/20 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-700/30">
-            <LogOutIcon className="mr-2 h-4 w-4" />
-            Check Out
-          </Button>
-        )}
-
         <div className="flex items-center gap-1 px-2 py-1 rounded-md border border-input bg-background hover:bg-accent/50 transition-colors cursor-pointer">
           <Award className="h-4 w-4 text-yellow-500" />
           <span className="text-sm font-medium text-foreground">{rewardsPoints}</span>

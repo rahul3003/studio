@@ -1,0 +1,42 @@
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNTU4MjgsImV4cCI6MTc0NzM0MjIyOH0.CAVvURBxXEfit83RMjGhxNvK7b9lYrqEw7gCbArs2U0
+@baseUrl = http://localhost:5000/api/jobs
+@jobId = <replace_with_job_id>
+
+### Get all jobs
+GET {{baseUrl}}
+Authorization: Bearer {{jwt}}
+
+
+### Get job by ID
+GET {{baseUrl}}/{{jobId}}
+Authorization: Bearer {{jwt}}
+
+### Create job (admin/superadmin only)
+POST {{baseUrl}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "title": "Frontend Developer",
+  "departmentId": "cmaoh97yr0000vioc9ysl2esu",
+  "location": "Remote",
+  "type": "FULL_TIME_JOB",
+  "status": "OPEN",
+  "applicationLink": "https://example.com/apply",
+  "description": "Build modern UIs.",
+  "requirements": "React, TypeScript, CSS"
+}
+
+### Update job (admin/superadmin only)
+PUT {{baseUrl}}/{{jobId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "title": "Frontend Developer (Updated)",
+  "status": "CLOSED"
+}
+
+### Delete job (admin/superadmin only)
+DELETE {{baseUrl}}/{{jobId}}
+Authorization: Bearer {{jwt}} 
