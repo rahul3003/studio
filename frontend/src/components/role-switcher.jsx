@@ -73,18 +73,18 @@ export function RoleSwitcher() {
   return (
     <div className="flex items-center gap-2">
       <Select value={currentRole} onValueChange={handleRoleChange}>
-        <SelectTrigger className="w-auto min-w-[160px] h-9 text-xs md:text-sm md:min-w-[180px] md:h-10">
+      <SelectTrigger className="w-auto min-w-[160px] h-9 text-xs md:text-sm md:min-w-[180px] md:h-10">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <SelectValue placeholder="Switch role">
               {ROLES.find(r => r.value.toUpperCase() === currentRole)?.name || currentRole}
             </SelectValue>
           </div>
-        </SelectTrigger>
-        <SelectContent>
-          {availableRoles.map((role) => (
-            <SelectItem key={role.value} value={role.value}>
-              <div className="flex items-center justify-between w-full">
+      </SelectTrigger>
+      <SelectContent>
+        {availableRoles.map((role) => (
+          <SelectItem key={role.value} value={role.value}>
+            <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span>{role.label}</span>
@@ -93,12 +93,12 @@ export function RoleSwitcher() {
                   <Badge variant="outline" className="ml-2 text-xs px-1.5 py-0.5">
                     Base
                   </Badge>
-                )}
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+              )}
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
     </div>
   );
 }

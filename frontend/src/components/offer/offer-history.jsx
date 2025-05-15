@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
+import moment from "moment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -89,7 +90,7 @@ export function OfferHistory({ history = [] }) {
                         </Badge>
                       )}
                       <span className="text-sm text-muted-foreground">
-                        {format(new Date(entry.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                        {moment(entry.timestamp).isValid() ? moment(entry.timestamp).format("MMM D, YYYY [at] h:mm a") : "N/A"}
                       </span>
                     </div>
                     <p className="text-sm">{entry.details}</p>

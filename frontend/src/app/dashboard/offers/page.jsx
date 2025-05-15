@@ -31,19 +31,46 @@ import { generatePlaceholderOfferLetterHtml } from '@/lib/document-templates/off
 import { generatePlaceholderJoiningLetterHtml } from '@/lib/document-templates/joining-letter';
 
 
-export const OFFER_STATUS_OPTIONS = ["Pending", "Selected", "Offer Generated", "Offer Sent", "Offer Accepted", "Offer Rejected", "Hired", "Not Selected", "On Hold", "Rejected (Application)"];
+export const OFFER_STATUS_OPTIONS = [
+  "PENDING_OFFER",
+  "SELECTED",
+  "OFFER_GENERATED",
+  "OFFER_SENT",
+  "OFFER_ACCEPTED",
+  "OFFER_REJECTED",
+  "HIRED",
+  "NOT_SELECTED",
+  "ON_HOLD_OFFER",
+  "REJECTED_APPLICATION"
+];
+
+const formatOfferStatus = (status) => {
+  const map = {
+    PENDING_OFFER: "Pending",
+    SELECTED: "Selected",
+    OFFER_GENERATED: "Offer Generated",
+    OFFER_SENT: "Offer Sent",
+    OFFER_ACCEPTED: "Offer Accepted",
+    OFFER_REJECTED: "Offer Rejected",
+    HIRED: "Hired",
+    NOT_SELECTED: "Not Selected",
+    ON_HOLD_OFFER: "On Hold",
+    REJECTED_APPLICATION: "Rejected (Application)"
+  };
+  return map[status] || status;
+};
 
 const statusVariantMap = {
-  Pending: "secondary",
-  Selected: "default",
-  "Offer Generated": "outline",
-  "Offer Sent": "default",
-  "Offer Accepted": "default",
-  "Offer Rejected": "destructive",
-  Hired: "default", 
-  "Not Selected": "secondary",
-  "On Hold": "secondary",
-  "Rejected (Application)": "destructive",
+  PENDING_OFFER: "secondary",
+  SELECTED: "default",
+  OFFER_GENERATED: "outline",
+  OFFER_SENT: "default",
+  OFFER_ACCEPTED: "default",
+  OFFER_REJECTED: "destructive",
+  HIRED: "default",
+  NOT_SELECTED: "secondary",
+  ON_HOLD_OFFER: "secondary",
+  REJECTED_APPLICATION: "destructive",
 };
 
 const managerRoles = ['Manager', 'Super Admin', 'Admin', 'Project Manager', 'HR Specialist', 'Operations Head'];
@@ -60,22 +87,35 @@ export default function OffersPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams(); // Initialize searchParams
 
+  // Job store
   const jobs = useJobStore((state) => state.jobs || []);
-  const _initializeJobs = useJobStore((state) => state._initializeJobs);
+  const initializeJobs = useJobStore((state) => state.initializeJobs);
+  const jobLoading = useJobStore((state) => state.loading);
+  const jobError = useJobStore((state) => state.error);
 
+  // Applicant store
   const applicants = useApplicantStore((state) => state.applicants || []);
   const updateApplicant = useApplicantStore((state) => state.updateApplicant);
-  const _initializeApplicants = useApplicantStore((state) => state._initializeApplicants);
+  const initializeApplicants = useApplicantStore((state) => state.initializeApplicants);
+  const applicantLoading = useApplicantStore((state) => state.loading);
+  const applicantError = useApplicantStore((state) => state.error);
   
+  // Employee store
   const addEmployee = useEmployeeStore((state) => state.addEmployee);
-  const _initializeEmployees = useEmployeeStore((state) => state._initializeEmployees);
+  const initializeEmployees = useEmployeeStore((state) => state.initializeEmployees);
   const allEmployees = useEmployeeStore((state) => state.employees || []);
 
+  // Get manager options: all employees except those with role 'EMPLOYEE'
   const managerOptions = React.useMemo(() =>
     allEmployees
-        .filter(emp => managerRoles.includes(emp.role))
-        .map(emp => emp.name)
-  , [allEmployees]);
+      .filter(emp => emp.role !== 'EMPLOYEE')
+      .map(emp => ({
+        id: emp.id,
+        value: emp.id,
+        label: `${emp.name} (${emp.role})`
+      })),
+    [allEmployees]
+  );
 
 
   const OFFER_STATUS_OPTIONS_FILTER = ["All", ...OFFER_STATUS_OPTIONS];
@@ -117,11 +157,33 @@ export default function OffersPage() {
   const [newApplicant, setNewApplicant] = React.useState({ name: "", email: "", jobId: "", assertifyScore: "", resumeFile: null, resumeLink: "" });
   const addApplicant = useApplicantStore((state) => state.addApplicant);
 
+  // Initialize data
   React.useEffect(() => {
-    _initializeJobs();
-    _initializeApplicants();
-    _initializeEmployees();
-  }, [_initializeJobs, _initializeApplicants, _initializeEmployees]);
+    initializeJobs();
+    initializeApplicants();
+    initializeEmployees();
+  }, [initializeJobs, initializeApplicants, initializeEmployees]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (jobError) {
+      toast({
+        title: "Error",
+        description: jobError,
+        variant: "destructive",
+      });
+    }
+  }, [jobError, toast]);
+
+  React.useEffect(() => {
+    if (applicantError) {
+      toast({
+        title: "Error",
+        description: applicantError,
+        variant: "destructive",
+      });
+    }
+  }, [applicantError, toast]);
 
   React.useEffect(() => {
     const queryJobId = searchParams.get('jobId');
@@ -143,11 +205,13 @@ export default function OffersPage() {
   }, [searchParams, jobs, selectedJobId]); // Add selectedJobId to prevent re-running if it's already set by user
 
   React.useEffect(() => {
+    console.log("selectedJobId", selectedJobId);
     if (selectedJobId) {
-      let jobApplicants = applicants.filter(app => app.jobId === selectedJobId);
+      let jobApplicants = applicants.filter(app => app.jobPostingId === selectedJobId);
       if (statusFilter !== "All") {
         jobApplicants = jobApplicants.filter(app => app.offerStatus === statusFilter);
       }
+      console.log("jobApplicants", jobApplicants);
       setFilteredApplicants(jobApplicants);
     } else {
       setFilteredApplicants([]);
@@ -176,7 +240,7 @@ export default function OffersPage() {
       if (htmlContent) {
         setGeneratedOfferLetterHtml(htmlContent);
         updateApplicant(selectedApplicantForOffer.id, { 
-          offerStatus: "Offer Generated", 
+          offerStatus: "OFFER_GENERATED", 
           offeredSalary: offerData.salary,
           offeredStartDate: offerData.startDate, // Assuming offerData.startDate is already formatted string
           offerLetterHtml: htmlContent 
@@ -212,7 +276,7 @@ export default function OffersPage() {
             }]
         });
         if (result.success) {
-            updateApplicant(selectedApplicantForOffer.id, { offerStatus: "Offer Sent" });
+            updateApplicant(selectedApplicantForOffer.id, { offerStatus: "OFFER_SENT" });
             toast({ title: "Offer Letter Emailed", description: `Sent to ${selectedApplicantForOffer.email}.` });
             setIsOfferLetterDialogOpen(false); 
         } else {
@@ -255,7 +319,7 @@ export default function OffersPage() {
 
   const handleUpdateApplicantStatus = (applicantId, newStatus) => {
     updateApplicant(applicantId, { offerStatus: newStatus });
-    toast({ title: "Status Updated", description: `Applicant status changed to ${newStatus}.` });
+    toast({ title: "Status Updated", description: `Applicant status changed to ${formatOfferStatus(newStatus)}.` });
   };
 
   const handleOpenOnboardingForm = (applicant) => {
@@ -298,7 +362,7 @@ export default function OffersPage() {
         setGeneratedJoiningLetterHtml(htmlContent);
         const newEmployeeWithLetter = { ...newEmployeeBase, joiningLetterHtml: htmlContent };
         addEmployee(newEmployeeWithLetter);
-        updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
+        updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "HIRED" });
         toast({ title: "Employee Onboarded & Joining Letter Generated", description: `${newEmployeeBase.name} added. Preview letter.` });
         setIsJoiningLetterPreviewOpen(true); 
       } else {
@@ -308,7 +372,7 @@ export default function OffersPage() {
       console.error("Error generating joining letter:", error);
       toast({ title: "Joining Letter Failed", description: error.message, variant: "destructive" });
       addEmployee(newEmployeeBase);
-      updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "Hired" });
+      updateApplicant(selectedApplicantForOnboarding.id, { offerStatus: "HIRED" });
       toast({ title: "Employee Onboarded (Letter Failed)", description: `${newEmployeeBase.name} added. Letter generation failed.`});
     } finally {
       setIsLoadingJoiningLetter(false);
@@ -413,15 +477,16 @@ export default function OffersPage() {
       setNewApplicant((prev) => ({ ...prev, resumeFile: file, resumeLink: URL.createObjectURL(file) }));
     }
   };
+  console.log("jobs name",selectedApplicantForOffer,jobs, jobs?.find(j => j.id === selectedApplicantForOffer?.jobPostingId)?.title);
 
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2">
-            <Mail className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
+            <div className="flex items-center gap-2">
+              <Mail className="h-8 w-8 text-primary" />
+              <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
             </div>
             <Button onClick={() => setAddDialogOpen(true)} variant="default">
               Add Applicant
@@ -432,152 +497,161 @@ export default function OffersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <Label htmlFor="job-select">Select Job Posting</Label>
-              <Select value={selectedJobId} onValueChange={handleJobChange}>
-                <SelectTrigger id="job-select">
-                  <SelectValue placeholder="Select a job" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title} ({job.department})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {(jobLoading || applicantLoading) ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading data...</span>
             </div>
-            <div>
-              <Label htmlFor="status-filter">Filter by Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger id="status-filter">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {OFFER_STATUS_OPTIONS_FILTER.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {selectedJobId ? (
-            filteredApplicants.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Applicant Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Assertify Score</TableHead>
-                      <TableHead>Resume</TableHead>
-                      <TableHead>Current Status</TableHead>
-                      <TableHead>Latest Note</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplicants.map((applicant) => (
-                      <TableRow key={applicant.id}>
-                        <TableCell className="font-medium">{applicant.name}</TableCell>
-                        <TableCell>{applicant.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={applicant.assertifyScore >= 85 ? "default" : "secondary"}>
-                            {applicant.assertifyScore}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <a href={applicant.resumeLink || "#"} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                            View Resume
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          <Select 
-                            value={applicant.offerStatus} 
-                            onValueChange={(newStatus) => handleUpdateApplicantStatus(applicant.id, newStatus)}
-                          >
-                            <SelectTrigger className="w-[180px] h-8 text-xs">
-                              <SelectValue placeholder="Update status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {OFFER_STATUS_OPTIONS.map(opt => (
-                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                           <Badge variant={statusVariantMap[applicant.offerStatus] || "outline"} className="mt-1 text-xs">
-                             {applicant.offerStatus}
-                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {applicant.notes && applicant.notes.length > 0 ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className="max-w-xs truncate cursor-pointer font-medium"
-                                  title={applicant.notes[applicant.notes.length - 1].text}
-                                  onClick={() => handleOpenNoteDialog(applicant)}
-                                >
-                                  {applicant.notes[applicant.notes.length - 1].text}
-                                  <span className="ml-1 text-xs text-muted-foreground">
-                                    ({format(new Date(applicant.notes[applicant.notes.length - 1].date), "MMM d, yyyy")})
-                                  </span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {applicant.notes[applicant.notes.length - 1].text}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="space-x-1">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-5 w-5" />
-                          </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {(applicant.offerStatus === "Selected" || applicant.offerStatus === "Offer Generated" || applicant.offerStatus === "Offer Sent") && (
-                                <DropdownMenuItem onClick={() => handleOpenOfferLetterDialog(applicant)}>
-                                  Offer
-                                </DropdownMenuItem>
-                              )}
-                              {applicant.offerStatus?.trim() === "Offer Accepted" && (
-                                <DropdownMenuItem onClick={() => handleOpenOnboardingForm(applicant)}>
-                                  Onboard
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => { setHistoryApplicant(applicant); setHistoryDialogOpen(true); }}>
-                                View History
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenNoteDialog(applicant)}>
-                                Note
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-10 text-muted-foreground">
-                <p>No applicants match the current filters for this job.</p>
-              </div>
-            )
           ) : (
-            <div className="text-center py-10 text-muted-foreground">
-                <BriefcaseBusiness className="mx-auto h-12 w-12 mb-4" />
-                <p className="text-lg font-medium">Please select a job posting to view applicants.</p>
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <Label htmlFor="job-select">Select Job Posting</Label>
+                  <Select value={selectedJobId} onValueChange={handleJobChange}>
+                    <SelectTrigger id="job-select">
+                      <SelectValue placeholder="Select a job" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobs.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.title} ({typeof job.department === 'object' ? job.department.name : job.department})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="status-filter">Filter by Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger id="status-filter">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OFFER_STATUS_OPTIONS_FILTER.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status === "All" ? "All" : formatOfferStatus(status)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {selectedJobId ? (
+                filteredApplicants.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Applicant Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Assertify Score</TableHead>
+                          <TableHead>Resume</TableHead>
+                          <TableHead>Current Status</TableHead>
+                          <TableHead>Latest Note</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredApplicants.map((applicant) => (
+                          <TableRow key={applicant.id}>
+                            <TableCell className="font-medium">{applicant.name}</TableCell>
+                            <TableCell>{applicant.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={applicant.assertifyScore >= 85 ? "default" : "secondary"}>
+                                {applicant.assertifyScore}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <a href={applicant.resumeLink || "#"} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                View Resume
+                              </a>
+                            </TableCell>
+                            <TableCell>
+                              <Select 
+                                value={applicant.offerStatus} 
+                                onValueChange={(newStatus) => handleUpdateApplicantStatus(applicant.id, newStatus)}
+                              >
+                                <SelectTrigger className="w-[180px] h-8 text-xs">
+                                  <SelectValue placeholder="Update status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {OFFER_STATUS_OPTIONS.map(opt => (
+                                    <SelectItem key={opt} value={opt}>{formatOfferStatus(opt)}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                               <Badge variant={statusVariantMap[applicant.offerStatus] || "outline"} className="mt-1 text-xs">
+                                 {formatOfferStatus(applicant.offerStatus)}
+                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {applicant.notes && applicant.notes.length > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="max-w-xs truncate cursor-pointer font-medium"
+                                      title={applicant.notes[applicant.notes.length - 1].text}
+                                      onClick={() => handleOpenNoteDialog(applicant)}
+                                    >
+                                      {applicant.notes[applicant.notes.length - 1].text}
+                                      <span className="ml-1 text-xs text-muted-foreground">
+                                        ({format(new Date(applicant.notes[applicant.notes.length - 1].date), "MMM d, yyyy")})
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {applicant.notes[applicant.notes.length - 1].text}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="space-x-1">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-5 w-5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {(applicant.offerStatus === "SELECTED" || applicant.offerStatus === "OFFER_GENERATED" || applicant.offerStatus === "OFFER_SENT") && (
+                                    <DropdownMenuItem onClick={() => handleOpenOfferLetterDialog(applicant)}>
+                                      Offer
+                                    </DropdownMenuItem>
+                                  )}
+                                  {applicant.offerStatus?.trim() === "OFFER_ACCEPTED" && (
+                                    <DropdownMenuItem onClick={() => handleOpenOnboardingForm(applicant)}>
+                                      Onboard
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => { setHistoryApplicant(applicant); setHistoryDialogOpen(true); }}>
+                                    View History
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleOpenNoteDialog(applicant)}>
+                                    Note
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <p>No applicants match the current filters for this job.</p>
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  <BriefcaseBusiness className="mx-auto h-12 w-12 mb-4" />
+                  <p className="text-lg font-medium">Please select a job posting to view applicants.</p>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -599,8 +673,8 @@ export default function OffersPage() {
                 initialData={selectedApplicantForOffer ? {
                     candidateName: selectedApplicantForOffer.name,
                     candidateEmail: selectedApplicantForOffer.email,
-                    positionTitle: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.title || "",
-                    department: jobs.find(j => j.id === selectedApplicantForOffer.jobId)?.department || "",
+                    positionTitle: jobs?.find(j => j.id === selectedApplicantForOffer?.jobPostingId)?.title || "",
+                    department: jobs?.find(j => j.id === selectedApplicantForOffer?.jobPostingId)?.department?.name || "",
                     salary: selectedApplicantForOffer.offeredSalary || "",
                     startDate: selectedApplicantForOffer.offeredStartDate ? (selectedApplicantForOffer.offeredStartDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offeredStartDate), "yyyy-MM-dd") : selectedApplicantForOffer.offeredStartDate) : format(new Date(), "yyyy-MM-dd"),
                     offerExpiryDate: selectedApplicantForOffer.offerExpiryDate ? (selectedApplicantForOffer.offerExpiryDate.includes(" ") ? format(new Date(selectedApplicantForOffer.offerExpiryDate), "yyyy-MM-dd") : selectedApplicantForOffer.offerExpiryDate) : format(new Date(new Date().setDate(new Date().getDate() + 7)), "yyyy-MM-dd"),

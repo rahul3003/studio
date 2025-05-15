@@ -11,7 +11,12 @@ async function createDepartment(data) {
 }
 
 async function getDepartments() {
-  return prisma.department.findMany({ orderBy: { creationDate: 'desc' } });
+  return prisma.department.findMany({ 
+    orderBy: { creationDate: 'desc' },
+    include: {
+      head: true
+    }
+  });
 }
 
 async function updateDepartment(id, data) {

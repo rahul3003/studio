@@ -5,7 +5,17 @@ async function createJob(data) {
 }
 
 async function getJobs() {
-  return prisma.jobPosting.findMany({ orderBy: { postedDate: 'desc' } });
+  return prisma.jobPosting.findMany({
+    orderBy: { postedDate: 'desc' },
+    include: {
+      department: {
+        select: {
+          name: true,
+          id: true
+        }
+      },
+    }
+  });
 }
 
 async function getJobById(id) {

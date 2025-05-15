@@ -145,8 +145,8 @@ export function OfferLetterForm({ onSubmit, isLoading, initialData, managerOptio
                   </FormControl>
                   <SelectContent>
                     {managerOptions.map((manager) => (
-                      <SelectItem key={manager} value={manager}>
-                        {manager}
+                      <SelectItem key={manager.value} value={manager.value}>
+                        {manager.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

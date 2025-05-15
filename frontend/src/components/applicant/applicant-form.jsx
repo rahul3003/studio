@@ -107,7 +107,7 @@ export function ApplicantForm({
                   <SelectContent>
                     {jobOptions.map((job) => (
                       <SelectItem key={job.id} value={job.id}>
-                        {job.title} ({job.department})
+                        {job.title} ({typeof job.department === 'object' ? job.department.name : job.department})
                       </SelectItem>
                     ))}
                   </SelectContent>

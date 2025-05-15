@@ -1,6 +1,6 @@
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import api from '@/services/api';
 
 const initialJobsMock = [
   {
@@ -20,27 +20,85 @@ const initialJobsMock = [
 export const useJobStore = create(
   persist(
     (set, get) => ({
-      jobs: initialJobsMock, // Initialize with mock data directly
-      _initializeJobs: () => {
-        if (get().jobs.length === 0) {
-          set({ jobs: initialJobsMock });
+      jobs: [],
+      loading: false,
+      error: null,
+
+      // Initialize jobs from backend
+      initializeJobs: async () => {
+        set({ loading: true, error: null });
+        try {
+          const response = await api.get('/jobs');
+          set({ jobs: response.data, loading: false });
+        } catch (error) {
+          set({ 
+            error: error.response?.data?.message || 'Failed to fetch jobs', 
+            loading: false 
+          });
         }
       },
-      addJob: (job) =>
-        set((state) => ({
-          jobs: [job, ...state.jobs],
-        })),
-      updateJob: (updatedJob) =>
-        set((state) => ({
-          jobs: state.jobs.map((job) =>
-            job.id === updatedJob.id ? { ...job, ...updatedJob } : job
-          ),
-        })),
-      deleteJob: (jobId) =>
-        set((state) => ({
-          jobs: state.jobs.filter((job) => job.id !== jobId),
-        })),
-      setJobs: (jobs) => set({ jobs }),
+
+      // Add new job
+      addJob: async (jobData) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await api.post('/jobs', jobData);
+          set((state) => ({
+            jobs: [response.data, ...state.jobs],
+            loading: false
+          }));
+          return { success: true, data: response.data };
+        } catch (error) {
+          set({ 
+            error: error.response?.data?.message || 'Failed to add job', 
+            loading: false 
+          });
+          return { success: false, error: error.response?.data?.message || 'Failed to add job' };
+        }
+      },
+
+      // Update existing job
+      updateJob: async (jobData) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await api.put(`/jobs/${jobData.id}`, jobData);
+          set((state) => ({
+            jobs: state.jobs.map((job) =>
+              job.id === jobData.id ? response.data : job
+            ),
+            loading: false
+          }));
+          return { success: true, data: response.data };
+        } catch (error) {
+          set({ 
+            error: error.response?.data?.message || 'Failed to update job', 
+            loading: false 
+          });
+          return { success: false, error: error.response?.data?.message || 'Failed to update job' };
+        }
+      },
+
+      // Delete job
+      deleteJob: async (jobId) => {
+        set({ loading: true, error: null });
+        try {
+          await api.delete(`/jobs/${jobId}`);
+          set((state) => ({
+            jobs: state.jobs.filter((job) => job.id !== jobId),
+            loading: false
+          }));
+          return { success: true };
+        } catch (error) {
+          set({ 
+            error: error.response?.data?.message || 'Failed to delete job', 
+            loading: false 
+          });
+          return { success: false, error: error.response?.data?.message || 'Failed to delete job' };
+        }
+      },
+
+      // Clear error
+      clearError: () => set({ error: null }),
     }),
     {
       name: 'job-storage',

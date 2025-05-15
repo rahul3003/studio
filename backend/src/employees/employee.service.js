@@ -1,5 +1,7 @@
 const prisma = require('../prisma/client');
 const { encrypt, decrypt } = require('../utils/encryption');
+const bcrypt = require('bcrypt');
+const moment = require('moment');
 
 // Roles allowed to view decrypted salary
 const ALLOWED_SALARY_ROLES = ['SUPERADMIN', 'ADMIN', 'ACCOUNTS'];
@@ -26,11 +28,17 @@ async function getEmployees(currentUser) {
     include: {
       reportingManager: {
         select: { id: true, name: true }
+      },
+      department:{
+        select:{id:true, name:true}
       }
     }
   });
+
   return employees.map(emp => ({
     ...emp,
+    designation: emp.designation.toUpperCase(),
+    joinDate: moment(emp.joinDate).format('YYYY-MM-DD'),
     reportingManager: emp.reportingManager
       ? { id: emp.reportingManager.id, name: emp.reportingManager.name }
       : null,
@@ -43,6 +51,9 @@ async function getEmployeeById(id, currentUser) {
     where: { id },
     include: {
       reportingManager: {
+        select: { id: true, name: true }
+      },
+      department: {
         select: { id: true, name: true }
       }
     }
@@ -58,13 +69,48 @@ async function getEmployeeById(id, currentUser) {
 }
 
 async function createEmployee(data) {
-  const toCreate = { ...data };
+  let toCreate = { ...data };
+  
+  // Handle salary encryption if present
   if (toCreate.salary) {
     toCreate.salary = encrypt(toCreate.salary);
   }
+
+  // Ensure joinDate is in ISO format
+  if (toCreate.joinDate) {
+    toCreate.joinDate = moment(toCreate.joinDate).toISOString();
+  }
+
+  // Ensure designation type is uppercase
+  if (toCreate.designation) {
+    toCreate.designation = toCreate.designation.toUpperCase();
+  }
+
   // Generate next employeeCode
   toCreate.employeeCode = await getNextEmployeeCode();
-  const employee = await prisma.employee.create({ data: toCreate });
+  const hashedPassword = await bcrypt.hash(toCreate.email, 10);
+  
+  // Handle relations
+  const reportingManagerId = toCreate.reportingManagerId;
+  const departmentId = toCreate.departmentId;
+  delete toCreate.reportingManagerId;
+  delete toCreate.departmentId;
+
+  console.log(toCreate.departmentId);
+  
+  const employee = await prisma.employee.create({ 
+    data: {
+      ...toCreate,
+      passwordHash: hashedPassword,
+      reportingManager: reportingManagerId ? {
+        connect: { id: reportingManagerId }
+      } : undefined,
+      department: departmentId ? {
+        connect: { id: departmentId }
+      } : undefined
+    }
+  });
+  
   // Create notification
   await prisma.notification.create({
     data: {
@@ -73,15 +119,46 @@ async function createEmployee(data) {
       employeeId: employee.id
     }
   });
+  
   return employee;
 }
 
 async function updateEmployee(id, data) {
-  const toUpdate = { ...data };
+  let toUpdate = { ...data };
+  
+  // Handle salary encryption if present
   if (toUpdate.salary) {
     toUpdate.salary = encrypt(toUpdate.salary);
   }
-  return prisma.employee.update({ where: { id }, data: toUpdate });
+
+  // Ensure joinDate is in ISO format
+  if (toUpdate.joinDate) {
+    toUpdate.joinDate = moment(toUpdate.joinDate).toISOString();
+  }
+
+  // Ensure designation is uppercase
+  if (toUpdate.designation) {
+    toUpdate.designation = toUpdate.designation.toUpperCase();
+  }
+
+  // Handle relations
+  const reportingManagerId = toUpdate.reportingManagerId;
+  const departmentId = toUpdate.departmentId;
+  delete toUpdate.reportingManagerId;
+  delete toUpdate.departmentId;
+
+  return prisma.employee.update({ 
+    where: { id }, 
+    data: {
+      ...toUpdate,
+      reportingManager: reportingManagerId ? {
+        connect: { id: reportingManagerId }
+      } : undefined,
+      department: departmentId ? {
+        connect: { id: departmentId }
+      } : undefined
+    }
+  });
 }
 
 async function deleteEmployee(id) {

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useDepartmentStore } from '@/store/departmentStore';
+import { useEmployeeStore } from '@/store/employeeStore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,17 +26,20 @@ import {
 import { PlusCircle, Edit, Trash2, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DepartmentForm } from "@/components/department/department-form";
-import { useDepartmentStore } from "@/store/departmentStore"; // Import the store
 
 export default function DepartmentsPage() {
   const { toast } = useToast();
-  // Use Zustand store
-  const departments = useDepartmentStore((state) => state.departments);
-  const addDepartment = useDepartmentStore((state) => state.addDepartment);
-  const updateDepartment = useDepartmentStore((state) => state.updateDepartment);
-  const deleteDepartment = useDepartmentStore((state) => state.deleteDepartment);
-  const initializeDepartments = useDepartmentStore((state) => state._initializeDepartments);
+  const { 
+    departments, 
+    loading, 
+    error,
+    fetchDepartments,
+    addDepartment,
+    updateDepartment,
+    deleteDepartment 
+  } = useDepartmentStore();
 
+  const { employees, initializeEmployees } = useEmployeeStore();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -42,8 +47,17 @@ export default function DepartmentsPage() {
   const [selectedDepartment, setSelectedDepartment] = React.useState(null);
 
   React.useEffect(() => {
-    initializeDepartments(); // Ensure store is initialized
-  }, [initializeDepartments]);
+    fetchDepartments();
+    initializeEmployees();
+  }, [fetchDepartments, initializeEmployees]);
+
+  // Create a map of employee IDs to names for quick lookup
+  const employeeMap = React.useMemo(() => {
+    return employees.reduce((acc, emp) => {
+      acc[emp.id] = emp.name;
+      return acc;
+    }, {});
+  }, [employees]);
 
   const handleAddDepartmentOpen = () => {
     setSelectedDepartment(null);
@@ -67,32 +81,77 @@ export default function DepartmentsPage() {
     setSelectedDepartment(null);
   };
 
-  const handleSaveDepartment = (departmentData) => {
+  const handleSaveDepartment = async (departmentData) => {
+    try {
     if (selectedDepartment && selectedDepartment.id) {
       // Editing existing department
-      updateDepartment({ ...departmentData, id: selectedDepartment.id });
+        const result = await updateDepartment({ ...departmentData, id: selectedDepartment.id });
+        if (result.success) {
       toast({ title: "Department Updated", description: `${departmentData.name}'s details have been updated.` });
+          await fetchDepartments(); // Refresh departments after update
+        } else {
+          toast({ 
+            title: "Error", 
+            description: result.error || "Failed to update department.",
+            variant: "destructive"
+          });
+        }
     } else {
       // Adding new department
-      const newId = `DEPT${String(Date.now()).slice(-4)}${String(departments.length + 1).padStart(3, '0')}`;
-      const newDepartment = {
-        ...departmentData,
-        id: newId,
-        creationDate: new Date().toISOString().split('T')[0], 
-      };
-      addDepartment(newDepartment);
+        const result = await addDepartment(departmentData);
+        if (result.success) {
       toast({ title: "Department Added", description: `${departmentData.name} has been added.` });
+          await fetchDepartments(); // Refresh departments after add
+        } else {
+          toast({ 
+            title: "Error", 
+            description: result.error || "Failed to add department.",
+            variant: "destructive"
+          });
+        }
+    }
+    handleDialogClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedDepartment) {
+      try {
+        const result = await deleteDepartment(selectedDepartment.id);
+        if (result.success) {
+      toast({ title: "Department Deleted", description: `${selectedDepartment.name} has been removed.`, variant: "destructive" });
+          await fetchDepartments(); // Refresh departments after delete
+        } else {
+          toast({ 
+            title: "Error", 
+            description: result.error || "Failed to delete department.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete department",
+          variant: "destructive"
+        });
+      }
     }
     handleDialogClose();
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedDepartment) {
-      deleteDepartment(selectedDepartment.id);
-      toast({ title: "Department Deleted", description: `${selectedDepartment.name} has been removed.`, variant: "destructive" });
-    }
-    handleDialogClose();
-  };
+  if (loading) {
+    return <div>Loading departments...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -130,7 +189,7 @@ export default function DepartmentsPage() {
                   <TableRow key={department.id}>
                     <TableCell className="font-medium">{department.id}</TableCell>
                     <TableCell>{department.name}</TableCell>
-                    <TableCell>{department.head}</TableCell>
+                    <TableCell>{employeeMap[department.headId] || 'Not Assigned'}</TableCell>
                     <TableCell className="max-w-xs truncate">{department.description}</TableCell>
                     <TableCell>
                       {new Date(department.creationDate).toLocaleDateString("en-US", {

@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye, ExternalLink, MapPin, CalendarDays, Briefcase, Info } from "lucide-react";
+import { PlusCircle, Edit, Trash2, BriefcaseBusiness, Eye, ExternalLink, MapPin, CalendarDays, Briefcase, Info, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { JobForm } from "@/components/job/job-form";
 import { JobCard } from "@/components/job/job-card"; 
@@ -31,32 +31,65 @@ import { useJobStore } from "@/store/jobStore"; // Import job store
 import { useDepartmentStore } from "@/store/departmentStore"; // For department options
 import { useRouter } from "next/navigation"; // Import useRouter
 
-const JOB_STATUS_OPTIONS = ["Open", "Closed", "Filled", "Draft"];
-const JOB_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "Temporary"];
+const JOB_STATUS_OPTIONS = ["OPEN", "CLOSED", "FILLED", "DRAFT"];
+const JOB_TYPE_OPTIONS = [
+  "FULL_TIME_JOB",
+  "PART_TIME_JOB",
+  "CONTRACT_JOB",
+  "INTERNSHIP_JOB",
+  "TEMPORARY_JOB"
+];
 // JOB_LOCATION_OPTIONS can be free text, or pre-defined if desired
 
 const statusBadgeVariant = (status) => {
   switch (status) {
-    case "Open": return "default";
-    case "Closed": return "secondary";
-    case "Filled": return "outline"; 
-    case "Draft": return "secondary";
+    case "OPEN": return "default";
+    case "CLOSED": return "secondary";
+    case "FILLED": return "outline"; 
+    case "DRAFT": return "secondary";
     default: return "secondary";
   }
+};
+
+// Add a helper function to format job type for display
+const formatJobType = (type) => {
+  const typeMap = {
+    "FULL_TIME_JOB": "Full Time",
+    "PART_TIME_JOB": "Part Time",
+    "CONTRACT_JOB": "Contract",
+    "INTERNSHIP_JOB": "Internship",
+    "TEMPORARY_JOB": "Temporary"
+  };
+  return typeMap[type] || type;
 };
 
 export default function JobsPage() {
   const { toast } = useToast();
   const router = useRouter(); // Initialize router
-  // Use Zustand stores
+  // Use Zustand stores with loading and error states
   const jobs = useJobStore((state) => state.jobs);
+  const loading = useJobStore((state) => state.loading);
+  const error = useJobStore((state) => state.error);
   const addJob = useJobStore((state) => state.addJob);
   const updateJob = useJobStore((state) => state.updateJob);
   const deleteJob = useJobStore((state) => state.deleteJob);
-  const initializeJobs = useJobStore((state) => state._initializeJobs);
+  const initializeJobs = useJobStore((state) => state.initializeJobs);
+  const clearError = useJobStore((state) => state.clearError);
 
+  // Department store
   const departments = useDepartmentStore((state) => state.departments);
-  const DEPARTMENTS_OPTIONS = departments.map(dept => dept.name);
+  const fetchDepartments = useDepartmentStore((state) => state.fetchDepartments);
+  const departmentLoading = useDepartmentStore((state) => state.loading);
+  const departmentError = useDepartmentStore((state) => state.error);
+
+  // Format department options for the form
+  const departmentOptions = React.useMemo(() => 
+    departments.map(dept => ({
+      id: dept.id,
+      value: dept.id,
+      label: dept.name
+    }))
+  , [departments]);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -64,9 +97,33 @@ export default function JobsPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
   const [selectedJob, setSelectedJob] = React.useState(null);
 
+  // Initialize data
   React.useEffect(() => {
-    initializeJobs(); // Ensure store is initialized
-  }, [initializeJobs]);
+    initializeJobs();
+    fetchDepartments();
+  }, [initializeJobs, fetchDepartments]);
+
+  // Handle errors
+  React.useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+      clearError();
+    }
+  }, [error, toast, clearError]);
+
+  React.useEffect(() => {
+    if (departmentError) {
+      toast({
+        title: "Department Error",
+        description: departmentError,
+        variant: "destructive",
+      });
+    }
+  }, [departmentError, toast]);
 
   const handleAddJobOpen = () => {
     setSelectedJob(null);
@@ -100,29 +157,61 @@ export default function JobsPage() {
     setSelectedJob(null);
   };
 
-  const handleSaveJob = (jobData) => {
-    if (selectedJob && selectedJob.id) {
-      // Editing existing job
-      updateJob({ ...jobData, id: selectedJob.id });
-      toast({ title: "Job Updated", description: `"${jobData.title}" has been updated.` });
-    } else {
-      // Adding new job
-      const newId = `JOB${String(Date.now()).slice(-4)}${String(jobs.length + 1).padStart(3, '0')}`;
-      const newJob = {
-        ...jobData,
-        id: newId,
-        postedDate: jobData.postedDate || new Date().toISOString().split('T')[0],
-      };
-      addJob(newJob);
-      toast({ title: "Job Posted", description: `"${jobData.title}" has been added.` });
+  const handleSaveJob = async (jobData) => {
+    try {
+      if (selectedJob && selectedJob.id) {
+        // Editing existing job
+        const result = await updateJob({
+          ...jobData,
+          id: selectedJob.id,
+        });
+        
+        if (result.success) {
+          toast({ title: "Job Updated", description: `"${jobData.title}" has been updated.` });
+          handleDialogClose();
+        } else {
+          throw new Error(result.error);
+        }
+      } else {
+        // Adding new job
+        const result = await addJob(jobData);
+        
+        if (result.success) {
+          toast({ title: "Job Posted", description: `"${jobData.title}" has been added.` });
+          handleDialogClose();
+        } else {
+          throw new Error(result.error);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save job",
+        variant: "destructive",
+      });
     }
-    handleDialogClose();
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedJob) {
-      deleteJob(selectedJob.id);
-      toast({ title: "Job Deleted", description: `"${selectedJob.title}" has been removed.`, variant: "destructive" });
+      try {
+        const result = await deleteJob(selectedJob.id);
+        if (result.success) {
+          toast({ 
+            title: "Job Deleted", 
+            description: `"${selectedJob.title}" has been removed.`, 
+            variant: "destructive" 
+          });
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete job",
+          variant: "destructive",
+        });
+      }
     }
     handleDialogClose();
   };
@@ -140,13 +229,22 @@ export default function JobsPage() {
               View, create, update, and manage job openings.
             </CardDescription>
           </div>
-          <Button onClick={handleAddJobOpen} className="w-full md:w-auto">
+          <Button 
+            onClick={handleAddJobOpen} 
+            className="w-full md:w-auto"
+            disabled={departmentLoading}
+          >
             <PlusCircle className="mr-2 h-5 w-5" />
             Post New Job
           </Button>
         </CardHeader>
         <CardContent>
-          {jobs.length === 0 ? (
+          {loading || departmentLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading...</span>
+            </div>
+          ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded-lg bg-card/50">
               <BriefcaseBusiness className="h-16 w-16 text-muted-foreground mb-4" />
               <p className="text-xl font-semibold text-muted-foreground">
@@ -161,7 +259,10 @@ export default function JobsPage() {
               {jobs.map((job) => (
                 <JobCard
                   key={job.id}
-                  job={job}
+                  job={{
+                    ...job,
+                    type: formatJobType(job.type) // Format the type for display
+                  }}
                   onEdit={() => handleEditJobOpen(job)}
                   onDelete={() => handleDeleteJobOpen(job)}
                   onViewDetails={handleViewJobOpen}
@@ -186,7 +287,7 @@ export default function JobsPage() {
               onSubmit={handleSaveJob}
               initialData={selectedJob}
               onCancel={handleDialogClose}
-              departmentOptions={DEPARTMENTS_OPTIONS.length > 0 ? DEPARTMENTS_OPTIONS : ["Default Department"]}
+              departmentOptions={departmentOptions}
               statusOptions={JOB_STATUS_OPTIONS}
               typeOptions={JOB_TYPE_OPTIONS}
             />
@@ -199,7 +300,7 @@ export default function JobsPage() {
           <DialogHeader>
             <DialogTitle>{selectedJob?.title}</DialogTitle>
             <DialogDescription>
-              {selectedJob?.department} | {selectedJob?.location} | {selectedJob?.type}
+              {selectedJob?.department?.name} | {selectedJob?.location} | {formatJobType(selectedJob?.type)}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-2">
@@ -210,7 +311,7 @@ export default function JobsPage() {
                   <BriefcaseBusiness className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
                   <div>
                     <span className="font-medium">Department:</span>
-                    <span className="text-muted-foreground ml-1">{selectedJob?.department || 'N/A'}</span>
+                    <span className="text-muted-foreground ml-1">{selectedJob?.department?.name || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="flex items-start">

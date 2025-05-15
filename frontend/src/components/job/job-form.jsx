@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
+import { useToast } from "../../hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,16 +28,37 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 
 const jobFormSchema = z.object({
-  title: z.string().min(3, { message: "Job title must be at least 3 characters." }).max(100),
+  title: z.string().min(2, { message: "Title must be at least 2 characters." }),
+  description: z.string().min(10, { message: "Description must be at least 10 characters." }),
+  requirements: z.string().min(10, { message: "Requirements must be at least 10 characters." }),
   department: z.string().min(1, { message: "Department is required." }),
-  location: z.string().min(2, { message: "Location must be at least 2 characters." }).max(100),
-  type: z.string().min(1, { message: "Job type is required." }),
-  status: z.string().min(1, { message: "Status is required." }),
-  applicationLink: z.string().url({ message: "Please enter a valid URL (e.g., https://example.com)." }).optional().or(z.literal('')),
-  description: z.string().min(20, { message: "Description must be at least 20 characters." }).max(2000),
-  requirements: z.string().min(10, { message: "Requirements must be at least 10 characters." }).max(2000),
-  postedDate: z.date().optional(), // Optional in form, auto-set if not provided
+  location: z.string().min(1, { message: "Location is required." }),
+  type: z.enum([
+    "FULL_TIME_JOB",
+    "PART_TIME_JOB",
+    "CONTRACT_JOB",
+    "INTERNSHIP_JOB",
+    "TEMPORARY_JOB"
+  ], {
+    required_error: "Job type is required.",
+  }),
+  status: z.enum(["OPEN", "CLOSED", "FILLED", "DRAFT"], {
+    required_error: "Status is required.",
+  }),
+  applicationLink: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
+
+// Add a helper function to format job type for display
+const formatJobType = (type) => {
+  const typeMap = {
+    "FULL_TIME_JOB": "Full Time",
+    "PART_TIME_JOB": "Part Time",
+    "CONTRACT_JOB": "Contract",
+    "INTERNSHIP_JOB": "Internship",
+    "TEMPORARY_JOB": "Temporary"
+  };
+  return typeMap[type] || type;
+};
 
 export function JobForm({
   onSubmit,
@@ -47,25 +68,32 @@ export function JobForm({
   statusOptions,
   typeOptions,
 }) {
+  const { toast } = useToast();
+  
+  // Create default values object
+  const defaultValues = React.useMemo(() => {
+    if (initialData) {
+      return {
+        ...initialData,
+        status: initialData.status || "DRAFT",
+        type: initialData.type || "FULL_TIME_JOB",
+      };
+    }
+    return {
+      title: "",
+      description: "",
+      requirements: "",
+      department: "",
+      location: "",
+      type: "FULL_TIME_JOB",
+      status: "DRAFT",
+      applicationLink: "",
+    };
+  }, [initialData]);
+
   const form = useForm({
     resolver: zodResolver(jobFormSchema),
-    defaultValues: initialData
-      ? {
-          ...initialData,
-          postedDate: initialData.postedDate ? parseISO(initialData.postedDate) : undefined,
-          applicationLink: initialData.applicationLink || "",
-        }
-      : {
-          title: "",
-          department: "",
-          location: "",
-          type: "",
-          status: statusOptions?.[0] || "", // Default to "Open" or first status
-          applicationLink: "",
-          description: "",
-          requirements: "",
-          postedDate: new Date(), // Default to today for new job
-        },
+    defaultValues,
   });
   
   React.useEffect(() => {
@@ -73,12 +101,13 @@ export function JobForm({
     form.reset(initialData
       ? {
           ...initialData,
+          departmentId: initialData.departmentId || initialData.department?.id || "",
           postedDate: initialData.postedDate ? parseISO(initialData.postedDate) : undefined,
           applicationLink: initialData.applicationLink || "",
         }
       : {
           title: "",
-          department: "",
+          departmentId: "",
           location: "",
           type: "",
           status: statusOptions?.[0] || "",
@@ -119,7 +148,7 @@ export function JobForm({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="department"
+            name="departmentId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Department</FormLabel>
@@ -131,8 +160,8 @@ export function JobForm({
                   </FormControl>
                   <SelectContent>
                     {departmentOptions.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -172,7 +201,7 @@ export function JobForm({
                   <SelectContent>
                     {typeOptions.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type}
+                        {formatJobType(type)}
                       </SelectItem>
                     ))}
                   </SelectContent>
