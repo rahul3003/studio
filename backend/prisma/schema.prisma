@@ -30,6 +30,8 @@ model Employee {
   reportingManagerId         String?
   reportingManager           Employee? @relation("ReportingHierarchy", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reportsTo                  Employee[] @relation("ReportingHierarchy")
+  currentRole                String?   // Current active role (e.g., "admin", "manager", "employee")
+  baseRole                   String?   // Original/base role assigned to the employee
 
   personalInformation        PersonalInformation?
   secondaryData              SecondaryData?

@@ -25,18 +25,17 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ROLE_NAV_CONFIG } from "@/config/roles";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
+import { ROLE_NAV_CONFIG } from '@/config/roles';
 
 export function AppSidebar({ onLogout }) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, currentRole } = useAuthStore();
   const { state: sidebarState, isMobile } = useSidebar();
   const profileData = useProfileStore(state => state.profileData);
   const rewardsPoints = React.useMemo(() => profileData?.rewards?.accruedPoints || 0, [profileData]);
@@ -48,12 +47,11 @@ export function AppSidebar({ onLogout }) {
   };
 
   const navItemsForRole = React.useMemo(() => {
-    if (user && user.currentRole && user.currentRole.value) {
-      return ROLE_NAV_CONFIG[user.currentRole.value] || ROLE_NAV_CONFIG.employee || [];
+    if (currentRole) {
+      return ROLE_NAV_CONFIG[currentRole.toUpperCase()] || ROLE_NAV_CONFIG.EMPLOYEE;
     }
-    return [];
-  }, [user?.currentRole?.value]);
-
+    return ROLE_NAV_CONFIG.EMPLOYEE;
+  }, [currentRole]);
 
   const getTooltipLabelForButton = React.useCallback((label) => {
     if (isMobile || sidebarState === "expanded") {

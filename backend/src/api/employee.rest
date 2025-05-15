@@ -1,6 +1,6 @@
-@jwt =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNTU4MjgsImV4cCI6MTc0NzM0MjIyOH0.CAVvURBxXEfit83RMjGhxNvK7b9lYrqEw7gCbArs2U0
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNjMyODEsImV4cCI6MTc0NzM0OTY4MX0.7mVvSmNbKEgktCccpYbyqrQ4NaxWtUCj5m8prkEUY1I
 # Replace with a real employee UUID from your database
-@employeeId = 8182dbb7-1252-452f-bd03-afc8180c0c83
+@employeeId = b0a27150-0be6-48d1-8ffe-9934ffedca9f
 @baseUrl = http://localhost:5000/api/employees
 
 ### Get all employees
@@ -36,7 +36,9 @@ Authorization: Bearer {{jwt}}
 Content-Type: application/json
 
 {
-  "reportingManagerId":"30957daa-3516-4fdd-a784-e6a017a8cb3f"
+  "reportingManagerId":"30957daa-3516-4fdd-a784-e6a017a8cb3f",
+  "currentRole": "ADMIN",
+  "baseRole": "ADMIN"
 }
 
 ### Delete employee (by UUID)

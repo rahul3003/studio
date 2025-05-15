@@ -10,12 +10,12 @@ import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, B
 
 /** @type {Role[]} */
 export const ROLES = [
-  { name: "Super Admin", value: "superadmin", icon: Crown, description: "Full system access and control." },
-  { name: "Admin", value: "admin", icon: ShieldCheck, description: "Administrative access to most features." },
-  { name: "Manager", value: "manager", icon: Briefcase, description: "Manages teams, projects, and approvals." },
-  { name: "HR", value: "hr", icon: UserCog, description: "Manages employee data, recruitment, and HR processes." },
-  { name: "Accounts", value: "accounts", icon: Calculator, description: "Manages finances, payroll, and reimbursements." },
-  { name: "Employee", value: "employee", icon: User, description: "Standard employee access." },
+  { name: "Super Admin", value: "SUPERADMIN", icon: Crown, description: "Full system access and control." },
+  { name: "Admin", value: "ADMIN", icon: ShieldCheck, description: "Administrative access to most features." },
+  { name: "Manager", value: "MANAGER", icon: Briefcase, description: "Manages teams, projects, and approvals." },
+  { name: "HR", value: "HR", icon: UserCog, description: "Manages employee data, recruitment, and HR processes." },
+  { name: "Accounts", value: "ACCOUNTS", icon: Calculator, description: "Manages finances, payroll, and reimbursements." },
+  { name: "Employee", value: "EMPLOYEE", icon: User, description: "Standard employee access." },
 ];
 
 /**
@@ -27,12 +27,12 @@ export const getRole = (value) => ROLES.find(r => r.value === value);
 // Defines which roles can switch to which other roles
 /** @type {Record<string, string[]>} */
 export const ROLE_SWITCH_PERMISSIONS = {
-  superadmin: ["admin", "manager", "hr", "accounts", "employee"],
-  admin: ["manager", "hr", "accounts", "employee"], 
-  manager: ["employee"], 
-  hr: ["employee"], 
-  accounts: ["employee"], 
-  employee: [], 
+  SUPERADMIN: ["ADMIN", "MANAGER", "HR", "ACCOUNTS", "EMPLOYEE"],
+  ADMIN: ["MANAGER", "HR", "ACCOUNTS", "EMPLOYEE"],
+  MANAGER: ["EMPLOYEE"],
+  HR: ["EMPLOYEE"],
+  ACCOUNTS: ["EMPLOYEE"],
+  EMPLOYEE: [],
 };
 
 /**
@@ -66,7 +66,7 @@ const employeeProfileNavItems = [
 
 /** @type {Record<string, NavItem[]>} */
 export const ROLE_NAV_CONFIG = {
-  superadmin: [
+  SUPERADMIN: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { 
       label: "Profile", 
@@ -78,7 +78,7 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/offers", label: "Offers", icon: Mail },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  admin: [ 
+  ADMIN: [ 
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
      { 
       label: "Profile", 
@@ -87,10 +87,10 @@ export const ROLE_NAV_CONFIG = {
       children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
     },
     ...commonManagementNavItems,
-    { href: "/dashboard/offers", label: "Offers", icon: Mail }, // Admin might need offer access
+    { href: "/dashboard/offers", label: "Offers", icon: Mail },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
-  manager: [
+  MANAGER: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
      { 
       label: "Profile", 
@@ -104,10 +104,9 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck },
     { href: "/dashboard/reimbursements", label: "Approve Claims", icon: Receipt },
     { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness },
-    { href: "/dashboard/documents", label: "Generate Docs", icon: FileText }, // If managers generate docs
-    // { href: "/dashboard/settings", label: "Settings", icon: Settings }, // Settings usually for admin/superadmin
+    { href: "/dashboard/documents", label: "Generate Docs", icon: FileText },
   ],
-  hr: [
+  HR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
      { 
       label: "Profile", 
@@ -121,10 +120,9 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/offers", label: "Manage Offers", icon: Mail },
     { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck },
     { href: "/dashboard/documents", label: "HR Documents", icon: FileText },
-    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt }, // HR might view/process
-    // { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
   ],
-  accounts: [
+  ACCOUNTS: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
      { 
       label: "Profile", 
@@ -134,10 +132,9 @@ export const ROLE_NAV_CONFIG = {
     },
     { href: "/dashboard/reimbursements", label: "Manage Reimbursements", icon: Receipt },
     { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText },
-    { href: "/dashboard/employees", label: "Employee List (View)", icon: Users }, // View only for accounts
-    // { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/employees", label: "Employee List (View)", icon: Users },
   ],
-  employee: [
+  EMPLOYEE: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
      { 
       label: "Profile", 
@@ -147,6 +144,5 @@ export const ROLE_NAV_CONFIG = {
     },
     { href: "/dashboard/tasks", label: "My Tasks", icon: ListTodo },
     { href: "/dashboard/reimbursements", label: "My Reimbursements", icon: Receipt },
-    // { href: "/dashboard/settings", label: "Settings", icon: Settings }, // Employees usually don't have app settings access
   ],
 };

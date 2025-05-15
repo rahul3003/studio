@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '@/services/api';
+import { ROLE_SWITCH_PERMISSIONS } from '@/config/roles';
 
 export const useAuthStore = create(
   persist(
@@ -8,20 +9,35 @@ export const useAuthStore = create(
       user: null,
       loading: false,
       error: null,
+      currentRole: null,
+      baseRole: null,
 
       login: async (email, password) => {
         set({ loading: true, error: null });
         try {
           const res = await api.post('/auth/login', { email, password });
           const { data } = res.data;
-          // Store JWT in localStorage
           if (typeof window !== 'undefined') {
             localStorage.setItem('jwt', data.token);
           }
-          set({ user: data, loading: false, error: null });
+          // Always store roles as uppercase for consistency
+          const initialRole = (data.role || '').toUpperCase();
+          set({ 
+            user: data, 
+            currentRole: initialRole,
+            baseRole: initialRole,
+            loading: false, 
+            error: null 
+          });
           return { success: true, user: data };
         } catch (err) {
-          set({ user: null, loading: false, error: err.response?.data?.error || 'Invalid email or password.' });
+          set({ 
+            user: null, 
+            currentRole: null,
+            baseRole: null,
+            loading: false, 
+            error: err.response?.data?.error || 'Invalid email or password.' 
+          });
           return { success: false, error: err.response?.data?.error || 'Invalid email or password.' };
         }
       },
@@ -34,10 +50,23 @@ export const useAuthStore = create(
           if (typeof window !== 'undefined') {
             localStorage.setItem('jwt', data.token);
           }
-          set({ user: data, loading: false, error: null });
+          const initialRole = (data.role || '').toUpperCase();
+          set({ 
+            user: data, 
+            currentRole: initialRole,
+            baseRole: initialRole,
+            loading: false, 
+            error: null 
+          });
           return { success: true, user: data };
         } catch (err) {
-          set({ user: null, loading: false, error: err.response?.data?.error || 'Registration failed.' });
+          set({ 
+            user: null, 
+            currentRole: null,
+            baseRole: null,
+            loading: false, 
+            error: err.response?.data?.error || 'Registration failed.' 
+          });
           return { success: false, error: err.response?.data?.error || 'Registration failed.' };
         }
       },
@@ -46,29 +75,81 @@ export const useAuthStore = create(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('jwt');
         }
-        set({ user: null, loading: false, error: null });
+        set({ 
+          user: null, 
+          currentRole: null,
+          baseRole: null,
+          loading: false, 
+          error: null 
+        });
       },
 
       setLoading: (isLoading) => set({ loading: isLoading }),
+
+      setCurrentRole: (newRole) => {
+        const { user, baseRole } = get();
+        if (!user) return false;
+        const availableRoles = get().getAvailableRolesForSwitching();
+        if (!availableRoles.includes(newRole)) {
+          return false;
+        }
+        set({ currentRole: newRole });
+        return true;
+      },
+      
+      getAvailableRolesForSwitching: () => {
+        const { user, baseRole } = get();
+        if (!user || !baseRole) return [];
+        // Use ROLE_SWITCH_PERMISSIONS for switching logic, always based on baseRole
+        return ROLE_SWITCH_PERMISSIONS[baseRole]?.map(r => r.toUpperCase()) || [];
+      },
+
+      getCurrentRoleConfig: () => {
+        const { currentRole } = get();
+        if (!currentRole) return null;
+        // Not needed for sidebar, but can be used for label, etc.
+        return null;
+      },
+
+      resetToBaseRole: () => {
+        const { user, baseRole } = get();
+        if (!user || !baseRole) return false;
+        set({ currentRole: baseRole });
+        return true;
+      },
     }),
     {
-      name: 'auth-storage',
+      name: 'auth-storage', 
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: (state, error) => {
         if (error) {
           console.error('Failed to rehydrate auth store', error);
           if (state) {
-            state.user = null;
+              state.user = null;
+            state.currentRole = null;
+            state.baseRole = null;
             state.loading = false;
-          } else {
-            useAuthStore.setState({ user: null, loading: false, error: 'Rehydration failed.' });
-          }
+            } else {
+            useAuthStore.setState({ 
+              user: null, 
+              currentRole: null,
+              baseRole: null,
+              loading: false, 
+              error: 'Rehydration failed.' 
+            });
+            }
           return;
         }
         if (state) {
-          state.loading = false;
+          state.loading = false; 
         } else {
-          useAuthStore.setState({ user: null, loading: false, error: null });
+          useAuthStore.setState({ 
+            user: null, 
+            currentRole: null,
+            baseRole: null,
+            loading: false, 
+            error: null 
+          });
         }
       }
     }
