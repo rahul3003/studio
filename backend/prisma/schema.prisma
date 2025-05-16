@@ -311,6 +311,7 @@ model Applicant {
   offeredSalary     String?
   offeredStartDate  DateTime?
   offerLetterHtml   String?     @db.Text
+  offerLetterUrl    String?
   notes             Json?      // Array of notes (optional)
   offerHistory      Json?      // Array of offer history (optional)
   createdAt         DateTime    @default(now())
@@ -499,3 +500,4 @@ enum HolidayType {
   COMPANY
   RESTRICTED
 }
+

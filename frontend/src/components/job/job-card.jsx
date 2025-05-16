@@ -105,18 +105,18 @@ export function JobCard({ job, onEdit, onDelete, onViewDetails, onViewApplicants
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-xl mb-1">{job.title}</CardTitle>
-            <CardDescription className="text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+        <CardDescription className="text-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <BriefcaseBusiness className="h-3.5 w-3.5" /> 
                 {typeof job.department === 'object' ? job.department.name : job.department}
-              </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                <MapPin className="h-3.5 w-3.5" /> {job.location} | {job.type}
-              </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <CalendarDays className="h-3.5 w-3.5" /> Posted: {new Date(job.postedDate).toLocaleDateString()}
-              </div>
-            </CardDescription>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+            <MapPin className="h-3.5 w-3.5" /> {job.location} | {job.type}
+          </div>
+           <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+            <CalendarDays className="h-3.5 w-3.5" /> Posted: {new Date(job.postedDate).toLocaleDateString()}
+          </div>
+        </CardDescription>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

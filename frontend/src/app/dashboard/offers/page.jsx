@@ -24,11 +24,14 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { MoreVertical } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ApplicantForm } from "@/components/applicant/applicant-form";
+import moment from "moment";
+import { useDepartmentStore } from '@/store/departmentStore';
 
 
 // Import HTML generation functions
 import { generatePlaceholderOfferLetterHtml } from '@/lib/document-templates/offer-letter';
 import { generatePlaceholderJoiningLetterHtml } from '@/lib/document-templates/joining-letter';
+import { generatePlaceholderInternshipOfferLetterHtml } from '@/lib/document-templates/internship-offer-letter';
 
 
 export const OFFER_STATUS_OPTIONS = [
@@ -157,6 +160,8 @@ export default function OffersPage() {
   const [newApplicant, setNewApplicant] = React.useState({ name: "", email: "", jobId: "", assertifyScore: "", resumeFile: null, resumeLink: "" });
   const addApplicant = useApplicantStore((state) => state.addApplicant);
 
+  const departments = useDepartmentStore((state) => state.departments);
+
   // Initialize data
   React.useEffect(() => {
     initializeJobs();
@@ -218,9 +223,20 @@ export default function OffersPage() {
     }
   }, [selectedJobId, statusFilter, applicants]);
 
+  // Persist selectedJobId in localStorage
+  React.useEffect(() => {
+    const storedJobId = typeof window !== 'undefined' ? localStorage.getItem('selectedJobId') : null;
+    if (storedJobId && jobs.find(j => j.id === storedJobId)) {
+      setSelectedJobId(storedJobId);
+    }
+  }, [jobs]);
+
   const handleJobChange = (jobId) => {
     setSelectedJobId(jobId);
     setStatusFilter(OFFER_STATUS_OPTIONS_FILTER[0]); 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedJobId', jobId);
+    }
   };
 
   const handleOpenOfferLetterDialog = (applicant) => {
@@ -235,15 +251,47 @@ export default function OffersPage() {
     setGeneratedOfferLetterHtml("");
     try {
       await new Promise(resolve => setTimeout(resolve, 500)); 
-      const htmlContent = generatePlaceholderOfferLetterHtml(offerData);
+      
+      // Get the job details to check if it's an internship
+      const job = jobs.find(j => j.id === selectedApplicantForOffer.jobPostingId);
+      const isInternship = job?.employeeType === "INTERN";
+
+      // Get reporting manager details
+      const reportingManager = managerOptions.find(m => m.id === offerData.reportingManager);
+      const reportingManagerName = reportingManager ? reportingManager.label : 'To be assigned';
+      
+      // Use appropriate template based on job type
+      const htmlContent = isInternship 
+        ? generatePlaceholderInternshipOfferLetterHtml({
+            candidateName: offerData.candidateName,
+            candidateEmail: offerData.candidateEmail,
+            positionTitle: offerData.positionTitle,
+            department: offerData.department,
+            salary: offerData.salary,
+            startDate: offerData.startDate,
+            offerExpiryDate: offerData.offerExpiryDate,
+            companyName: offerData.companyName,
+            reportingManager: reportingManagerName // Use the formatted name
+          })
+        : generatePlaceholderOfferLetterHtml({
+            candidateName: offerData.candidateName,
+            candidateEmail: offerData.candidateEmail,
+            positionTitle: offerData.positionTitle,
+            department: offerData.department,
+            salary: offerData.salary,
+            startDate: offerData.startDate,
+            offerExpiryDate: offerData.offerExpiryDate,
+            companyName: offerData.companyName,
+            reportingManager: reportingManagerName // Use the formatted name
+          });
       
       if (htmlContent) {
         setGeneratedOfferLetterHtml(htmlContent);
         updateApplicant(selectedApplicantForOffer.id, { 
           offerStatus: "OFFER_GENERATED", 
           offeredSalary: offerData.salary,
-          offeredStartDate: offerData.startDate, // Assuming offerData.startDate is already formatted string
-          offerLetterHtml: htmlContent 
+          offeredStartDate: moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).isValid() ? moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).format("YYYY-MM-DD") : undefined,
+          offerLetterHtml: htmlContent
         });
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
       } else {
@@ -264,17 +312,130 @@ export default function OffersPage() {
     }
     setIsEmailingOfferLetter(true);
     try {
-        const emailBody = `<p>Dear ${selectedApplicantForOffer.name},</p><p>Please find your offer letter attached.</p><p>Sincerely,<br/>PESU Venture Labs HR</p>`;
+        // Create a temporary container for PDF generation
+        const tempElement = document.createElement('div');
+        tempElement.style.position = 'absolute';
+        tempElement.style.left = '-9999px';
+        tempElement.style.top = '0px';
+        tempElement.style.width = '800px';
+        tempElement.style.padding = '40px';
+        tempElement.style.backgroundColor = 'white';
+        tempElement.innerHTML = generatedOfferLetterHtml;
+        document.body.appendChild(tempElement);
+
+        // Wait for images to load
+        await Promise.all(
+            Array.from(tempElement.getElementsByTagName('img')).map(
+                img => new Promise((resolve) => {
+                    if (img.complete) resolve();
+                    else img.onload = resolve;
+                })
+            )
+        );
+
+        const documentToCapture = tempElement.querySelector('.offer-letter-container');
+        if (!documentToCapture) {
+            document.body.removeChild(tempElement);
+            throw new Error("Could not find content for PDF generation");
+        }
+
+        // Ensure all styles are properly applied
+        const style = document.createElement('style');
+        style.textContent = `
+            .offer-letter-container {
+                width: 100%;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 40px;
+                background: white;
+                font-family: Arial, sans-serif;
+            }
+            .offer-letter-container img {
+                max-width: 100%;
+                height: auto;
+            }
+            .offer-letter-container * {
+                box-sizing: border-box;
+            }
+        `;
+        tempElement.appendChild(style);
+
+        // Generate PDF with improved settings
+        const pdfBlob = await html2pdf()
+            .set({
+                margin: [10, 10, 10, 10],
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    allowTaint: true,
+                    foreignObjectRendering: true,
+                    width: 800,
+                    windowWidth: 800,
+                    logging: true,
+                    onclone: (clonedDoc) => {
+                        // Ensure the cloned document has all styles
+                        const clonedElement = clonedDoc.querySelector('.offer-letter-container');
+                        if (clonedElement) {
+                            clonedElement.style.width = '800px';
+                            clonedElement.style.padding = '40px';
+                            clonedElement.style.backgroundColor = 'white';
+                        }
+                    }
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    compress: true
+                }
+            })
+            .from(documentToCapture)
+            .output('blob');
+
+        // Clean up temporary element
+        document.body.removeChild(tempElement);
+
+        // Convert blob to base64 for email attachment
+        const pdfBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(pdfBlob);
+        });
+
+        const emailBody = `
+            <p>Dear ${selectedApplicantForOffer.name},</p>
+            <p>We are pleased to extend an offer of employment to you. Please find your offer letter attached in both HTML and PDF formats.</p>
+            <p>Your details:</p>
+            <ul>
+                <li>Position: ${selectedApplicantForOffer.positionTitle || 'To be assigned'}</li>
+                <li>Department: ${selectedApplicantForOffer.department || 'To be assigned'}</li>
+                <li>Join Date: ${selectedApplicantForOffer.offeredStartDate ? format(new Date(selectedApplicantForOffer.offeredStartDate), "MMMM d, yyyy") : 'To be confirmed'}</li>
+            </ul>
+            <p>Please review the offer letter and let us know if you have any questions.</p>
+            <p>Best regards,<br/>PESU Venture Labs HR Team</p>
+        `;
+
         const result = await sendEmail({
             to: selectedApplicantForOffer.email,
             subject: `Job Offer from PESU Venture Labs for ${selectedApplicantForOffer.name}`,
             htmlBody: emailBody,
-            attachments: [{
-                filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
-                content: generatedOfferLetterHtml,
-                contentType: 'text/html',
-            }]
+            attachments: [
+                {
+                    filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
+                    content: generatedOfferLetterHtml,
+                    contentType: 'text/html',
+                },
+                {
+                    filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`,
+                    content: pdfBase64,
+                    contentType: 'application/pdf',
+                    encoding: 'base64'
+                }
+            ]
         });
+
         if (result.success) {
             updateApplicant(selectedApplicantForOffer.id, { offerStatus: "OFFER_SENT" });
             toast({ title: "Offer Letter Emailed", description: `Sent to ${selectedApplicantForOffer.email}.` });
@@ -283,6 +444,7 @@ export default function OffersPage() {
             throw new Error(result.message);
         }
     } catch (error) {
+        console.error('Email error:', error);
         toast({ title: "Email Failed", description: error.message, variant: "destructive" });
     } finally {
         setIsEmailingOfferLetter(false);
@@ -307,11 +469,8 @@ export default function OffersPage() {
     }
     const filename = `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`;
     const opt = {
-      margin: [10, 10, 10, 10], filename, image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-     html2pdf().from(documentToCapture).set(opt).save()
+      margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
+    html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Offer letter saved." }))
       .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
       .finally(() => document.body.removeChild(tempElement));
@@ -436,7 +595,6 @@ export default function OffersPage() {
   
   const ROLES_OPTIONS = ["Software Engineer", "Project Manager", "UX Designer", "HR Specialist", "Frontend Developer", "Sales Executive", "Marketing Manager", "Data Analyst", "QA Engineer", "DevOps Engineer", "Product Owner", "Business Analyst", "System Administrator", "Operations Head", "Accountant"];
   const DESIGNATION_OPTIONS = ["Intern", "Trainee", "Junior Developer", "Associate Developer", "Developer", "Senior Developer", "Team Lead", "Principal Engineer", "Junior Designer", "Designer", "Senior Designer", "HR Executive", "Senior HR", "Sales Rep", "Senior Sales Rep", "Analyst", "Senior Analyst", "Associate QA", "QA Engineer", "Senior QA", "DevOps Engineer", "Senior DevOps", "Product Manager", "Senior Product Manager", "Manager", "Director", "Administrator", "Accountant"];
-  const DEPARTMENTS_OPTIONS = ["Technology", "Operations", "Design", "Human Resources", "Sales", "Marketing", "Finance", "Product", "Quality Assurance", "IT", "Administration"];
   const STATUS_OPTIONS = ["Active", "On Leave", "Terminated", "Probation", "Resigned"];
 
   const handleOpenNoteDialog = (applicant) => {
@@ -734,25 +892,42 @@ export default function OffersPage() {
           <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
             <EmployeeForm
               onSubmit={handleOnboardEmployee}
-              initialData={selectedApplicantForOnboarding ? { 
-                name: selectedApplicantForOnboarding.name, 
-                email: selectedApplicantForOnboarding.email,
-                role: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.title || "",
-                designation: "", 
-                department: jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.department || "",
-                joinDate: selectedApplicantForOnboarding.offeredStartDate ? (selectedApplicantForOnboarding.offeredStartDate.includes(" ") ? new Date(selectedApplicantForOnboarding.offeredStartDate) : parseISO(selectedApplicantForOnboarding.offeredStartDate)) : new Date(),
-                status: "Probation", 
-                salary: selectedApplicantForOnboarding.offeredSalary || "",
-                employeeType: "Full-time", 
-                gender: "", 
-                reportingManager: (jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager && managerOptions.includes(jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager)) ? jobs.find(j => j.id === selectedApplicantForOnboarding.jobId)?.projectManager : "",
-              } : {}}
+              initialData={selectedApplicantForOnboarding ? (() => {
+                const job = jobs.find(j => j.id === selectedApplicantForOnboarding.jobPostingId);
+                // Find departmentId from store by department name or id
+                let departmentId = "";
+                if (job?.department.id) {
+                  departmentId = job.department.id;
+                } else if (job?.department && typeof job.department === 'string') {
+                  const dept = departments.find(d => d.name === job.department.title);
+                  if (dept) departmentId = dept.id;
+                } else if (job?.department && typeof job.department === 'object' && job.department.id) {
+                  departmentId = job.department.id;
+                }
+                return {
+                  name: selectedApplicantForOnboarding.name,
+                  email: selectedApplicantForOnboarding.email,
+                  role: job?.role || 'EMPLOYEE',
+                  designation: job?.designation || 'INTERN',
+                  department: departmentId,
+                  joinDate: selectedApplicantForOnboarding.offeredStartDate
+                    ? (typeof selectedApplicantForOnboarding.offeredStartDate === 'string'
+                        ? new Date(selectedApplicantForOnboarding.offeredStartDate)
+                        : selectedApplicantForOnboarding.offeredStartDate)
+                    : new Date(),
+                  status: 'PROBATION',
+                  salary: selectedApplicantForOnboarding.offeredSalary || '',
+                  employeeType: job?.employeeType || 'FULL_TIME',
+                  gender: 'OTHER',
+                  reportingManagerId: job?.projectManager?.id || '',
+                };
+              })() : {}}
               onCancel={() => setIsJoiningFormOpen(false)}
-              rolesOptions={ROLES_OPTIONS}
-              designationOptions={DESIGNATION_OPTIONS}
-              departmentsOptions={DEPARTMENTS_OPTIONS}
-              statusOptions={STATUS_OPTIONS}
-              employeeTypeOptions={EMPLOYEE_TYPE_OPTIONS}
+              rolesOptions={["SUPERADMIN", "ADMIN", "MANAGER", "HR", "ACCOUNTS", "EMPLOYEE"]}
+              designationOptions={["INTERN","TRAINEE","JUNIOR_DEVELOPER","ASSOCIATE_DEVELOPER","DEVELOPER","SENIOR_DEVELOPER","TEAM_LEAD","PRINCIPAL_ENGINEER","JUNIOR_DESIGNER","DESIGNER","SENIOR_DESIGNER","HR_EXECUTIVE","SENIOR_HR","SALES_REP","SENIOR_SALES_REP","ANALYST","SENIOR_ANALYST","ASSOCIATE_QA","QA_ENGINEER","SENIOR_QA","DEVOPS_ENGINEER_DESIGNATION","SENIOR_DEVOPS_ENGINEER","PRODUCT_MANAGER","SENIOR_PRODUCT_MANAGER","MANAGER_DESIGNATION","DIRECTOR","ADMINISTRATOR","ACCOUNTANT_DESIGNATION"]}
+              departmentsOptions={departments.map(dept => ({ id: dept.id, value: dept.id, label: dept.name }))}
+              statusOptions={["ACTIVE", "ON_LEAVE", "TERMINATED", "PROBATION", "RESIGNED"]}
+              employeeTypeOptions={["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN", "TEMPORARY"]}
               reportingManagerOptions={managerOptions}
             />
           </div>

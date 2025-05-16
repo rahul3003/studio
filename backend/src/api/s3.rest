@@ -1,0 +1,50 @@
+@baseUrl = http://localhost:5000/api
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDczODY4ODMsImV4cCI6MTc0NzQ3MzI4M30.LINUWQT5F5oT8n8608kBxOQdA885C2qNqcXNzD8qL7M
+
+### Get presigned URL for direct upload
+POST {{baseUrl}}/s3/presigned-url
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+    "fileName": "example.pdf",
+    "contentType": "application/pdf",
+    "folder": "documents/offers"
+}
+
+### Presigned URL Response
+{
+    "success": true,
+    "data": {
+        "url": "https://your-bucket.s3.region.amazonaws.com/documents/offers/example.pdf",
+        "key": "documents/offers/example.pdf",
+        "presignedUrl": "https://your-bucket.s3.region.amazonaws.com/..."
+    }
+}
+
+### Upload file to S3 (server-side upload)
+POST {{baseUrl}}/s3/upload
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+    "file": "base64_encoded_file_content",
+    "fileName": "example.pdf",
+    "contentType": "application/pdf",
+    "folder": "documents/offers"
+}
+
+### Upload Response
+{
+    "success": true,
+    "data": {
+        "url": "https://your-bucket.s3.region.amazonaws.com/documents/offers/example.pdf",
+        "key": "documents/offers/example.pdf"
+    }
+}
+
+### Error Response
+{
+    "success": false,
+    "error": "Failed to upload file"
+} 

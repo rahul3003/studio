@@ -420,7 +420,29 @@ export default function EmployeesPage() {
     }
     setIsEmailingLetter(true);
     try {
-      const emailBody = `<p>Dear ${currentEmployeeForLetter.name},</p><p>Welcome to PESU Venture Labs! Please find your joining letter attached.</p><p>Sincerely,<br/>The PESU Venture Labs HR Team</p>`;
+      // Get reporting manager details from managerOptions
+      const reportingManager = managerOptions.find(m => m.id === currentEmployeeForLetter.reportingManagerId);
+      const reportingManagerName = reportingManager ? reportingManager.label : 'To be assigned';
+
+      // Get department name from departments list
+      const department = departments.find(d => d.id === currentEmployeeForLetter.departmentId);
+      const departmentName = department ? department.name : 'Not Assigned';
+
+      const emailBody = `
+        <p>Dear ${currentEmployeeForLetter.name},</p>
+        <p>Welcome to PESU Venture Labs!</p>
+        <p>We are pleased to confirm your joining with us. Please find your joining letter attached.</p>
+        <p>Your details:</p>
+        <ul>
+          <li>Position: ${currentEmployeeForLetter.role}</li>
+          <li>Department: ${departmentName}</li>
+          <li>Reporting Manager: ${reportingManagerName}</li>
+          <li>Join Date: ${format(new Date(currentEmployeeForLetter.joinDate), "MMMM d, yyyy")}</li>
+        </ul>
+        <p>If you have any questions, please don't hesitate to reach out to the HR team.</p>
+        <p>Best regards,<br/>The PESU Venture Labs HR Team</p>
+      `;
+
       const result = await sendEmail({
         to: currentEmployeeForLetter.email,
         subject: `Welcome to PESU Venture Labs - Your Joining Letter`,
