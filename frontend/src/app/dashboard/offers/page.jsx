@@ -13,7 +13,7 @@ import { useJobStore } from "@/store/jobStore";
 import { useApplicantStore } from "@/store/applicantStore";
 import { useEmployeeStore } from "@/store/employeeStore";
 import { format, parseISO } from "date-fns";
-import { Loader2, Mail, UserPlus, Eye, FileText as FileTextIcon, BriefcaseBusiness, Download, Send } from "lucide-react";
+import { Loader2, Mail, UserPlus, Eye, FileText as FileTextIcon, BriefcaseBusiness, Download, Send, XCircle, UploadCloud, FileText, MoreVertical } from "lucide-react";
 import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { EmployeeForm, EMPLOYEE_TYPE_OPTIONS } from "@/components/employee/employee-form";
 import { sendEmail } from '@/services/emailService'; 
@@ -21,11 +21,12 @@ import html2pdf from 'html2pdf.js';
 import { useSearchParams } from 'next/navigation'; // Import useSearchParams
 import { OfferHistory } from "@/components/offer/offer-history";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreVertical } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ApplicantForm } from "@/components/applicant/applicant-form";
 import moment from "moment";
 import { useDepartmentStore } from '@/store/departmentStore';
+import { s3Service } from '@/services/s3Service';
+import { Input } from "@/components/ui/input";
 
 
 // Import HTML generation functions
@@ -162,6 +163,15 @@ export default function OffersPage() {
 
   const departments = useDepartmentStore((state) => state.departments);
 
+  // Add new state for resume upload dialog
+  const [isResumeUploadDialogOpen, setIsResumeUploadDialogOpen] = React.useState(false);
+  const [selectedApplicantForResume, setSelectedApplicantForResume] = React.useState(null);
+  const [isUploadingResume, setIsUploadingResume] = React.useState(false);
+
+  // Add new state for selected file
+  const [selectedResumeFile, setSelectedResumeFile] = React.useState(null);
+  const fileInputRef = React.useRef(null);
+
   // Initialize data
   React.useEffect(() => {
     initializeJobs();
@@ -291,7 +301,7 @@ export default function OffersPage() {
           offerStatus: "OFFER_GENERATED", 
           offeredSalary: offerData.salary,
           offeredStartDate: moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).isValid() ? moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).format("YYYY-MM-DD") : undefined,
-          offerLetterHtml: htmlContent
+          offerLetterHtml: htmlContent 
         });
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
       } else {
@@ -423,9 +433,9 @@ export default function OffersPage() {
             htmlBody: emailBody,
             attachments: [
                 {
-                    filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
-                    content: generatedOfferLetterHtml,
-                    contentType: 'text/html',
+                filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
+                content: generatedOfferLetterHtml,
+                contentType: 'text/html',
                 },
                 {
                     filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`,
@@ -470,7 +480,7 @@ export default function OffersPage() {
     const filename = `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`;
     const opt = {
       margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
-    html2pdf().from(documentToCapture).set(opt).save()
+     html2pdf().from(documentToCapture).set(opt).save()
       .then(() => toast({ title: "PDF Downloaded", description: "Offer letter saved." }))
       .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
       .finally(() => document.body.removeChild(tempElement));
@@ -615,26 +625,164 @@ export default function OffersPage() {
     }
   };
 
-  const handleAddApplicant = () => {
-    if (!newApplicant.name.trim() || !newApplicant.email.trim() || !newApplicant.jobId || !newApplicant.assertifyScore || !newApplicant.resumeLink) return;
-    addApplicant({
-      name: newApplicant.name.trim(),
-      email: newApplicant.email.trim(),
-      jobId: newApplicant.jobId,
-      assertifyScore: Number(newApplicant.assertifyScore),
-      resumeLink: newApplicant.resumeLink,
-    });
-    setAddDialogOpen(false);
-    setNewApplicant({ name: "", email: "", jobId: "", assertifyScore: "", resumeFile: null, resumeLink: "" });
-  };
-
-  const handleResumeChange = (e) => {
-    const file = e.target.files[0];
+  // Add file handling functions
+  const handleResumeFileChange = (event) => {
+    const file = event.target.files?.[0];
     if (file) {
-      // For demo, use a local object URL. In production, upload to server/cloud and use the returned URL.
-      setNewApplicant((prev) => ({ ...prev, resumeFile: file, resumeLink: URL.createObjectURL(file) }));
+      setSelectedResumeFile(file);
     }
   };
+
+  const handleRemoveResumeFile = () => {
+    setSelectedResumeFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Update the Resume Upload Dialog
+  <Dialog open={isResumeUploadDialogOpen} onOpenChange={setIsResumeUploadDialogOpen}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Upload Resume for {selectedApplicantForResume?.name}</DialogTitle>
+        <DialogDescription>
+          Upload a resume for this applicant. Supported formats: PDF, DOC, DOCX
+        </DialogDescription>
+      </DialogHeader>
+      <div className="py-4">
+        <div className="flex items-center gap-2">
+          {selectedResumeFile ? (
+            <div className="flex items-center justify-between w-full rounded-md border border-input p-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <FileText className="h-4 w-4" />
+                <span className="truncate" title={selectedResumeFile.name}>{selectedResumeFile.name}</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleRemoveResumeFile}
+                className="h-6 w-6 text-destructive hover:bg-destructive/10"
+              >
+                <XCircle className="h-4 w-4" />
+                <span className="sr-only">Remove file</span>
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full"
+            >
+              <UploadCloud className="mr-2 h-4 w-4" />
+              Upload Resume
+            </Button>
+          )}
+          <Input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleResumeFileChange}
+            accept=".pdf,.doc,.docx"
+          />
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Supported formats: PDF, DOC, DOCX
+        </p>
+      </div>
+      <DialogFooter className="gap-2">
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setIsResumeUploadDialogOpen(false);
+            setSelectedApplicantForResume(null);
+            setSelectedResumeFile(null);
+          }}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={() => selectedResumeFile && handleUploadResume(selectedResumeFile)}
+          disabled={!selectedResumeFile || isUploadingResume}
+        >
+          {isUploadingResume ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            'Upload'
+          )}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  // Update handleUploadResume to use the selected file
+  const handleUploadResume = async (file) => {
+    if (!selectedApplicantForResume) return;
+    
+    setIsUploadingResume(true);
+    try {
+      const { data: presignedData } = await s3Service.getPresignedUrl(
+        file.name,
+        file.type
+      );
+      await s3Service.uploadFileDirectly(file, presignedData.presignedUrl);
+      
+      const result = await updateApplicant(selectedApplicantForResume.id, {
+        resumeLink: presignedData.url
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Resume uploaded successfully"
+        });
+        setIsResumeUploadDialogOpen(false);
+        setSelectedApplicantForResume(null);
+        setSelectedResumeFile(null);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload resume",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  const handleAddApplicant = async (data) => {
+    try {
+      const result = await addApplicant({
+        ...data,
+        jobPostingId: selectedJobId,
+        offerStatus: "PENDING_OFFER",
+        assertifyScore: data.assertifyScore || 0,
+        resumeLink: data.resumeLink || null
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Applicant added successfully"
+        });
+        setAddDialogOpen(false);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add applicant",
+        variant: "destructive"
+      });
+    }
+  };
+
   console.log("jobs name",selectedApplicantForOffer,jobs, jobs?.find(j => j.id === selectedApplicantForOffer?.jobPostingId)?.title);
 
   return (
@@ -642,9 +790,9 @@ export default function OffersPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Mail className="h-8 w-8 text-primary" />
-              <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
+          <div className="flex items-center gap-2">
+            <Mail className="h-8 w-8 text-primary" />
+            <CardTitle className="text-3xl">Manage Offers & Onboarding</CardTitle>
             </div>
             <Button onClick={() => setAddDialogOpen(true)} variant="default">
               Add Applicant
@@ -662,152 +810,170 @@ export default function OffersPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
-                  <Label htmlFor="job-select">Select Job Posting</Label>
-                  <Select value={selectedJobId} onValueChange={handleJobChange}>
-                    <SelectTrigger id="job-select">
-                      <SelectValue placeholder="Select a job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jobs.map((job) => (
-                        <SelectItem key={job.id} value={job.id}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <Label htmlFor="job-select">Select Job Posting</Label>
+              <Select value={selectedJobId} onValueChange={handleJobChange}>
+                <SelectTrigger id="job-select">
+                  <SelectValue placeholder="Select a job" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobs.map((job) => (
+                    <SelectItem key={job.id} value={job.id}>
                           {job.title} ({typeof job.department === 'object' ? job.department.name : job.department})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="status-filter">Filter by Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger id="status-filter">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OFFER_STATUS_OPTIONS_FILTER.map((status) => (
-                        <SelectItem key={status} value={status}>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="status-filter">Filter by Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {OFFER_STATUS_OPTIONS_FILTER.map((status) => (
+                    <SelectItem key={status} value={status}>
                           {status === "All" ? "All" : formatOfferStatus(status)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-              {selectedJobId ? (
-                filteredApplicants.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Applicant Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Assertify Score</TableHead>
-                          <TableHead>Resume</TableHead>
-                          <TableHead>Current Status</TableHead>
-                          <TableHead>Latest Note</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredApplicants.map((applicant) => (
-                          <TableRow key={applicant.id}>
-                            <TableCell className="font-medium">{applicant.name}</TableCell>
-                            <TableCell>{applicant.email}</TableCell>
-                            <TableCell>
-                              <Badge variant={applicant.assertifyScore >= 85 ? "default" : "secondary"}>
-                                {applicant.assertifyScore}%
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <a href={applicant.resumeLink || "#"} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                View Resume
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              <Select 
-                                value={applicant.offerStatus} 
-                                onValueChange={(newStatus) => handleUpdateApplicantStatus(applicant.id, newStatus)}
-                              >
-                                <SelectTrigger className="w-[180px] h-8 text-xs">
-                                  <SelectValue placeholder="Update status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {OFFER_STATUS_OPTIONS.map(opt => (
-                                    <SelectItem key={opt} value={opt}>{formatOfferStatus(opt)}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                               <Badge variant={statusVariantMap[applicant.offerStatus] || "outline"} className="mt-1 text-xs">
-                                 {formatOfferStatus(applicant.offerStatus)}
-                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {applicant.notes && applicant.notes.length > 0 ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className="max-w-xs truncate cursor-pointer font-medium"
-                                      title={applicant.notes[applicant.notes.length - 1].text}
-                                      onClick={() => handleOpenNoteDialog(applicant)}
-                                    >
-                                      {applicant.notes[applicant.notes.length - 1].text}
-                                      <span className="ml-1 text-xs text-muted-foreground">
-                                        ({format(new Date(applicant.notes[applicant.notes.length - 1].date), "MMM d, yyyy")})
-                                      </span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {applicant.notes[applicant.notes.length - 1].text}
-                                  </TooltipContent>
-                                </Tooltip>
+          {selectedJobId ? (
+            filteredApplicants.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Applicant Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Assertify Score</TableHead>
+                      <TableHead>Resume</TableHead>
+                      <TableHead>Current Status</TableHead>
+                      <TableHead>Latest Note</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplicants.map((applicant) => (
+                      <TableRow key={applicant.id}>
+                        <TableCell className="font-medium">{applicant.name}</TableCell>
+                        <TableCell>{applicant.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={applicant.assertifyScore >= 85 ? "default" : "secondary"}>
+                            {applicant.assertifyScore}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                              {applicant.resumeLink ? (
+                                <a 
+                                  href={applicant.resumeLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-primary hover:underline"
+                                >
+                            View Resume
+                          </a>
                               ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedApplicantForResume(applicant);
+                                    setIsResumeUploadDialogOpen(true);
+                                  }}
+                                >
+                                  Upload Resume
+                                </Button>
                               )}
-                            </TableCell>
-                            <TableCell className="space-x-1">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-5 w-5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                        </TableCell>
+                        <TableCell>
+                          <Select 
+                            value={applicant.offerStatus} 
+                            onValueChange={(newStatus) => handleUpdateApplicantStatus(applicant.id, newStatus)}
+                          >
+                            <SelectTrigger className="w-[180px] h-8 text-xs">
+                              <SelectValue placeholder="Update status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {OFFER_STATUS_OPTIONS.map(opt => (
+                                    <SelectItem key={opt} value={opt}>{formatOfferStatus(opt)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                           <Badge variant={statusVariantMap[applicant.offerStatus] || "outline"} className="mt-1 text-xs">
+                                 {formatOfferStatus(applicant.offerStatus)}
+                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {applicant.notes && applicant.notes.length > 0 ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="max-w-xs truncate cursor-pointer font-medium"
+                                  title={applicant.notes[applicant.notes.length - 1].text}
+                                  onClick={() => handleOpenNoteDialog(applicant)}
+                                >
+                                  {applicant.notes[applicant.notes.length - 1].text}
+                                  <span className="ml-1 text-xs text-muted-foreground">
+                                    ({format(new Date(applicant.notes[applicant.notes.length - 1].date), "MMM d, yyyy")})
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {applicant.notes[applicant.notes.length - 1].text}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="space-x-1">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-5 w-5" />
+                          </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
                                   {(applicant.offerStatus === "SELECTED" || applicant.offerStatus === "OFFER_GENERATED" || applicant.offerStatus === "OFFER_SENT") && (
-                                    <DropdownMenuItem onClick={() => handleOpenOfferLetterDialog(applicant)}>
-                                      Offer
-                                    </DropdownMenuItem>
-                                  )}
+                                <DropdownMenuItem onClick={() => handleOpenOfferLetterDialog(applicant)}>
+                                  Offer
+                                </DropdownMenuItem>
+                              )}
                                   {applicant.offerStatus?.trim() === "OFFER_ACCEPTED" && (
-                                    <DropdownMenuItem onClick={() => handleOpenOnboardingForm(applicant)}>
-                                      Onboard
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem onClick={() => { setHistoryApplicant(applicant); setHistoryDialogOpen(true); }}>
-                                    View History
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenNoteDialog(applicant)}>
-                                    Note
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <p>No applicants match the current filters for this job.</p>
-                  </div>
-                )
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <BriefcaseBusiness className="mx-auto h-12 w-12 mb-4" />
-                  <p className="text-lg font-medium">Please select a job posting to view applicants.</p>
-                </div>
+                                <DropdownMenuItem onClick={() => handleOpenOnboardingForm(applicant)}>
+                                  Onboard
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => { setHistoryApplicant(applicant); setHistoryDialogOpen(true); }}>
+                                View History
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenNoteDialog(applicant)}>
+                                Note
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-10 text-muted-foreground">
+                <p>No applicants match the current filters for this job.</p>
+              </div>
+            )
+          ) : (
+            <div className="text-center py-10 text-muted-foreground">
+                <BriefcaseBusiness className="mx-auto h-12 w-12 mb-4" />
+                <p className="text-lg font-medium">Please select a job posting to view applicants.</p>
+            </div>
               )}
             </>
           )}
@@ -905,8 +1071,8 @@ export default function OffersPage() {
                   departmentId = job.department.id;
                 }
                 return {
-                  name: selectedApplicantForOnboarding.name,
-                  email: selectedApplicantForOnboarding.email,
+                name: selectedApplicantForOnboarding.name, 
+                email: selectedApplicantForOnboarding.email,
                   role: job?.role || 'EMPLOYEE',
                   designation: job?.designation || 'INTERN',
                   department: departmentId,
@@ -1041,21 +1207,90 @@ export default function OffersPage() {
           </DialogHeader>
           <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
             <ApplicantForm
-              onSubmit={(values) => {
-                addApplicant({
-                  name: values.name,
-                  email: values.email,
-                  jobId: values.jobId,
-                  assertifyScore: values.assertifyScore,
-                  resumeFile: values.resumeFile,
-                  resumeLink: values.resumeLink,
-                });
-                setAddDialogOpen(false);
-              }}
+              onSubmit={handleAddApplicant}
               onCancel={() => setAddDialogOpen(false)}
               jobOptions={jobs}
             />
           </div>
+            </DialogContent>
+        </Dialog>
+
+      {/* Resume Upload Dialog */}
+      <Dialog open={isResumeUploadDialogOpen} onOpenChange={setIsResumeUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Resume for {selectedApplicantForResume?.name}</DialogTitle>
+            <DialogDescription>
+              Upload a resume for this applicant. Supported formats: PDF, DOC, DOCX
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-2">
+              {selectedResumeFile ? (
+                <div className="flex items-center justify-between w-full rounded-md border border-input p-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate" title={selectedResumeFile.name}>{selectedResumeFile.name}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemoveResumeFile}
+                    className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    <span className="sr-only">Remove file</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full"
+                >
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Upload Resume
+                </Button>
+              )}
+              <Input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleResumeFileChange}
+                accept=".pdf,.doc,.docx"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Supported formats: PDF, DOC, DOCX
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsResumeUploadDialogOpen(false);
+                setSelectedApplicantForResume(null);
+                setSelectedResumeFile(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => selectedResumeFile && handleUploadResume(selectedResumeFile)}
+              disabled={!selectedResumeFile || isUploadingResume}
+            >
+              {isUploadingResume ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload'
+              )}
+            </Button>
+          </DialogFooter>
             </DialogContent>
         </Dialog>
 

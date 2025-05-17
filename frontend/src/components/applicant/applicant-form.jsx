@@ -16,7 +16,7 @@ const applicantFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   jobId: z.string().min(1, { message: "Please select a job." }),
   assertifyScore: z.coerce.number().min(0).max(100),
-  resume: z.any().refine(file => file instanceof File || typeof file === "string", { message: "Resume is required." }),
+  resume: z.any().optional(),
 });
 
 export function ApplicantForm({
@@ -135,17 +135,36 @@ export function ApplicantForm({
           name="resume"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Resume Upload</FormLabel>
+              <FormLabel>Resume Upload (Optional)</FormLabel>
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full sm:w-auto"
-                >
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  {selectedFile ? "Change File" : "Upload File"}
-                </Button>
+                {selectedFile ? (
+                  <div className="flex items-center justify-between w-full rounded-md border border-input p-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span className="truncate" title={selectedFile.name}>{selectedFile.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveFile}
+                      className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span className="sr-only">Remove file</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full sm:w-auto"
+                  >
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    Upload Resume
+                  </Button>
+                )}
                 <Input
                   type="file"
                   ref={fileInputRef}
@@ -154,24 +173,9 @@ export function ApplicantForm({
                   accept=".pdf,.doc,.docx"
                 />
               </div>
-              {selectedFile && (
-                <div className="mt-2 flex items-center justify-between rounded-md border border-input p-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span className="truncate" title={selectedFile.name}>{selectedFile.name}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRemoveFile}
-                    className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    <span className="sr-only">Remove file</span>
-                  </Button>
-                </div>
-              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                Supported formats: PDF, DOC, DOCX. You can also upload later.
+              </p>
               <FormMessage />
             </FormItem>
           )}

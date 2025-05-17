@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '@/services/api';
 import moment from 'moment';
+import { s3Service } from '@/services/s3Service';
 
 function createHistoryEntry(status, details = "") {
   return {
@@ -43,18 +44,22 @@ export const useApplicantStore = create((set, get) => ({
     try {
       const {
         resumeFile,
+        resumeUrl,
         jobId,
         offerStatus,
         ...rest
       } = applicant;
+
       const status = offerStatus || 'PENDING_OFFER';
       const dataToSend = {
         ...rest,
         jobPostingId: jobId,
         offerStatus: status,
+        resumeUrl,
         offerHistory: [createHistoryEntry(status, 'Applicant created')],
         ...(rest.offeredStartDate && { offeredStartDate: toIsoDateTimeWithMoment(rest.offeredStartDate) }),
       };
+
       const { data } = await api.post('/applicants', dataToSend);
       set((state) => ({ 
         applicants: [...state.applicants, data.data],
@@ -126,4 +131,29 @@ export const useApplicantStore = create((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  // Add a new function to handle resume upload separately
+  uploadResume: async (applicantId, resumeFile) => {
+    try {
+      let resumeUrl;
+      // For files larger than 5MB, use direct upload
+      if (resumeFile.size > 5 * 1024 * 1024) {
+        const { data: presignedData } = await s3Service.getPresignedUrl(
+          resumeFile.name,
+          resumeFile.type
+        );
+        await s3Service.uploadFileDirectly(resumeFile, presignedData.presignedUrl);
+        resumeUrl = presignedData.url;
+      } else {
+        // For smaller files, use server upload
+        const { data } = await s3Service.uploadFileThroughServer(resumeFile);
+        resumeUrl = data.url;
+      }
+
+      // Update applicant with resume URL
+      return get().updateApplicant(applicantId, { resumeUrl });
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to upload resume');
+    }
+  },
 }));
