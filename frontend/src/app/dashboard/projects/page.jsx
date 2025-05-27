@@ -11,6 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -22,34 +23,46 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2, FolderKanban } from "lucide-react";
+import { PlusCircle, Edit, Trash2, FolderKanban, Loader2, Plus, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectForm } from "@/components/project/project-form";
-import { useProjectStore } from "@/store/projectStore"; // Import the store
-import { useEmployeeStore } from "@/store/employeeStore"; // To get employee names for PM dropdown
+import { useProjectStore } from "@/store/projectStore";
+import { useEmployeeStore } from "@/store/employeeStore";
+import { useDepartmentStore } from "@/store/departmentStore";
+import { format } from 'date-fns';
 
-const PROJECT_STATUS_OPTIONS = ["Planning", "In Progress", "Completed", "On Hold", "Cancelled"];
+const PROJECT_STATUS_OPTIONS = ["PLANNING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "CANCELLED"];
 
 const statusVariantMap = {
-  Planning: "secondary",
-  "In Progress": "default",
-  Completed: "outline", 
-  "On Hold": "secondary",
-  Cancelled: "destructive",
+  PLANNING: "secondary",
+  IN_PROGRESS: "default",
+  COMPLETED: "outline",
+  ON_HOLD: "secondary",
+  CANCELLED: "destructive",
 };
 
 export default function ProjectsPage() {
   const { toast } = useToast();
-  // Use Zustand stores
-  const projects = useProjectStore((state) => state.projects);
-  const addProject = useProjectStore((state) => state.addProject);
-  const updateProject = useProjectStore((state) => state.updateProject);
-  const deleteProject = useProjectStore((state) => state.deleteProject);
-  const initializeProjects = useProjectStore((state) => state._initializeProjects);
+  const { 
+    projects, 
+    loading, 
+    error,
+    fetchProjects, 
+    createProject, 
+    updateProject, 
+    deleteProject,
+    addTeamMember,
+    removeTeamMember,
+    getTeamMembers,
+    clearError,
+  } = useProjectStore();
 
-  const employees = useEmployeeStore((state) => state.employees);
-  const MOCK_EMPLOYEES_FOR_PM = employees.map(emp => emp.name);
+  const employees = useEmployeeStore((state) => state.employees) || [];
+  const departments = useDepartmentStore((state) => state.departments) || [];
 
+  // Ensure we have valid arrays before passing to ProjectForm
+  const employeeList = Array.isArray(employees) ? employees : [];
+  const departmentList = Array.isArray(departments) ? departments : [];
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -57,8 +70,18 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = React.useState(null);
 
   React.useEffect(() => {
-    initializeProjects(); // Ensure store is initialized
-  }, [initializeProjects]);
+    fetchProjects();
+  }, [fetchProjects]);
+
+  React.useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
 
   const handleAddProjectOpen = () => {
     setSelectedProject(null);
@@ -82,31 +105,114 @@ export default function ProjectsPage() {
     setSelectedProject(null);
   };
 
-  const handleSaveProject = (projectData) => {
-    if (selectedProject && selectedProject.id) {
-      // Editing existing project
-      updateProject({ ...projectData, id: selectedProject.id });
-      toast({ title: "Project Updated", description: `"${projectData.name}" details have been updated.` });
-    } else {
-      // Adding new project
-      const newId = `PROJ${String(Date.now()).slice(-4)}${String(projects.length + 1).padStart(3, '0')}`;
-      const newProject = {
-        ...projectData,
-        id: newId,
-      };
-      addProject(newProject);
-      toast({ title: "Project Added", description: `"${projectData.name}" has been added.` });
+  const handleSaveProject = async (projectData) => {
+    try {
+      if (selectedProject && selectedProject.id) {
+        await updateProject(selectedProject.id, projectData);
+        toast({ 
+          title: "Project Updated", 
+          description: `"${projectData.name}" details have been updated.` 
+        });
+      } else {
+        await createProject(projectData);
+        toast({ 
+          title: "Project Added", 
+          description: `"${projectData.name}" has been added.` 
+        });
+      }
+      handleDialogClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to save project",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedProject) {
+      try {
+        await deleteProject(selectedProject.id);
+        toast({ 
+          title: "Project Deleted", 
+          description: `"${selectedProject.name}" has been removed.`, 
+          variant: "destructive" 
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.error || "Failed to delete project",
+          variant: "destructive"
+        });
+      }
     }
     handleDialogClose();
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedProject) {
-      deleteProject(selectedProject.id);
-      toast({ title: "Project Deleted", description: `"${selectedProject.name}" has been removed.`, variant: "destructive" });
+  const handleAddTeamMember = async (projectId, employeeId) => {
+    try {
+      await addTeamMember(projectId, employeeId);
+      toast({
+        title: 'Success',
+        description: 'Team member added successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
-    handleDialogClose();
   };
+
+  const handleRemoveTeamMember = async (projectId, employeeId) => {
+    try {
+      await removeTeamMember(projectId, employeeId);
+      toast({
+        title: 'Success',
+        description: 'Team member removed successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PLANNING':
+        return 'bg-blue-100 text-blue-800';
+      case 'IN_PROGRESS':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800';
+      case 'ON_HOLD':
+        return 'bg-gray-100 text-gray-800';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const projectsList = Array.isArray(projects) ? projects : [];
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500">
+        Error: {error}
+        <Button onClick={clearError}>Try Again</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -121,9 +227,19 @@ export default function ProjectsPage() {
               View, add, edit, and manage company projects.
             </CardDescription>
           </div>
-          <Button onClick={handleAddProjectOpen} className="w-full md:w-auto">
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Add New Project
+          <Button 
+            onClick={handleAddProjectOpen}
+            className="w-full md:w-auto"
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Plus className="mr-2 h-5 w-5" />
+                Add New Project
+              </>
+            )}
           </Button>
         </CardHeader>
         <CardContent>
@@ -141,80 +257,132 @@ export default function ProjectsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">{project.id}</TableCell>
-                    <TableCell>{project.name}</TableCell>
-                    <TableCell>{project.projectManager}</TableCell>
-                    <TableCell>
-                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", {
-                        year: "numeric", month: "short", day: "numeric",
-                      }) : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", {
-                        year: "numeric", month: "short", day: "numeric",
-                      }) : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariantMap[project.status] || "outline"}>
-                        {project.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="mr-1 hover:bg-accent/20"
-                        onClick={() => handleEditProjectOpen(project)}
-                      >
-                        <Edit className="h-4 w-4 text-primary" />
-                        <span className="sr-only">Edit {project.name}</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hover:bg-destructive/20"
-                        onClick={() => handleDeleteProjectOpen(project)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                        <span className="sr-only">Delete {project.name}</span>
-                      </Button>
+                {projectsList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <p className="text-muted-foreground">No projects found. Click "Add New Project" to get started.</p>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  projectsList.map((project) => {
+                    const projectId = project.id || `project-${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    return (
+                      <TableRow key={projectId}>
+                        <TableCell className="font-medium">{projectId}</TableCell>
+                        <TableCell>{project.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          {project.projectManager
+                            ? `${project.projectManager.name} (${project.projectManager.email}, ${project.projectManager.role})`
+                            : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", {
+                            year: "numeric", month: "short", day: "numeric",
+                          }) : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", {
+                            year: "numeric", month: "short", day: "numeric",
+                          }) : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(project.status)}>
+                            {project.status || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="mr-1 hover:bg-accent/20"
+                              onClick={() => handleEditProjectOpen(project)}
+                              disabled={loading}
+                            >
+                              <Edit className="h-4 w-4 text-primary" />
+                              <span className="sr-only">Edit {project.name || 'project'}</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="hover:bg-destructive/20"
+                              onClick={() => handleDeleteProjectOpen(project)}
+                              disabled={loading}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <span className="sr-only">Delete {project.name || 'project'}</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="hover:bg-accent/20"
+                              onClick={() => {
+                                setSelectedProject(project);
+                                getTeamMembers(project.id);
+                              }}
+                              disabled={loading}
+                            >
+                              <Users className="h-4 w-4 text-primary" />
+                              <span className="sr-only">Manage Team</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>
-          {projects.length === 0 && (
-            <div className="py-10 text-center text-muted-foreground">
-              No projects found. Click "Add New Project" to get started.
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      <Dialog open={isAddDialogOpen || isEditDialogOpen} onOpenChange={handleDialogClose}>
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedProject ? "Edit Project" : "Add New Project"}</DialogTitle>
+            <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
-              {selectedProject ? "Update the details of the project." : "Fill in the details to add a new project."}
+              Fill in the details to add a new project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <ProjectForm
+              onSubmit={handleSaveProject}
+              initialData={null}
+              onCancel={() => setIsAddDialogOpen(false)}
+              statusOptions={PROJECT_STATUS_OPTIONS}
+              employees={employeeList}
+              departments={departmentList}
+              loading={loading}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg md:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>
+              Update the details of the project.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <ProjectForm
               onSubmit={handleSaveProject}
               initialData={selectedProject}
-              onCancel={handleDialogClose}
+              onCancel={() => setIsEditDialogOpen(false)}
               statusOptions={PROJECT_STATUS_OPTIONS}
-              employeeOptions={MOCK_EMPLOYEES_FOR_PM.length > 0 ? MOCK_EMPLOYEES_FOR_PM : ["Default PM"]}
+              employees={employeeList}
+              departments={departmentList}
+              loading={loading}
             />
           </div>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDialogClose}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
@@ -224,8 +392,17 @@ export default function ProjectsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDialogClose}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={handleDialogClose} disabled={loading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

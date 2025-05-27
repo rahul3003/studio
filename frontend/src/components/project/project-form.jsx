@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
+import moment from "moment";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,7 @@ const projectFormSchema = z.object({
   startDate: z.date({ required_error: "Start date is required." }),
   endDate: z.date().optional(),
   status: z.string().min(1, { message: "Status is required." }),
-  teamMembers: z.string().optional(),
+  teamMembersString: z.string().optional(),
 }).refine(data => {
     if (data.startDate && data.endDate) {
       return data.endDate >= data.startDate;
@@ -51,10 +51,29 @@ export function ProjectForm({
   onSubmit,
   initialData,
   onCancel,
-  statusOptions,
-  employeeOptions, // For Project Manager selection
+  statusOptions = [],
+  employeeOptions = [], // For Project Manager selection
 }) {
   const { toast } = useToast();
+
+  // Robust projectManagerOptions
+  const projectManagerOptions = React.useMemo(() => {
+    if (!Array.isArray(employeeOptions)) return [];
+    return employeeOptions
+      .filter(emp => emp.value && emp.label)
+      .map(emp => ({
+        value: String(emp.value),
+        label: emp.label
+      }));
+  }, [employeeOptions]);
+
+  // Debug: log the options
+  console.log("projectManagerOptions", projectManagerOptions);
+
+  const safeStatusOptions = React.useMemo(() => {
+    return Array.isArray(statusOptions) ? statusOptions : [];
+  }, [statusOptions]);
+
   const form = useForm({
     resolver: zodResolver(projectFormSchema),
     defaultValues: initialData
@@ -62,6 +81,8 @@ export function ProjectForm({
           ...initialData,
           startDate: initialData.startDate ? parseISO(initialData.startDate) : undefined,
           endDate: initialData.endDate ? parseISO(initialData.endDate) : undefined,
+          projectManager: initialData.projectManager || "",
+          teamMembersString: initialData.teamMembersString || "",
         }
       : {
           name: "",
@@ -69,18 +90,35 @@ export function ProjectForm({
           projectManager: "",
           startDate: undefined,
           endDate: undefined,
-          status: statusOptions?.[0] || "", // Default to first status option or empty
-          teamMembers: "",
+          status: safeStatusOptions[0] || "PLANNING", // Default to first status option or PLANNING
+          teamMembersString: "",
         },
   });
 
   const handleSubmit = (values) => {
+    if (!values.projectManager || values.projectManager === "no-options") {
+      alert("Please select a valid project manager.");
+      return;
+    }
     const submissionData = {
       ...values,
-      startDate: format(values.startDate, "yyyy-MM-dd"),
-      endDate: values.endDate ? format(values.endDate, "yyyy-MM-dd") : null,
+      projectManagerId: values.projectManager,
+      startDate: values.startDate ? moment(values.startDate).toISOString() : null,
+      endDate: values.endDate ? moment(values.endDate).toISOString() : null,
+      teamMembersString: values.teamMembersString,
     };
     onSubmit(submissionData);
+  };
+
+  const renderStatusOptions = () => {
+    if (!safeStatusOptions.length) {
+      return <SelectItem value="no-options" disabled>No status options available</SelectItem>;
+    }
+    return safeStatusOptions.map((status) => (
+      <SelectItem key={status} value={status || "PLANNING"}>
+        {status || "Unknown Status"}
+      </SelectItem>
+    ));
   };
 
   return (
@@ -123,18 +161,22 @@ export function ProjectForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project Manager</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a Project Manager" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {employeeOptions.map((pm) => (
-                    <SelectItem key={pm} value={pm}>
-                      {pm}
-                    </SelectItem>
-                  ))}
+                  {projectManagerOptions.length === 0 ? (
+                    <SelectItem value="no-options" disabled>No project managers available</SelectItem>
+                  ) : (
+                    projectManagerOptions.map((pm) => (
+                      <SelectItem key={pm.value} value={pm.value}>
+                        {pm.label}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -178,11 +220,7 @@ export function ProjectForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
+                  {renderStatusOptions()}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -191,7 +229,7 @@ export function ProjectForm({
         />
         <FormField
           control={form.control}
-          name="teamMembers"
+          name="teamMembersString"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Team Members (Optional)</FormLabel>

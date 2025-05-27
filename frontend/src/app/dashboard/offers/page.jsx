@@ -109,7 +109,7 @@ export default function OffersPage() {
   const initializeEmployees = useEmployeeStore((state) => state.initializeEmployees);
   const allEmployees = useEmployeeStore((state) => state.employees || []);
 
-  // Get manager options: all employees except those with role 'EMPLOYEE'
+  // Get manager options: save changes is not workinexcept those with role 'EMPLOYEE'
   const managerOptions = React.useMemo(() =>
     allEmployees
       .filter(emp => emp.role !== 'EMPLOYEE')

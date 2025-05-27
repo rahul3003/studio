@@ -1,62 +1,163 @@
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import projectService from '@/services/projectService';
 
-// Assuming initialProjects is defined, for simplicity, define a small mock.
-const initialProjectsMock = [
-  {
-    id: "PROJ001",
-    name: "HRMS Portal Development",
-    description: "Build a comprehensive Human Resource Management System portal for PESU Venture Labs.",
-    projectManager: "Rohan Mehra",
-    startDate: "2024-01-10",
-    endDate: "2024-12-31",
-    status: "In Progress",
-    teamMembers: "Priya Sharma, Aisha Khan, Suresh Kumar",
-  },
-];
+const initialState = {
+  projects: [],
+  loading: false,
+  error: null,
+  selectedProject: null,
+};
 
 export const useProjectStore = create(
   persist(
     (set, get) => ({
-      projects: initialProjectsMock, // Initialize with mock data directly
-      _initializeProjects: () => {
-        if (get().projects.length === 0) {
-          set({ projects: initialProjectsMock });
+      ...initialState,
+
+      // Fetch all projects
+      fetchProjects: async (filters = {}) => {
+        set({ loading: true, error: null });
+        try {
+          const projects = await projectService.getAll(filters);
+          console.log("projects", projects);
+          set({ projects: Array.isArray(projects) ? projects : [], loading: false });
+        } catch (error) {
+          set({ error: error.message, loading: false, projects: [] });
         }
       },
-      addProject: (project) =>
-        set((state) => ({
-          projects: [project, ...state.projects],
-        })),
-      updateProject: (updatedProject) =>
-        set((state) => ({
-          projects: state.projects.map((proj) =>
-            proj.id === updatedProject.id ? { ...proj, ...updatedProject } : proj
-          ),
-        })),
-      deleteProject: (projectId) =>
-        set((state) => ({
-          projects: state.projects.filter((proj) => proj.id !== projectId),
-        })),
-      setProjects: (projects) => set({ projects }),
+
+      // Fetch a single project
+      fetchProject: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const project = await projectService.getById(id);
+          set({ selectedProject: project, loading: false });
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Create a new project
+      createProject: async (projectData) => {
+        set({ loading: true, error: null });
+        try {
+          const newProject = await projectService.create(projectData);
+          set((state) => ({
+            projects: Array.isArray(state.projects) ? [...state.projects, newProject] : [newProject],
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Update a project
+      updateProject: async (id, projectData) => {
+        set({ loading: true, error: null });
+        try {
+          const updatedProject = await projectService.update(id, projectData);
+          set((state) => ({
+            projects: Array.isArray(state.projects) 
+              ? state.projects.map((p) => p.id === id ? updatedProject : p)
+              : [updatedProject],
+            selectedProject: updatedProject,
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Delete a project
+      deleteProject: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          await projectService.delete(id);
+          set((state) => ({
+            projects: Array.isArray(state.projects) 
+              ? state.projects.filter((p) => p.id !== id)
+              : [],
+            selectedProject: null,
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Add team member
+      addTeamMember: async (projectId, employeeId) => {
+        set({ loading: true, error: null });
+        try {
+          const updatedProject = await projectService.addTeamMember(projectId, employeeId);
+          set((state) => ({
+            projects: Array.isArray(state.projects)
+              ? state.projects.map((p) => p.id === projectId ? updatedProject : p)
+              : [updatedProject],
+            selectedProject: updatedProject,
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Remove team member
+      removeTeamMember: async (projectId, employeeId) => {
+        set({ loading: true, error: null });
+        try {
+          const updatedProject = await projectService.removeTeamMember(projectId, employeeId);
+          set((state) => ({
+            projects: Array.isArray(state.projects)
+              ? state.projects.map((p) => p.id === projectId ? updatedProject : p)
+              : [updatedProject],
+            selectedProject: updatedProject,
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Get team members
+      getTeamMembers: async (projectId) => {
+        set({ loading: true, error: null });
+        try {
+          const teamMembers = await projectService.getTeamMembers(projectId);
+          set((state) => ({
+            selectedProject: state.selectedProject ? {
+              ...state.selectedProject,
+              teamMembers,
+            } : null,
+            loading: false,
+          }));
+        } catch (error) {
+          set({ error: error.message, loading: false });
+        }
+      },
+
+      // Clear selected project
+      clearSelectedProject: () => {
+        set({ selectedProject: null });
+      },
+
+      // Clear error
+      clearError: () => {
+        set({ error: null });
+      },
+
+      // Reset store to initial state
+      reset: () => {
+        set(initialState);
+      },
     }),
     {
       name: 'project-storage',
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error("Failed to rehydrate project store", error);
-          state.projects = initialProjectsMock;
-        } else if (!state || !state.projects || state.projects.length === 0) {
-          console.log("Rehydrating project store: store empty or invalid, using initial mock data.");
-          if (state) {
-            state.projects = initialProjectsMock;
-          }
-        }
-      }
+      partialize: (state) => ({
+        projects: state.projects || [],
+        selectedProject: state.selectedProject,
+      }),
     }
   )
 );
-
-// Redundant client-side initialization block removed.

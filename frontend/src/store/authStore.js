@@ -12,25 +12,56 @@ export const useAuthStore = create(
       currentRole: null,
       baseRole: null,
 
+      // Helper to get current user with proper structure
+      getCurrentUser: () => {
+        const { user } = get();
+        console.log("getCurrentUser - Current user state:", user);
+        if (!user) return null;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          // Add any additional fields needed for the application
+          department: user.department || 'ASSERT', // Default to ASSERT if not provided
+          bankName: user.bankName || 'HDFC Bank', // Default values for development
+          accountNo: user.accountNo || '0157116003189',
+          staffCode: user.staffCode || user.id.slice(0, 8) // Use first 8 chars of ID if no staff code
+        };
+      },
+
       login: async (email, password) => {
         set({ loading: true, error: null });
         try {
           const res = await api.post('/auth/login', { email, password });
           const { data } = res.data;
+          console.log("Login response data:", data);
+          
           if (typeof window !== 'undefined') {
             localStorage.setItem('jwt', data.token);
           }
+          
           // Always store roles as uppercase for consistency
           const initialRole = (data.role || '').toUpperCase();
+          const userData = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            token: data.token
+          };
+          console.log("Setting user data:", userData);
+          
           set({ 
-            user: data, 
+            user: userData,
             currentRole: initialRole,
             baseRole: initialRole,
             loading: false, 
             error: null 
           });
-          return { success: true, user: data };
+          return { success: true, user: userData };
         } catch (err) {
+          console.error("Login error:", err);
           set({ 
             user: null, 
             currentRole: null,
@@ -52,7 +83,13 @@ export const useAuthStore = create(
           }
           const initialRole = (data.role || '').toUpperCase();
           set({ 
-            user: data, 
+            user: {
+              id: data.id,
+              name: data.name,
+              email: data.email,
+              role: data.role,
+              token: data.token
+            }, 
             currentRole: initialRole,
             baseRole: initialRole,
             loading: false, 
@@ -100,14 +137,12 @@ export const useAuthStore = create(
       getAvailableRolesForSwitching: () => {
         const { user, baseRole } = get();
         if (!user || !baseRole) return [];
-        // Use ROLE_SWITCH_PERMISSIONS for switching logic, always based on baseRole
         return ROLE_SWITCH_PERMISSIONS[baseRole]?.map(r => r.toUpperCase()) || [];
       },
 
       getCurrentRoleConfig: () => {
         const { currentRole } = get();
         if (!currentRole) return null;
-        // Not needed for sidebar, but can be used for label, etc.
         return null;
       },
 
@@ -122,14 +157,15 @@ export const useAuthStore = create(
       name: 'auth-storage', 
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: (state, error) => {
+        console.log("Rehydrating auth store. State:", state, "Error:", error);
         if (error) {
           console.error('Failed to rehydrate auth store', error);
           if (state) {
-              state.user = null;
+            state.user = null;
             state.currentRole = null;
             state.baseRole = null;
             state.loading = false;
-            } else {
+          } else {
             useAuthStore.setState({ 
               user: null, 
               currentRole: null,
@@ -137,12 +173,14 @@ export const useAuthStore = create(
               loading: false, 
               error: 'Rehydration failed.' 
             });
-            }
+          }
           return;
         }
         if (state) {
+          console.log("Rehydrated state:", state);
           state.loading = false; 
         } else {
+          console.log("No state to rehydrate, setting defaults");
           useAuthStore.setState({ 
             user: null, 
             currentRole: null,
@@ -156,13 +194,11 @@ export const useAuthStore = create(
   )
 );
 
-// Initialize loading to false on first load if not rehydrating.
-// This is for the case where persist middleware hasn't run yet (e.g. server-side context or first client render before rehydration).
-// Note: The onRehydrateStorage handles setting loading to false *after* rehydration.
-// This initial call handles the brief moment *before* rehydration might occur.
-if (typeof window !== 'undefined' && useAuthStore.getState().loading) {
-   // Check if already rehydrated to avoid race condition.
-   // A more robust way is to use persist.onFinishRehydration if available, or rely on onRehydrateStorage.
-   // For now, this sets it to false, assuming rehydration will correct if needed.
-   // useAuthStore.setState({ loading: false }); // This was causing issues. onRehydrateStorage is better.
+// Initialize the store with the token from localStorage if it exists
+if (typeof window !== 'undefined') {
+  const token = localStorage.getItem('jwt');
+  if (token) {
+    // You might want to validate the token here or fetch user data
+    console.log("Found token in localStorage:", token);
+  }
 }

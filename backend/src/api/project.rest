@@ -1,0 +1,70 @@
+@baseUrl = http://localhost:3000/api
+@token=
+
+### Create a new project
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "New Project",
+  "description": "Project description",
+  "projectManagerId": "manager_id_here",
+  "departmentId": "department_id_here",
+  "startDate": "2024-03-20T00:00:00.000Z",
+  "endDate": "2024-12-31T00:00:00.000Z",
+  "status": "PLANNING",
+  "teamMembersString": "member1,member2"
+}
+
+### Get all projects
+GET {{baseUrl}}/projects
+Authorization: Bearer {{token}}
+
+### Get all projects with filters
+GET {{baseUrl}}/projects?projectManagerId=manager_id&departmentId=dept_id&status=IN_PROGRESS
+Authorization: Bearer {{token}}
+
+### Get project by ID
+GET {{baseUrl}}/projects/project_id_here
+Authorization: Bearer {{token}}
+
+### Update project
+PUT {{baseUrl}}/projects/project_id_here
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Project Name",
+  "description": "Updated description",
+  "projectManagerId": "new_manager_id",
+  "departmentId": "new_department_id",
+  "status": "IN_PROGRESS",
+  "endDate": "2024-12-31T00:00:00.000Z"
+}
+
+### Delete project
+DELETE {{baseUrl}}/projects/project_id_here
+Authorization: Bearer {{token}}
+
+### Add team member to project
+POST {{baseUrl}}/projects/project_id_here/members
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "employeeId": "employee_id_here"
+}
+
+### Remove team member from project
+DELETE {{baseUrl}}/projects/project_id_here/members
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "employeeId": "employee_id_here"
+}
+
+### Get project team members
+GET {{baseUrl}}/projects/project_id_here/members
+Authorization: Bearer {{token}} 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,104 +28,192 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, UploadCloud, XCircle } from "lucide-react";
+import { useDepartmentStore } from '@/store/departmentStore';
+import { useProjectStore } from '@/store/projectStore';
+import { s3Service } from "@/services/s3Service";
 
 const reimbursementFormSchema = z.object({
-  employeeName: z.string().min(1, { message: "Employee name is required." }),
+  type: z.enum(["self", "onbehalf"]),
+  submissionDate: z.string().min(1, { message: "Date is required." }),
+  description: z.string().min(5, { message: "Description must be at least 5 characters." }),
+  vendor: z.string().min(1, { message: "Vendor is required." }),
+  departmentId: z.string().min(1, { message: "Department is required." }),
+  projectId: z.string().min(1, { message: "Project is required." }),
+  mainCategory: z.string().min(1, { message: "Main category is required." }),
+  subCategory: z.string().min(1, { message: "Subcategory is required." }),
   amount: z.preprocess(
     (val) => (val === "" || val === undefined || val === null ? undefined : parseFloat(String(val))),
-    z.number({ required_error: "Amount is required.", invalid_type_error: "Amount must be a number." }).positive({ message: "Amount must be positive." })
+    z.number({ required_error: "Amount is required." }).positive({ message: "Amount must be positive." })
   ),
-  currency: z.string().min(1, { message: "Currency is required." }),
-  description: z.string().min(5, { message: "Description must be at least 5 characters." }).max(200, { message: "Description cannot exceed 200 characters." }),
-  submissionDate: z.date({ required_error: "Submission date is required." }),
+  currency: z.string().default("INR"),
+  onBehalf: z.string().min(1),
+  payee: z.string().min(1),
+  advance: z.preprocess(
+    (val) => (val === "" || val === undefined || val === null ? undefined : parseFloat(String(val))),
+    z.number({ invalid_type_error: "Advance must be a number." }).min(0, { message: "Advance must be 0 or more." })
+  ),
+  approverId: z.string().min(1, { message: "Approver is required." }),
   status: z.string().min(1, { message: "Status is required." }),
-  fileName: z.string().optional().nullable(),
-  reasonForRejection: z.string().optional().nullable(),
-}).superRefine((data, ctx) => {
-  if (data.status === "Rejected" && (!data.reasonForRejection || data.reasonForRejection.trim() === "")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Reason for rejection is required when status is 'Rejected'.",
-      path: ["reasonForRejection"],
-    });
-  }
+  fileName: z.string().optional(),
+  fileUrl: z.string().optional(),
+  comments: z.array(z.any()).optional(),
+  history: z.array(z.any()).optional(),
+  appliedBy: z.object({
+    id: z.string(),
+    name: z.string()
+  }).optional(),
 });
 
+const mainCategories = [
+  { value: 'Procurement', label: 'Procurement' },
+  { value: 'Sales', label: 'Sales' },
+  { value: 'Travel', label: 'Travel' },
+  { value: 'Other', label: 'Other' },
+];
+const subCategories = {
+  Procurement: [
+    { value: 'Hardware/Spares', label: 'Hardware/Spares' },
+    { value: 'Tools and Subscriptions', label: 'Tools and Subscriptions' },
+    { value: 'Stationery and miscellaneous', label: 'Stationery and miscellaneous' },
+    { value: 'Food and beverages', label: 'Food and beverages' },
+  ],
+  Sales: [
+    { value: 'Gift and entertainment', label: 'Gift and entertainment' },
+    { value: 'Others', label: 'Others (Please Specify)' },
+  ],
+  Travel: [
+    { value: 'Travel and Tool', label: 'Travel and Tool' },
+  ],
+  Other: [
+    { value: 'Other', label: 'Other' },
+  ],
+};
 
 export function ReimbursementForm({
   onSubmit,
   initialData,
   onCancel,
-  employeeOptions,
-  currencyOptions,
-  statusOptions,
+  employeeList = [],
+  currentUser,
+  defaultApproverId,
+  ...props
 }) {
+  // Defensive checks
+
+  console.log("currentUser", currentUser);
+  if (!currentUser || !currentUser.id) {
+    return <div className="text-red-500 p-4">No current user found. Please log in or select a user.</div>;
+  }
+  if (!employeeList || !Array.isArray(employeeList) || employeeList.length === 0) {
+    return <div className="text-red-500 p-4">No employees found. Please add employees first.</div>;
+  }
+
   const { toast } = useToast();
+  const { departments, fetchDepartments } = useDepartmentStore();
+  const { projects } = useProjectStore();
   const [currentFileName, setCurrentFileName] = React.useState(initialData?.fileName || null);
   const fileInputRef = React.useRef(null);
+  const [mainCategory, setMainCategory] = React.useState(initialData?.mainCategory || 'Procurement');
+
+  // Fetch departments if not loaded
+  useEffect(() => {
+    if (!departments || departments.length === 0) {
+      fetchDepartments();
+    }
+  }, [departments, fetchDepartments]);
 
   const form = useForm({
     resolver: zodResolver(reimbursementFormSchema),
-    defaultValues: initialData
-      ? {
-          ...initialData,
-          submissionDate: initialData.submissionDate ? parseISO(initialData.submissionDate) : new Date(),
-          amount: initialData.amount || "", // Ensure empty string if no amount for controlled input
+    defaultValues: initialData || {
+      type: "self",
+      submissionDate: new Date().toISOString().split('T')[0],
+      description: "",
+      vendor: "",
+      departmentId: departments?.[0]?.id || "",
+      projectId: projects?.[0]?.id || "",
+      mainCategory: 'Procurement',
+      subCategory: '',
+      amount: "",
+      onBehalf: currentUser.id,
+      payee: currentUser.id,
+      advance: 0,
+      approverId: defaultApproverId || "",
+      status: "Pending",
+      appliedBy: { id: currentUser.id, name: currentUser.name },
+      comments: [],
+      history: [
+        {
+          date: new Date().toISOString(),
+          status: "Created",
+          comment: "Initial creation"
         }
-      : {
-          employeeName: "",
-          amount: "",
-          currency: currencyOptions?.[0] || "",
-          description: "",
-          submissionDate: new Date(),
-          status: statusOptions?.[0] || "", // Default to first status option
-          fileName: null,
-          reasonForRejection: "",
-        },
+      ]
+    },
   });
 
-  const watchStatus = form.watch("status");
+  const watchType = form.watch("type");
+  const watchPayee = form.watch("payee");
 
   React.useEffect(() => {
-    if (initialData?.fileName) {
-      setCurrentFileName(initialData.fileName);
+    if (watchType === "self") {
+      form.setValue("payee", currentUser.id);
+      form.setValue("onBehalf", currentUser.id);
+    } else if (watchType === "onbehalf" && !employeeList.find(e => e.id === watchPayee)) {
+      form.setValue("payee", employeeList[0]?.id || "");
+      form.setValue("onBehalf", currentUser.id);
     }
-     // Reset form fields if initialData changes (e.g., when switching between add and edit)
-    form.reset(initialData
-      ? {
-          ...initialData,
-          submissionDate: initialData.submissionDate ? parseISO(initialData.submissionDate) : new Date(),
-          amount: initialData.amount || "",
-        }
-      : {
-          employeeName: "",
-          amount: "",
-          currency: currencyOptions?.[0] || "",
-          description: "",
-          submissionDate: new Date(),
-          status: statusOptions?.[0] || "",
-          fileName: null,
-          reasonForRejection: "",
-        });
-    setCurrentFileName(initialData?.fileName || null);
-  }, [initialData, form, currencyOptions, statusOptions]);
+  }, [watchType, currentUser, employeeList, form, watchPayee]);
 
-
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      form.setValue("fileName", file.name, { shouldValidate: true });
-      setCurrentFileName(file.name);
-      toast({ title: "File Selected", description: `${file.name} is ready for upload (mock).` });
+      try {
+        // Get presigned URL for upload
+        const result = await s3Service.getPresignedUrl(
+          file.name,
+          file.type,
+          'reimbursements'
+        );
+        console.log('Presigned URL result:', result);
+        const presignedUrl = result?.data?.presignedUrl;
+        const fileUrl = result?.data?.url;
+
+        if (!presignedUrl) {
+          toast({ title: "Upload Failed", description: "No presigned URL returned from server.", variant: "destructive" });
+          return;
+        }
+
+        // Upload file to S3
+        await s3Service.uploadFileDirectly(file, presignedUrl);
+
+        // Update form with file details
+        form.setValue("fileName", file.name, { shouldValidate: true });
+        form.setValue("fileUrl", fileUrl, { shouldValidate: true });
+        setCurrentFileName(file.name);
+        
+        toast({ 
+          title: "File Uploaded", 
+          description: `${file.name} has been uploaded successfully.` 
+        });
+      } catch (error) {
+        console.error("File upload error:", error);
+        toast({ 
+          title: "Upload Failed", 
+          description: "Failed to upload file. Please try again.",
+          variant: "destructive"
+        });
+      }
     } else {
       // If user cancels file selection, revert to previous fileName if it existed
       form.setValue("fileName", initialData?.fileName || null, { shouldValidate: true });
+      form.setValue("fileUrl", initialData?.fileUrl || null, { shouldValidate: true });
       setCurrentFileName(initialData?.fileName || null);
     }
   };
   
   const handleRemoveFile = () => {
     form.setValue("fileName", null, { shouldValidate: true });
+    form.setValue("fileUrl", null, { shouldValidate: true });
     setCurrentFileName(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = ""; // Clear the file input
@@ -134,46 +222,90 @@ export function ReimbursementForm({
   };
 
   const handleSubmit = (values) => {
-    const submissionData = {
-      ...values,
-      submissionDate: format(values.submissionDate, "yyyy-MM-dd"),
-      // Ensure amount is a number or null/undefined
-      amount: values.amount === "" || values.amount === undefined || values.amount === null ? null : parseFloat(values.amount),
-      fileName: currentFileName, // Use the state that tracks the file name
-      reasonForRejection: values.status === "Rejected" ? values.reasonForRejection : null,
-    };
-    onSubmit(submissionData);
+    onSubmit(values);
+  };
+
+  // Handler for invalid form submission
+  const onInvalid = (errors) => {
+    const missingFields = Object.keys(errors)
+      .map(key => errors[key]?.message || key)
+      .join(', ');
+    toast({
+      title: "Missing or Invalid Fields",
+      description: `Please check: ${missingFields}`,
+      variant: "destructive"
+    });
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Row 1: Type and Payee */}
         <FormField
           control={form.control}
-          name="employeeName"
+          name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Employee Name</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Type</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {employeeOptions.map((employee) => (
-                    <SelectItem key={employee} value={employee}>
-                      {employee}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="self">Self</SelectItem>
+                  <SelectItem value="onbehalf">On Behalf Of</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-        
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {form.watch("type") === "onbehalf" ? (
+          <FormField
+            control={form.control}
+            name="payee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payee</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payee" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {employeeList.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <div>
+            <FormLabel>Payee</FormLabel>
+            <Input value={currentUser.name} readOnly />
+          </div>
+        )}
+        {/* Section 1: Basic Info */}
+        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="submissionDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="amount"
@@ -181,7 +313,7 @@ export function ReimbursementForm({
               <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 100.50" {...field} step="0.01" />
+                  <Input type="number" placeholder="e.g., 100.50" {...field} step="0.01" value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -189,20 +321,44 @@ export function ReimbursementForm({
           />
           <FormField
             control={form.control}
-            name="currency"
+            name="departmentId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Currency</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Department</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""} required>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
+                      <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {currencyOptions.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
+                    {departments.map((department) => (
+                      <SelectItem key={department.id} value={department.id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="projectId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Project</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -212,119 +368,202 @@ export function ReimbursementForm({
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Briefly describe the expense."
-                  className="resize-none"
-                  rows={3}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Section 2: Description & Vendor */}
+        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="submissionDate"
+            name="description"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Submission Date</FormLabel>
-                <DatePicker date={field.value} setDate={field.onChange} />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        {watchStatus === "Rejected" && (
-          <FormField
-            control={form.control}
-            name="reasonForRejection"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reason for Rejection</FormLabel>
+              <FormItem className="md:col-span-2">
+                <FormLabel>Description</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Explain why the reimbursement was rejected."
+                    placeholder="Briefly describe the expense."
                     className="resize-none"
-                    rows={2}
+                    rows={3}
                     {...field}
-                    value={field.value || ""}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        )}
-
-        <FormItem>
-          <FormLabel>Attach Receipt (Optional)</FormLabel>
-          <FormControl>
-             <div className="flex items-center gap-2">
+          <FormField
+            control={form.control}
+            name="vendor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vendor</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        {/* Section 3: Category */}
+        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="mainCategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Main Category</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select main category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {mainCategories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="subCategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subcategory</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subcategory" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {subCategories[mainCategory]?.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        {/* Section 4: Advance & Approver */}
+        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="advance"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Advance</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 100.50" {...field} step="0.01" value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="approverId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Approver</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select approver" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {employeeList
+                      .filter(emp => emp.role && emp.role !== "EMPLOYEE")
+                      .map(emp => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.name} ({emp.role})
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* Status field: dropdown for non-employees, read-only for employees */}
+          {currentUser.role !== "EMPLOYEE" ? (
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {props.statusOptions?.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : (
+            <div>
+              <FormLabel>Status</FormLabel>
+              <Input value={form.watch("status") ?? "Pending"} readOnly />
+            </div>
+          )}
+        </div>
+        {/* Section 5: File Upload */}
+        <div className="col-span-1 md:col-span-2">
+          <FormItem>
+            <FormLabel>Attach Receipt (Optional)</FormLabel>
+            <FormControl>
+              <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
                   <UploadCloud className="mr-2 h-4 w-4" />
                   {currentFileName ? "Change File" : "Upload File"}
                 </Button>
                 <Input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 />
-             </div>
-          </FormControl>
-           {currentFileName && (
-            <div className="mt-2 flex items-center justify-between rounded-md border border-input p-2 text-sm">
+              </div>
+            </FormControl>
+            {currentFileName && (
+              <div className="mt-2 flex items-center justify-between rounded-md border border-input p-2 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span className="truncate" title={currentFileName}>{currentFileName}</span>
+                  <FileText className="h-4 w-4" />
+                  <span className="truncate" title={currentFileName}>{currentFileName}</span>
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={handleRemoveFile} className="h-6 w-6 text-destructive hover:bg-destructive/10">
-                    <XCircle className="h-4 w-4" />
-                    <span className="sr-only">Remove file</span>
+                  <XCircle className="h-4 w-4" />
+                  <span className="sr-only">Remove file</span>
                 </Button>
-            </div>
-          )}
-          <FormMessage />
-        </FormItem>
-
-        <div className="flex justify-end space-x-2 pt-4">
+              </div>
+            )}
+            <FormMessage />
+          </FormItem>
+        </div>
+        <div className="col-span-1 md:col-span-2 flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>

@@ -1,0 +1,69 @@
+@baseUrl = http://localhost:3000/api
+@token = 
+
+### Get all reimbursements
+GET {{baseUrl}}/reimbursements
+Authorization: Bearer {{token}}
+
+### Create a reimbursement
+POST http://localhost:3000/api/reimbursements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "employeeId": "<employee_id>",
+  "departmentId": "<department_id>",
+  "projectId": "<project_id>",
+  "approverId": "<approver_id>",
+  "amount": 100.00,
+  "description": "Travel expenses"
+}
+
+### Get a reimbursement by ID
+GET http://localhost:3000/api/reimbursements/<reimbursement_id>
+Authorization: Bearer {{token}}
+
+### Update a reimbursement
+PUT http://localhost:3000/api/reimbursements/<reimbursement_id>
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "amount": 120.00,
+  "description": "Updated travel expenses"
+}
+
+### Delete a reimbursement
+DELETE http://localhost:3000/api/reimbursements/<reimbursement_id>
+Authorization: Bearer {{token}}
+
+### Add a comment to a reimbursement
+POST http://localhost:3000/api/reimbursements/<reimbursement_id>/comments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "This looks good.",
+  "user": "<user_id>"
+}
+
+### Add a history entry to a reimbursement
+POST http://localhost:3000/api/reimbursements/<reimbursement_id>/history
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "action": "APPROVED",
+  "details": "Approved by manager",
+  "user": "<user_id>"
+}
+
+### Get a presigned URL for file upload
+POST http://localhost:3000/api/reimbursements/upload/presigned-url
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fileName": "receipt.pdf",
+  "contentType": "application/pdf"
+} 

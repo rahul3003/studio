@@ -8,6 +8,8 @@ const departmentRoutes = require('./departments/department.routes');
 const jobRoutes = require('./jobs/job.routes');
 const s3Routes = require('./s3/s3.routes');
 const applicantRoutes = require('./applicants/applicant.routes');
+const reimbursementRoutes = require('./reimbursement/reimbursement.routes');
+const projectRoutes = require('./projects/project.routes');
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +36,8 @@ app.use('/api', departmentRoutes);
 app.use('/api', jobRoutes);
 app.use('/api/s3', s3Routes);
 app.use('/api', applicantRoutes);
+app.use('/api', reimbursementRoutes);
+app.use('/api', projectRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

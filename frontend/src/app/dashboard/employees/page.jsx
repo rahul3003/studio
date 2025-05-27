@@ -94,7 +94,7 @@ const STATUS_OPTIONS = [
 ];
 
 const managerRolesList = ['SUPERADMIN', 'ADMIN', 'MANAGER', 'HR', 'ACCOUNTS'];
-
+  
 export default function EmployeesPage() {
   const { toast } = useToast();
   const employees = useEmployeeStore((state) => state.employees) || [];
@@ -113,19 +113,19 @@ export default function EmployeesPage() {
     employees
       .filter(emp => emp.role !== 'EMPLOYEE') // Only non-employees can be managers
       .map(emp => ({
-        id: emp.id,
-        value: emp.id,
-        label: `${emp.name} (${emp.role})`,
-        role: emp.role
+        id: emp?.id,
+        value: emp?.id,
+        label: `${emp?.name} (${emp?.role})`,
+        role: emp?.role
       }))
   , [employees]);
 
   // Get department options from the store
   const departmentOptions = React.useMemo(() => 
     departments.map(dept => ({
-      id: dept.id,
-      value: dept.id,
-      label: dept.name
+      id: dept?.id,
+      value: dept?.id,
+      label: dept?.name
     }))
   , [departments]);
 
@@ -165,14 +165,14 @@ export default function EmployeesPage() {
     // Transform the employee data to match form structure
     const formData = {
       ...employee,
-      department: employee.departmentId, // Map departmentId to department for form
-      reportingManagerId: employee.reportingManagerId || '',
-      joinDate: employee.joinDate ? new Date(employee.joinDate) : new Date(),
-      status: employee.status || 'ACTIVE',
-      employeeType: employee.employeeType || 'FULL_TIME',
-      gender: employee.gender || 'OTHER',
-      role: employee.role || 'EMPLOYEE',
-      designation: employee.designation || 'INTERN'
+      department: employee?.departmentId, // Map departmentId to department for form
+      reportingManagerId: employee?.reportingManagerId || '',
+      joinDate: employee?.joinDate ? new Date(employee?.joinDate) : new Date(),
+      status: employee?.status || 'ACTIVE',
+      employeeType: employee?.employeeType || 'FULL_TIME',
+      gender: employee?.gender || 'OTHER',
+      role: employee?.role || 'EMPLOYEE',
+      designation: employee?.designation || 'INTERN'
     };
     setSelectedEmployee(formData);
     setIsEditDialogOpen(true);
@@ -200,15 +200,15 @@ export default function EmployeesPage() {
     try {
       const result = await addEmployee({
         ...data,
-        role: data.role || 'EMPLOYEE',
-        baseRole: data.role || 'EMPLOYEE',
-        currentRole: data.role || 'EMPLOYEE',
-        status: data.status || 'ACTIVE',
-        designation: data.designation || 'INTERN',
-        joinDate: data.joinDate || new Date().toISOString(),
-        employeeType: data.employeeType || 'FULL_TIME',
-        gender: data.gender || 'OTHER',
-        departmentId: data.department?.id || data.department // Handle both object and direct ID
+        role: data?.role || 'EMPLOYEE',
+        baseRole: data?.role || 'EMPLOYEE',
+        currentRole: data?.role || 'EMPLOYEE',
+        status: data?.status || 'ACTIVE',
+        designation: data?.designation || 'INTERN',
+        joinDate: data?.joinDate || new Date().toISOString(),
+        employeeType: data?.employeeType || 'FULL_TIME',
+        gender: data?.gender || 'OTHER',
+        departmentId: data?.department?.id || data?.department // Handle both object and direct ID
       });
 
       if (result.success) {
@@ -234,19 +234,19 @@ export default function EmployeesPage() {
     try {
       const result = await updateEmployee({
         ...data,
-        id: selectedEmployee.id,
-        departmentId: data.departmentId, // Use department directly as it's already transformed to departmentId
-        avatarUrl: `https://i.pravatar.cc/150?u=${data.email || selectedEmployee.id}`,
-        role: data.role || 'EMPLOYEE',
-        designation: data.designation || 'INTERN',
-        baseRole: data.role || 'EMPLOYEE',
-        currentRole: data.role || 'EMPLOYEE',
-        gender: data.gender || 'OTHER',
-        employeeType: data.employeeType || 'FULL_TIME'
+        id: selectedEmployee?.id,
+        departmentId: data?.departmentId, // Use department directly as it's already transformed to departmentId
+        avatarUrl: `https://i.pravatar.cc/150?u=${data?.email || selectedEmployee?.id}`,
+        role: data?.role || 'EMPLOYEE',
+        designation: data?.designation || 'INTERN',
+        baseRole: data?.role || 'EMPLOYEE',
+        currentRole: data?.role || 'EMPLOYEE',
+        gender: data?.gender || 'OTHER',
+        employeeType: data?.employeeType || 'FULL_TIME'
       });
 
       if (result.success) {
-        toast({ title: "Success", description: `${data.name}'s details have been updated.` });
+        toast({ title: "Success", description: `${data?.name}'s details have been updated.` });
         handleDialogClose();
         // Refresh employee list after successful update
         await initializeEmployees();
@@ -278,10 +278,10 @@ export default function EmployeesPage() {
         const newId = `EMP${String(Date.now()).slice(-4)}${String(employees.length + 1).padStart(3, '0')}`;
         const newEmployeeBase = {
           ...employeeData,
-          avatarUrl: `https://i.pravatar.cc/150?u=${employeeData.email || newId}`,
-          gender: employeeData.gender || "OTHER",
-          departmentId: employeeData.departmentId, // Use department directly as it's already transformed to departmentId
-          designation: employeeData.designation || 'INTERN'
+          avatarUrl: `https://i.pravatar.cc/150?u=${employeeData?.email || newId}`,
+          gender: employeeData?.gender || "OTHER",
+          departmentId: employeeData?.departmentId, // Use department directly as it's already transformed to departmentId
+          designation: employeeData?.designation || 'INTERN'
         };
 
         setCurrentEmployeeForLetter(newEmployeeBase);
@@ -511,12 +511,13 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {employees.map((employee) => (
+                    employee && (
                     <TableRow key={employee.id}>
                       <TableCell>
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="person face"/>
+                          <AvatarImage src={employee?.avatarUrl} alt={employee?.name || 'Employee'} data-ai-hint="person face"/>
                           <AvatarFallback>
-                            {employee.name
+                            {employee?.name
                               ? employee.name
                                   .split(" ")
                                   .map((n) => n[0])
@@ -526,30 +527,30 @@ export default function EmployeesPage() {
                           </AvatarFallback>
                         </Avatar>
                       </TableCell>
-                      <TableCell className="font-medium">{employee.name}</TableCell>
-                      <TableCell>{employee.email}</TableCell>
-                      <TableCell>{employee.role}</TableCell> 
-                      <TableCell>{employee.designation}</TableCell>
+                      <TableCell className="font-medium">{employee?.name || 'N/A'}</TableCell>
+                      <TableCell>{employee?.email || 'N/A'}</TableCell>
+                      <TableCell>{employee?.role || 'N/A'}</TableCell> 
+                      <TableCell>{employee?.designation || 'N/A'}</TableCell>
                       <TableCell>
                         {employee?.department || 'Not Assigned'}
                       </TableCell>
-                      <TableCell>{employee.employeeType}</TableCell>
-                      <TableCell>{employee.gender}</TableCell>
+                      <TableCell>{employee?.employeeType || 'N/A'}</TableCell>
+                      <TableCell>{employee?.gender || 'N/A'}</TableCell>
                       <TableCell>
-                        {new Date(employee.joinDate).toLocaleDateString("en-IN", {
+                        {employee?.joinDate ? new Date(employee.joinDate).toLocaleDateString("en-IN", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
-                        })}
+                        }) : 'N/A'}
                       </TableCell>
                       <TableCell>
-                        {typeof employee.reportingManager === 'object' 
-                          ? `${employee.reportingManager.name} `
-                          : employee.reportingManager || 'N/A'}
+                        {typeof employee?.reportingManager === 'object' 
+                          ? `${employee.reportingManager?.name || 'N/A'}`
+                          : employee?.reportingManager || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariantMap[employee.status] || "outline"}>
-                          {employee.status}
+                        <Badge variant={statusVariantMap[employee?.status] || "outline"}>
+                          {employee?.status || 'N/A'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -560,7 +561,7 @@ export default function EmployeesPage() {
                           onClick={() => handleEditEmployeeOpen(employee)}
                         >
                           <Edit className="h-4 w-4 text-primary" />
-                          <span className="sr-only">Edit {employee.name}</span>
+                          <span className="sr-only">Edit {employee?.name || 'Employee'}</span>
                         </Button>
                         <Button
                           variant="ghost"
@@ -569,10 +570,11 @@ export default function EmployeesPage() {
                           onClick={() => handleDeleteEmployeeOpen(employee)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">Delete {employee.name}</span>
+                          <span className="sr-only">Delete {employee?.name || 'Employee'}</span>
                         </Button>
                       </TableCell>
                     </TableRow>
+                    )
                   ))}
                 </TableBody>
               </Table>

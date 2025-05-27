@@ -44,6 +44,7 @@ model Employee {
   projectsManaged            Project[]       @relation("ManagedProjects")
   tasksAssigned              Task[]          @relation("AssignedTasks")
   reimbursements             Reimbursement[]
+  approvedReimbursements     Reimbursement[] @relation("ApprovedReimbursements")
   rewardNominationsGiven     RewardNomination[] @relation("NominationsGiven")
   rewardNominationsReceived  RewardNomination[] @relation("NominationsReceived")
   approvedNominations        RewardNomination[] @relation("ApprovedNominations")
@@ -220,6 +221,7 @@ model Department {
   employees      Employee[]    @relation("DepartmentEmployees")
   jobs           JobPosting[]
   projects       Project[]     @relation("DepartmentProjects")
+  reimbursements Reimbursement[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -237,6 +239,7 @@ model Project {
   tasks              Task[]
   departmentId       String?     // If projects are tied to a specific department
   department         Department? @relation("DepartmentProjects", fields: [departmentId], references: [id])
+  reimbursements     Reimbursement[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -267,17 +270,37 @@ model Reimbursement {
   id                  String   @id @default(cuid())
   employeeId          String
   employee            Employee @relation(fields: [employeeId], references: [id])
-  amount              Float
-  currency            Currency // Enum
-  description         String
+  type                String   @default("self")
   submissionDate      DateTime
-  status              ReimbursementStatus // Enum
+  description         String
+  vendor              String
+  departmentId        String
+  department          Department @relation(fields: [departmentId], references: [id])
+  projectId           String?
+  project             Project? @relation(fields: [projectId], references: [id])
+  mainCategory        String
+  subCategory         String
+  amount              Float
+  currency            Currency @default(INR)
+  onBehalf            String
+  payee               String
+  advance             Float    @default(0)
+  approverId          String?
+  approver            Employee? @relation("ApprovedReimbursements", fields: [approverId], references: [id])
+  status              ReimbursementStatus @default(PENDING)
   fileName            String?
+  fileUrl             String?
   reasonForRejection  String?
+  comments            Json?
+  history             Json?
+  appliedBy           Json?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@index([employeeId])
+  @@index([departmentId])
+  @@index([projectId])
+  @@index([approverId])
 }
 
 model JobPosting {
