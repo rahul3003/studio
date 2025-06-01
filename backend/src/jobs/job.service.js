@@ -1,7 +1,26 @@
 const prisma = require('../prisma/client');
 
 async function createJob(data) {
-  return prisma.jobPosting.create({ data });
+  const { departmentId, ...jobData } = data;
+  
+  return prisma.jobPosting.create({
+    data: {
+      ...jobData,
+      department: {
+        connect: {
+          id: departmentId
+        }
+      }
+    },
+    include: {
+      department: {
+        select: {
+          name: true,
+          id: true
+        }
+      }
+    }
+  });
 }
 
 async function getJobs() {
@@ -19,15 +38,54 @@ async function getJobs() {
 }
 
 async function getJobById(id) {
-  return prisma.jobPosting.findUnique({ where: { id } });
+  return prisma.jobPosting.findUnique({
+    where: { id },
+    include: {
+      department: {
+        select: {
+          name: true,
+          id: true
+        }
+      }
+    }
+  });
 }
 
 async function updateJob(id, data) {
-  return prisma.jobPosting.update({ where: { id }, data });
+  const { departmentId, ...restData } = data;
+  return prisma.jobPosting.update({
+    where: { id },
+    data: {
+      ...restData,
+      department: departmentId ? {
+        connect: {
+          id: departmentId
+        }
+      } : undefined
+    },
+    include: {
+      department: {
+        select: {
+          name: true,
+          id: true
+        }
+      }
+    }
+  });
 }
 
 async function deleteJob(id) {
-  return prisma.jobPosting.delete({ where: { id } });
+  return prisma.jobPosting.delete({
+    where: { id },
+    include: {
+      department: {
+        select: {
+          name: true,
+          id: true
+        }
+      }
+    }
+  });
 }
 
 module.exports = {

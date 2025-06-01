@@ -174,7 +174,7 @@ export function ProjectForm({
                     projectManagerOptions.map((pm) => (
                       <SelectItem key={pm.value} value={pm.value}>
                         {pm.label}
-                      </SelectItem>
+                    </SelectItem>
                     ))
                   )}
                 </SelectContent>

@@ -30,6 +30,14 @@ import { Separator } from "@/components/ui/separator";
 import { useJobStore } from "@/store/jobStore"; // Import job store
 import { useDepartmentStore } from "@/store/departmentStore"; // For department options
 import { useRouter } from "next/navigation"; // Import useRouter
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import moment from "moment";
 
 const JOB_STATUS_OPTIONS = ["OPEN", "CLOSED", "FILLED", "DRAFT"];
 const JOB_TYPE_OPTIONS = [
@@ -67,7 +75,7 @@ export default function JobsPage() {
   const { toast } = useToast();
   const router = useRouter(); // Initialize router
   // Use Zustand stores with loading and error states
-  const jobs = useJobStore((state) => state.jobs);
+  const jobs = useJobStore((state) => state.jobs) || []; // Ensure jobs is always an array
   const loading = useJobStore((state) => state.loading);
   const error = useJobStore((state) => state.error);
   const addJob = useJobStore((state) => state.addJob);
@@ -77,18 +85,18 @@ export default function JobsPage() {
   const clearError = useJobStore((state) => state.clearError);
 
   // Department store
-  const departments = useDepartmentStore((state) => state.departments);
+  const departments = useDepartmentStore((state) => state.departments) || []; // Ensure departments is always an array
   const fetchDepartments = useDepartmentStore((state) => state.fetchDepartments);
   const departmentLoading = useDepartmentStore((state) => state.loading);
   const departmentError = useDepartmentStore((state) => state.error);
 
   // Format department options for the form
   const departmentOptions = React.useMemo(() => 
-    departments.map(dept => ({
+    Array.isArray(departments) ? departments.map(dept => ({
       id: dept.id,
       value: dept.id,
       label: dept.name
-    }))
+    })) : []
   , [departments]);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
@@ -159,6 +167,15 @@ export default function JobsPage() {
 
   const handleSaveJob = async (jobData) => {
     try {
+      if (!jobData.departmentId) {
+        toast({
+          title: "Error",
+          description: "Department is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (selectedJob && selectedJob.id) {
         // Editing existing job
         const result = await updateJob({
@@ -170,7 +187,7 @@ export default function JobsPage() {
           toast({ title: "Job Updated", description: `"${jobData.title}" has been updated.` });
           handleDialogClose();
         } else {
-          throw new Error(result.error);
+          throw new Error(result.error || "Failed to update job");
         }
       } else {
         // Adding new job
@@ -180,10 +197,11 @@ export default function JobsPage() {
           toast({ title: "Job Posted", description: `"${jobData.title}" has been added.` });
           handleDialogClose();
         } else {
-          throw new Error(result.error);
+          throw new Error(result.error || "Failed to add job");
         }
       }
     } catch (error) {
+      console.error("Job save error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to save job",
@@ -193,27 +211,35 @@ export default function JobsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (selectedJob) {
-      try {
-        const result = await deleteJob(selectedJob.id);
-        if (result.success) {
-          toast({ 
-            title: "Job Deleted", 
-            description: `"${selectedJob.title}" has been removed.`, 
-            variant: "destructive" 
-          });
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete job",
-          variant: "destructive",
-        });
-      }
+    if (!selectedJob?.id) {
+      toast({
+        title: "Error",
+        description: "No job selected for deletion",
+        variant: "destructive",
+      });
+      return;
     }
-    handleDialogClose();
+
+    try {
+      const result = await deleteJob(selectedJob.id);
+      if (result.success) {
+        toast({ 
+          title: "Job Deleted", 
+          description: `"${selectedJob.title}" has been removed.`, 
+          variant: "destructive" 
+        });
+        handleDialogClose();
+      } else {
+        throw new Error(result.error || "Failed to delete job");
+      }
+    } catch (error) {
+      console.error("Delete job error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete job",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -244,7 +270,7 @@ export default function JobsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-2">Loading...</span>
             </div>
-          ) : jobs.length === 0 ? (
+          ) : !Array.isArray(jobs) || jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded-lg bg-card/50">
               <BriefcaseBusiness className="h-16 w-16 text-muted-foreground mb-4" />
               <p className="text-xl font-semibold text-muted-foreground">
@@ -258,10 +284,10 @@ export default function JobsPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {jobs.map((job) => (
                 <JobCard
-                  key={job.id}
+                  key={job?.id || `job-${Math.random()}`}
                   job={{
                     ...job,
-                    type: formatJobType(job.type) // Format the type for display
+                    type: formatJobType(job?.type)
                   }}
                   onEdit={() => handleEditJobOpen(job)}
                   onDelete={() => handleDeleteJobOpen(job)}
@@ -333,7 +359,7 @@ export default function JobsPage() {
                   <div>
                     <span className="font-medium">Posted:</span>
                     <span className="text-muted-foreground ml-1">
-                      {selectedJob?.postedDate ? new Date(selectedJob.postedDate).toLocaleDateString() : 'N/A'}
+                      {selectedJob?.postedDate ? moment(selectedJob.postedDate).format("MMMM D, YYYY") : 'N/A'}
                     </span>
                   </div>
                 </div>

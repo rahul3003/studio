@@ -126,23 +126,23 @@ export function JobCard({ job, onEdit, onDelete, onViewDetails, onViewApplicants
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleShare('copy')}>
+              <DropdownMenuItem key="copy" onClick={() => handleShare('copy')}>
                 <Link2 className="mr-2 h-4 w-4" />
                 Copy Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('email')}>
+              <DropdownMenuItem key="email" onClick={() => handleShare('email')}>
                 <Mail className="mr-2 h-4 w-4" />
                 Share via Email
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
+              <DropdownMenuItem key="whatsapp" onClick={() => handleShare('whatsapp')}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Share on WhatsApp
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('twitter')}>
+              <DropdownMenuItem key="twitter" onClick={() => handleShare('twitter')}>
                 <Twitter className="mr-2 h-4 w-4" />
                 Share on Twitter
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('linkedin')}>
+              <DropdownMenuItem key="linkedin" onClick={() => handleShare('linkedin')}>
                 <Linkedin className="mr-2 h-4 w-4" />
                 Share on LinkedIn
               </DropdownMenuItem>

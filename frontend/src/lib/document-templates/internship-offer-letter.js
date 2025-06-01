@@ -14,13 +14,22 @@ export function generatePlaceholderInternshipOfferLetterHtml(data) {
   } = data;
 
   return `
-    <div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-      <div style="text-align: right; margin-bottom: 30px;">
-        <p>${companyName}</p>
-        <p>PES University, 12th Floor, B-Wing</p>
-        <p>100 Feet Ring Road</p>
-        <p>Banashankari Stage III, Dwaraka Nagar,</p>
-        <p>Banashankari, Bengaluru, Karnataka 560085</p>
+   <div class="offer-letter-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 10px auto; padding: 40px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
+        <div style="padding-top: 20px;">
+          <img
+            src="https://images.crunchbase.com/image/upload/c_pad,f_auto,q_auto:eco,dpr_1/xalctkna6eqyvi9jbgfz"
+            alt="Company Logo"
+            style="height: 80px; object-fit: contain;"
+          />
+        </div>
+        <div style="text-align: right; font-size: 14px;">
+          <p style="margin: 0; padding: 0;"><strong>${companyName}</strong></p>
+          <p style="margin: 0; padding: 0;">PES University, 12th Floor, B-Wing</p>
+          <p style="margin: 0; padding: 0;">100 Feet Ring Road</p>
+          <p style="margin: 0; padding: 0;">Banashankari Stage III, Dwaraka Nagar</p>
+          <p style="margin: 0; padding: 0;">Banashankari, Bengaluru, Karnataka 560085</p>
+        </div>
       </div>
 
       <div style="text-align: right; margin-bottom: 30px;">
@@ -98,7 +107,7 @@ export function generatePlaceholderInternshipOfferLetterHtml(data) {
         </ul>
       </div>
 
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 20px; margin-top: 150px;">
         <h2 style="font-size: 18px; font-weight: bold;">Additional Notes:</h2>
         <ul style="list-style-type: disc; padding-left: 20px;">
           <li>You need to sign the NDA form before commencing your work at the location</li>
@@ -118,18 +127,18 @@ export function generatePlaceholderInternshipOfferLetterHtml(data) {
         </ul>
       </div>
 
-      <div style="margin-top: 50px;">
-        <div style="float: left; width: 45%;">
-          <p>Sincerely,</p>
-          <p style="margin-top: 50px;">ROHIT. H. R</p>
-          <p>HR Operations Team</p>
-          <p>PESU Venture Labs</p>
-          <p>& CoCreate Ventures</p>
+      <div style="margin-top: 50px;display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="padding-top: 0; width: 45%;">
+          <p style="text-align: left; padding: 0;">Sincerely,</p>
+          <p style="text-align: left; margin-top: 2px; padding: 0;">ROHIT. H. R</p>
+          <p style="text-align: left; padding: 0;">HR Operations Team</p>
+          <p style="text-align: left; padding: 0;">PESU Venture Labs</p>
+          <p style="text-align: left; padding: 0;">& CoCreate Ventures</p>
         </div>
-        <div style="float: right; width: 45%;">
-          <p>Reviewed and accepted by</p>
-          <p style="margin-top: 50px;">Candidate Signature:</p>
-          <p>Candidate Name: ${candidateName}</p>
+        <div style="padding-top: 0; width: 45%;">
+          <p style="text-align: right; padding: 0;">Reviewed and accepted by</p>
+          <p style="text-align: right; margin-top:2px; padding: 0;">Candidate Signature:</p>
+          <p style="text-align: right; padding: 0;">Candidate Name: ${candidateName}</p>
         </div>
         <div style="clear: both;"></div>
       </div>

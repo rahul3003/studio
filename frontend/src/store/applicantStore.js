@@ -45,6 +45,7 @@ export const useApplicantStore = create((set, get) => ({
       const {
         resumeFile,
         resumeUrl,
+        resumeLink,
         jobId,
         offerStatus,
         ...rest
@@ -55,12 +56,18 @@ export const useApplicantStore = create((set, get) => ({
         ...rest,
         jobPostingId: jobId,
         offerStatus: status,
-        resumeUrl,
+        resumeLink: resumeLink || resumeUrl || null,
         offerHistory: [createHistoryEntry(status, 'Applicant created')],
         ...(rest.offeredStartDate && { offeredStartDate: toIsoDateTimeWithMoment(rest.offeredStartDate) }),
       };
 
       const { data } = await api.post('/applicants', dataToSend);
+      
+      // If there's a resume file, upload it after creating the applicant
+      if (resumeFile) {
+        await get().uploadResume(data.data.id, resumeFile);
+      }
+
       set((state) => ({ 
         applicants: [...state.applicants, data.data],
         loading: false 
@@ -136,22 +143,25 @@ export const useApplicantStore = create((set, get) => ({
   uploadResume: async (applicantId, resumeFile) => {
     try {
       let resumeUrl;
-      // For files larger than 5MB, use direct upload
       if (resumeFile.size > 5 * 1024 * 1024) {
-        const { data: presignedData } = await s3Service.getPresignedUrl(
-          resumeFile.name,
-          resumeFile.type
-        );
+        // Large file: get presigned URL and upload directly to S3
+        const { data: presignedData } = await api.post('/s3/presigned-url', {
+          filename: resumeFile.name,
+          filetype: resumeFile.type,
+        });
         await s3Service.uploadFileDirectly(resumeFile, presignedData.presignedUrl);
         resumeUrl = presignedData.url;
       } else {
-        // For smaller files, use server upload
-        const { data } = await s3Service.uploadFileThroughServer(resumeFile);
+        // Small file: upload through server
+        const formData = new FormData();
+        formData.append('file', resumeFile);
+        const { data } = await api.post('/s3/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         resumeUrl = data.url;
       }
-
       // Update applicant with resume URL
-      return get().updateApplicant(applicantId, { resumeUrl });
+      return get().updateApplicant(applicantId, { resumeLink: resumeUrl });
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to upload resume');
     }

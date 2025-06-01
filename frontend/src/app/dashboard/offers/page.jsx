@@ -264,11 +264,33 @@ export default function OffersPage() {
       
       // Get the job details to check if it's an internship
       const job = jobs.find(j => j.id === selectedApplicantForOffer.jobPostingId);
-      const isInternship = job?.employeeType === "INTERN";
+      const isInternship = job?.type === "INTERNSHIP_JOB";
 
       // Get reporting manager details
       const reportingManager = managerOptions.find(m => m.id === offerData.reportingManager);
       const reportingManagerName = reportingManager ? reportingManager.label : 'To be assigned';
+      
+      // Calculate dates
+      const today = new Date();
+      const joiningDate = new Date(today);
+      joiningDate.setDate(today.getDate() + 30); // 30 days from today
+      
+      const applicationDate = new Date(selectedApplicantForOffer.createdAt || today);
+      const offerExpiryDate = new Date(applicationDate);
+      offerExpiryDate.setDate(applicationDate.getDate() + 15); // 15 days from application date
+
+      // Format dates
+      const formattedJoiningDate = joiningDate.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+
+      const formattedExpiryDate = offerExpiryDate.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
       
       // Use appropriate template based on job type
       const htmlContent = isInternship 
@@ -278,10 +300,10 @@ export default function OffersPage() {
             positionTitle: offerData.positionTitle,
             department: offerData.department,
             salary: offerData.salary,
-            startDate: offerData.startDate,
-            offerExpiryDate: offerData.offerExpiryDate,
+            startDate: formattedJoiningDate,
+            offerExpiryDate: formattedExpiryDate,
             companyName: offerData.companyName,
-            reportingManager: reportingManagerName // Use the formatted name
+            reportingManager: reportingManagerName
           })
         : generatePlaceholderOfferLetterHtml({
             candidateName: offerData.candidateName,
@@ -289,20 +311,106 @@ export default function OffersPage() {
             positionTitle: offerData.positionTitle,
             department: offerData.department,
             salary: offerData.salary,
-            startDate: offerData.startDate,
-            offerExpiryDate: offerData.offerExpiryDate,
+            startDate: formattedJoiningDate,
+            offerExpiryDate: formattedExpiryDate,
             companyName: offerData.companyName,
-            reportingManager: reportingManagerName // Use the formatted name
+            reportingManager: reportingManagerName
           });
       
       if (htmlContent) {
         setGeneratedOfferLetterHtml(htmlContent);
-        updateApplicant(selectedApplicantForOffer.id, { 
+
+        // --- PDF GENERATION & S3 UPLOAD FIRST ---
+        const tempElement = document.createElement('div');
+        tempElement.style.position = 'absolute';
+        tempElement.style.left = '-9999px';
+        tempElement.style.top = '0px';
+        tempElement.style.width = '210mm';
+        tempElement.style.backgroundColor = 'white';
+        tempElement.style.boxSizing = 'border-box';
+        tempElement.innerHTML = htmlContent; // Make sure htmlContent is not empty!
+        document.body.appendChild(tempElement);
+
+        await Promise.all(
+          Array.from(tempElement.getElementsByTagName('img')).map(
+            img => new Promise((resolve) => {
+              if (img.complete) resolve();
+              else img.onload = resolve;
+            })
+          )
+        );
+
+        const documentToCapture = tempElement.querySelector('.offer-letter-container') || tempElement;
+
+        const opt = {
+          margin: [0, 0, 0, 0],
+          filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 1,
+            useCORS: true,
+            width: 794,
+            windowWidth: 794,
+            logging: true,
+            onclone: (clonedDoc) => {
+              const clonedElement = clonedDoc.querySelector('.offer-letter-container') || clonedDoc.body;
+              if (clonedElement) {
+                clonedElement.style.width = '210mm';
+                clonedElement.style.maxWidth = '210mm';
+                clonedElement.style.margin = '0 auto';
+                clonedElement.style.padding = '8px';
+                clonedElement.style.backgroundColor = 'white';
+                clonedElement.style.boxSizing = 'border-box';
+                // DO NOT set height!
+              }
+              clonedDoc.querySelectorAll('.offer-letter-container, .offer-letter-container *').forEach(el => {
+                el.style.boxSizing = 'border-box';
+                el.style.maxWidth = '100%';
+                el.style.overflowWrap = 'break-word';
+                el.style.wordBreak = 'break-word';
+              });
+              // Force all tables and block elements to fit, and avoid page breaks inside tables
+              clonedDoc.querySelectorAll('.offer-letter-container table, .offer-letter-container div, .offer-letter-container p').forEach(el => {
+                el.style.width = '100%';
+                el.style.maxWidth = '100%';
+                el.style.pageBreakInside = 'avoid';
+              });
+            }
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: [210, 297],
+            orientation: 'portrait',
+            compress: true
+          }
+        };
+
+        const pdfBlob = await html2pdf().set(opt).from(documentToCapture).output('blob');
+        document.body.removeChild(tempElement);
+
+        // --- UPLOAD TO S3 (same logic as resume upload) ---
+        const pdfFile = new File([pdfBlob], `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`, { type: 'application/pdf' });
+        const presignedData = await s3Service.getPresignedUrl(
+          pdfFile.name,
+          pdfFile.type,
+          'offer-letters'
+        );
+        console.log("pdfFile", presignedData);
+
+        await s3Service.uploadFileDirectly(pdfFile, presignedData.data.presignedUrl);
+        console.log("presignedData", presignedData);
+        const offerLetterUrl = presignedData.data.url;
+
+        // --- NOW CALL updateApplicant WITH THE URL ---
+        await updateApplicant(selectedApplicantForOffer.id, { 
           offerStatus: "OFFER_GENERATED", 
           offeredSalary: offerData.salary,
-          offeredStartDate: moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).isValid() ? moment(offerData.startDate, ["MMMM D, YYYY", moment.ISO_8601, "YYYY-MM-DD"]).format("YYYY-MM-DD") : undefined,
-          offerLetterHtml: htmlContent 
+          offeredStartDate: joiningDate.toISOString().split('T')[0],
+          offerExpiryDate: offerExpiryDate.toISOString().split('T')[0],
+          offerLetterHtml: htmlContent,
+          offerLetterUrl // <--- S3 URL included here
         });
+
         toast({ title: "Offer Letter Generated", description: `Offer for ${selectedApplicantForOffer.name} is ready.` });
       } else {
         throw new Error("Failed to generate offer letter content.");
@@ -316,134 +424,95 @@ export default function OffersPage() {
   };
 
   const handleSendOfferLetterEmail = async () => {
-    if (!selectedApplicantForOffer || !generatedOfferLetterHtml) {
+    if (!selectedApplicantForOffer || !selectedApplicantForOffer.offerLetterUrl) {
         toast({ title: "Error", description: "No offer letter or applicant selected.", variant: "destructive" });
         return;
     }
     setIsEmailingOfferLetter(true);
     try {
-        // Create a temporary container for PDF generation
-        const tempElement = document.createElement('div');
-        tempElement.style.position = 'absolute';
-        tempElement.style.left = '-9999px';
-        tempElement.style.top = '0px';
-        tempElement.style.width = '800px';
-        tempElement.style.padding = '40px';
-        tempElement.style.backgroundColor = 'white';
-        tempElement.innerHTML = generatedOfferLetterHtml;
-        document.body.appendChild(tempElement);
+        // Fetch the PDF from S3
+        const pdfResponse = await fetch(selectedApplicantForOffer.offerLetterUrl);
+        const pdfBlob = await pdfResponse.blob();
 
-        // Wait for images to load
-        await Promise.all(
-            Array.from(tempElement.getElementsByTagName('img')).map(
-                img => new Promise((resolve) => {
-                    if (img.complete) resolve();
-                    else img.onload = resolve;
-                })
-            )
-        );
+        // Convert blob to base64
+        const pdfBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(pdfBlob);
+        });
 
-        const documentToCapture = tempElement.querySelector('.offer-letter-container');
-        if (!documentToCapture) {
-            document.body.removeChild(tempElement);
-            throw new Error("Could not find content for PDF generation");
+        // Prepare attachments array
+        const attachments = [
+            {
+                filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`,
+                content: pdfBase64,
+                contentType: 'application/pdf',
+                encoding: 'base64'
+            }
+        ];
+
+        // Add NDA document (optional, can keep as before)
+        try {
+            const ndaResponse = await fetch('https://drive.google.com/uc?export=download&id=1XhSg-RNiyCvOM8q-v12Zw_cHSnRKz9U6');
+            const ndaBlob = await ndaResponse.blob();
+            const ndaBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(ndaBlob);
+            });
+            attachments.push({
+                filename: 'NDA_Document.pdf',
+                content: ndaBase64,
+                contentType: 'application/pdf',
+                encoding: 'base64'
+            });
+        } catch (error) {
+            console.error('Error fetching NDA:', error);
         }
 
-        // Ensure all styles are properly applied
-        const style = document.createElement('style');
-        style.textContent = `
-            .offer-letter-container {
-                width: 100%;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 40px;
-                background: white;
-                font-family: Arial, sans-serif;
-            }
-            .offer-letter-container img {
-                max-width: 100%;
-                height: auto;
-            }
-            .offer-letter-container * {
-                box-sizing: border-box;
-            }
-        `;
-        tempElement.appendChild(style);
+        // Get job details to determine if it's an internship
+        const job = jobs.find(j => j.id === selectedApplicantForOffer.jobPostingId);
+        const isInternship = job?.type === "INTERNSHIP_JOB";
 
-        // Generate PDF with improved settings
-        const pdfBlob = await html2pdf()
-            .set({
-                margin: [10, 10, 10, 10],
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    allowTaint: true,
-                    foreignObjectRendering: true,
-                    width: 800,
-                    windowWidth: 800,
-                    logging: true,
-                    onclone: (clonedDoc) => {
-                        // Ensure the cloned document has all styles
-                        const clonedElement = clonedDoc.querySelector('.offer-letter-container');
-                        if (clonedElement) {
-                            clonedElement.style.width = '800px';
-                            clonedElement.style.padding = '40px';
-                            clonedElement.style.backgroundColor = 'white';
-                        }
-                    }
-                },
-                jsPDF: { 
-                    unit: 'mm', 
-                    format: 'a4', 
-                    orientation: 'portrait',
-                    compress: true
-                }
-            })
-            .from(documentToCapture)
-            .output('blob');
+        // Calculate dates for email body
+        const today = new Date();
+        const joiningDate = new Date(today);
+        joiningDate.setDate(today.getDate() + 30);
+        const formattedJoiningDate = joiningDate.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
 
-        // Clean up temporary element
-        document.body.removeChild(tempElement);
-
-        // Convert blob to base64 for email attachment
-        const pdfBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(pdfBlob);
+        const applicationDate = new Date(selectedApplicantForOffer.createdAt || today);
+        const offerExpiryDate = new Date(applicationDate);
+        offerExpiryDate.setDate(applicationDate.getDate() + 15);
+        const formattedExpiryDate = offerExpiryDate.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
         });
 
         const emailBody = `
             <p>Dear ${selectedApplicantForOffer.name},</p>
-            <p>We are pleased to extend an offer of employment to you. Please find your offer letter attached in both HTML and PDF formats.</p>
-            <p>Your details:</p>
-            <ul>
-                <li>Position: ${selectedApplicantForOffer.positionTitle || 'To be assigned'}</li>
-                <li>Department: ${selectedApplicantForOffer.department || 'To be assigned'}</li>
-                <li>Join Date: ${selectedApplicantForOffer.offeredStartDate ? format(new Date(selectedApplicantForOffer.offeredStartDate), "MMMM d, yyyy") : 'To be confirmed'}</li>
-            </ul>
-            <p>Please review the offer letter and let us know if you have any questions.</p>
-            <p>Best regards,<br/>PESU Venture Labs HR Team</p>
+            <p>Congratulations! We are pleased to inform you that you have successfully cleared the interviews at PESU Venture Labs and thereby extend our offer to be part of our team.</p>
+            <p>Please find attached a copy of your Offer Letter.</p>
+            <p>1. Kindly review, sign and submit a soft copy. Note that your effective date of joining should be on or before ${formattedJoiningDate}. However, we request you to confirm the exact date of joining by replying to this email. Please confirm the acceptance of the offer by close of Business hours on ${formattedExpiryDate}.</p>
+            <p>2. The accounts team will need you to provide details in form listed below:-<br/>
+            https://forms.gle/KCU6ThEUg7yqCGiP8</p>
+            <p>3. Please download the NDA document, update, print, sign, and submit it to this email thread.<br/>
+            NDA: https://drive.google.com/file/d/1XhSg-RNiyCvOM8q-v12Zw_cHSnRKz9U6/view?usp=sharing</p>
+            <p>Note:- At the time of joining, you will be required to submit ${isInternship ? 
+                'a copy of your latest degree certificate/ Final marksheet of your last 2 semesters.' : 
+                'a copy of your latest degree certificate, your latest salary slips (for 3 months), and a relieving letter from your current employer.'}</p>
+            <p>Thanks and best regards,<br/>Rohit H. R.<br/>Team PESU Venture Labs</p>
         `;
 
         const result = await sendEmail({
             to: selectedApplicantForOffer.email,
             subject: `Job Offer from PESU Venture Labs for ${selectedApplicantForOffer.name}`,
             htmlBody: emailBody,
-            attachments: [
-                {
-                filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.html`,
-                content: generatedOfferLetterHtml,
-                contentType: 'text/html',
-                },
-                {
-                    filename: `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`,
-                    content: pdfBase64,
-                    contentType: 'application/pdf',
-                    encoding: 'base64'
-                }
-            ]
+            attachments: attachments
         });
 
         if (result.success) {
@@ -461,30 +530,30 @@ export default function OffersPage() {
     }
   };
   
-  const handleDownloadOfferLetterPdf = () => {
-    if (!generatedOfferLetterHtml || !selectedApplicantForOffer) {
-        toast({ title: "Error", description: "No offer letter to download.", variant: "destructive"});
-        return;
-    }
-    const tempElement = document.createElement('div');
-    tempElement.style.position = 'absolute'; tempElement.style.left = '-9999px'; tempElement.style.top = '0px'; tempElement.style.width = '1000px';
-    tempElement.innerHTML = generatedOfferLetterHtml;
-    document.body.appendChild(tempElement);
+  // const handleDownloadOfferLetterPdf = () => {
+  //   if (!generatedOfferLetterHtml || !selectedApplicantForOffer) {
+  //       toast({ title: "Error", description: "No offer letter to download.", variant: "destructive"});
+  //       return;
+  //   }
+  //   const tempElement = document.createElement('div');
+  //   tempElement.style.position = 'absolute'; tempElement.style.left = '-9999px'; tempElement.style.top = '0px'; tempElement.style.width = '1000px';
+  //   tempElement.innerHTML = generatedOfferLetterHtml;
+  //   document.body.appendChild(tempElement);
 
-    const documentToCapture = tempElement.querySelector('.offer-letter-container');
-     if (!documentToCapture) {
-        document.body.removeChild(tempElement);
-        toast({ title: "PDF Error", description: "Could not find content for PDF.", variant: "destructive" });
-        return;
-    }
-    const filename = `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`;
-    const opt = {
-      margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
-     html2pdf().from(documentToCapture).set(opt).save()
-      .then(() => toast({ title: "PDF Downloaded", description: "Offer letter saved." }))
-      .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
-      .finally(() => document.body.removeChild(tempElement));
-  };
+  //   const documentToCapture = tempElement.querySelector('.offer-letter-container');
+  //    if (!documentToCapture) {
+  //       document.body.removeChild(tempElement);
+  //       toast({ title: "PDF Error", description: "Could not find content for PDF.", variant: "destructive" });
+  //       return;
+  //   }
+  //   const filename = `${selectedApplicantForOffer.name.replace(/ /g, '_')}_Offer_Letter.pdf`;
+  //   const opt = {
+  //     margin: [10,10,10,10], filename, image: {type: 'jpeg', quality: 0.98}, html2canvas: {scale: 2, useCORS: true, width: documentToCapture.scrollWidth, windowWidth: documentToCapture.scrollWidth}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}};
+  //    html2pdf().from(documentToCapture).set(opt).save()
+  //     .then(() => toast({ title: "PDF Downloaded", description: "Offer letter saved." }))
+  //     .catch(err => { console.error(err); toast({ title: "PDF Error", description: "Failed to generate PDF.", variant: "destructive" }); })
+  //     .finally(() => document.body.removeChild(tempElement));
+  // };
 
   const handleUpdateApplicantStatus = (applicantId, newStatus) => {
     updateApplicant(applicantId, { offerStatus: newStatus });
@@ -1025,8 +1094,19 @@ export default function OffersPage() {
                         dangerouslySetInnerHTML={{ __html: generatedOfferLetterHtml }}
                     />
                     <div className="flex flex-wrap gap-2 pt-2">
-                        <Button onClick={handleDownloadOfferLetterPdf} variant="outline" size="sm" disabled={!generatedOfferLetterHtml || isLoadingOfferLetter || isEmailingOfferLetter}>
-                            <Download className="mr-2 h-4 w-4" /> Download PDF
+                        <Button
+                          onClick={() => {
+                            if (selectedApplicantForOffer?.offerLetterUrl) {
+                              window.open(selectedApplicantForOffer.offerLetterUrl, '_blank');
+                            } else {
+                              toast({ title: "No Offer Letter", description: "Offer letter not available for download.", variant: "destructive" });
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                          disabled={!selectedApplicantForOffer?.offerLetterUrl}
+                        >
+                          <Download className="mr-2 h-4 w-4" /> Download PDF
                         </Button>
                         <Button onClick={handleSendOfferLetterEmail} variant="default" size="sm" disabled={!generatedOfferLetterHtml || isLoadingOfferLetter || isEmailingOfferLetter}>
                             {isEmailingOfferLetter ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}

@@ -29,10 +29,14 @@ export const useJobStore = create(
         set({ loading: true, error: null });
         try {
           const response = await api.get('/jobs');
-          set({ jobs: response.data, loading: false });
+          if (response.data.success) {
+            set({ jobs: response.data.data || [], loading: false });
+          } else {
+            throw new Error(response.data.message || 'Failed to fetch jobs');
+          }
         } catch (error) {
           set({ 
-            error: error.response?.data?.message || 'Failed to fetch jobs', 
+            error: error.response?.data?.message || error.message || 'Failed to fetch jobs', 
             loading: false 
           });
         }
@@ -43,17 +47,19 @@ export const useJobStore = create(
         set({ loading: true, error: null });
         try {
           const response = await api.post('/jobs', jobData);
-          set((state) => ({
-            jobs: [response.data, ...state.jobs],
-            loading: false
-          }));
-          return { success: true, data: response.data };
+          if (response.data.success) {
+            set((state) => ({
+              jobs: [response.data.data, ...state.jobs],
+              loading: false
+            }));
+            return { success: true, data: response.data.data };
+          } else {
+            throw new Error(response.data.message || 'Failed to add job');
+          }
         } catch (error) {
-          set({ 
-            error: error.response?.data?.message || 'Failed to add job', 
-            loading: false 
-          });
-          return { success: false, error: error.response?.data?.message || 'Failed to add job' };
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to add job';
+          set({ error: errorMessage, loading: false });
+          return { success: false, error: errorMessage };
         }
       },
 
@@ -62,19 +68,21 @@ export const useJobStore = create(
         set({ loading: true, error: null });
         try {
           const response = await api.put(`/jobs/${jobData.id}`, jobData);
-          set((state) => ({
-            jobs: state.jobs.map((job) =>
-              job.id === jobData.id ? response.data : job
-            ),
-            loading: false
-          }));
-          return { success: true, data: response.data };
+          if (response.data.success) {
+            set((state) => ({
+              jobs: state.jobs.map((job) =>
+                job.id === jobData.id ? response.data.data : job
+              ),
+              loading: false
+            }));
+            return { success: true, data: response.data.data };
+          } else {
+            throw new Error(response.data.message || 'Failed to update job');
+          }
         } catch (error) {
-          set({ 
-            error: error.response?.data?.message || 'Failed to update job', 
-            loading: false 
-          });
-          return { success: false, error: error.response?.data?.message || 'Failed to update job' };
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to update job';
+          set({ error: errorMessage, loading: false });
+          return { success: false, error: errorMessage };
         }
       },
 
@@ -82,18 +90,20 @@ export const useJobStore = create(
       deleteJob: async (jobId) => {
         set({ loading: true, error: null });
         try {
-          await api.delete(`/jobs/${jobId}`);
-          set((state) => ({
-            jobs: state.jobs.filter((job) => job.id !== jobId),
-            loading: false
-          }));
-          return { success: true };
+          const response = await api.delete(`/jobs/${jobId}`);
+          if (response.data.success) {
+            set((state) => ({
+              jobs: state.jobs.filter((job) => job.id !== jobId),
+              loading: false
+            }));
+            return { success: true };
+          } else {
+            throw new Error(response.data.message || 'Failed to delete job');
+          }
         } catch (error) {
-          set({ 
-            error: error.response?.data?.message || 'Failed to delete job', 
-            loading: false 
-          });
-          return { success: false, error: error.response?.data?.message || 'Failed to delete job' };
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to delete job';
+          set({ error: errorMessage, loading: false });
+          return { success: false, error: errorMessage };
         }
       },
 

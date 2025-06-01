@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, parseISO } from "date-fns";
+import moment from "moment";
 import { useToast } from "../../hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const jobFormSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }),
   requirements: z.string().min(10, { message: "Requirements must be at least 10 characters." }),
-  department: z.string().min(1, { message: "Department is required." }),
+  departmentId: z.string().min(1, { message: "Department is required." }),
   location: z.string().min(1, { message: "Location is required." }),
   type: z.enum([
     "FULL_TIME_JOB",
@@ -45,7 +45,8 @@ const jobFormSchema = z.object({
   status: z.enum(["OPEN", "CLOSED", "FILLED", "DRAFT"], {
     required_error: "Status is required.",
   }),
-  applicationLink: z.string().url({ message: "Please enter a valid URL." }).optional(),
+  applicationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  postedDate: z.date().optional(),
 });
 
 // Add a helper function to format job type for display
@@ -83,7 +84,7 @@ export function JobForm({
       title: "",
       description: "",
       requirements: "",
-      department: "",
+      departmentId: "",
       location: "",
       type: "FULL_TIME_JOB",
       status: "DRAFT",
@@ -97,33 +98,41 @@ export function JobForm({
   });
   
   React.useEffect(() => {
-     // Reset form fields if initialData changes
     form.reset(initialData
       ? {
           ...initialData,
           departmentId: initialData.departmentId || initialData.department?.id || "",
-          postedDate: initialData.postedDate ? parseISO(initialData.postedDate) : undefined,
+          postedDate: initialData.postedDate ? moment(initialData.postedDate).format("YYYY-MM-DDTHH:mm:ss.SSSZ") : moment().format("YYYY-MM-DDTHH:mm:ss.SSSZ"),
           applicationLink: initialData.applicationLink || "",
         }
       : {
           title: "",
           departmentId: "",
           location: "",
-          type: "",
-          status: statusOptions?.[0] || "",
+          type: "FULL_TIME_JOB",
+          status: "DRAFT",
           applicationLink: "",
           description: "",
           requirements: "",
-          postedDate: new Date(),
+          postedDate: moment().format("YYYY-MM-DDTHH:mm:ss.SSSZ"),
         });
-  }, [initialData, form, departmentOptions, statusOptions, typeOptions]);
+  }, [initialData, form]);
 
 
   const handleSubmit = (values) => {
+    if (!values.departmentId) {
+      toast({
+        title: "Error",
+        description: "Department is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const submissionData = {
       ...values,
-      postedDate: values.postedDate ? format(values.postedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      applicationLink: values.applicationLink || null, // Store empty string as null
+      postedDate: values.postedDate ? moment(values.postedDate).format("YYYY-MM-DDTHH:mm:ss.SSSZ") : moment().format("YYYY-MM-DDTHH:mm:ss.SSSZ"),
+      applicationLink: values.applicationLink || null,
     };
     onSubmit(submissionData);
   };
@@ -152,14 +161,18 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Department</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                  value={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {departmentOptions.map((dept) => (
+                    {departmentOptions?.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.label}
                       </SelectItem>

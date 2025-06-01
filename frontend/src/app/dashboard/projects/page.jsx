@@ -29,7 +29,6 @@ import { ProjectForm } from "@/components/project/project-form";
 import { useProjectStore } from "@/store/projectStore";
 import { useEmployeeStore } from "@/store/employeeStore";
 import { useDepartmentStore } from "@/store/departmentStore";
-import { format } from 'date-fns';
 
 const PROJECT_STATUS_OPTIONS = ["PLANNING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "CANCELLED"];
 
@@ -107,20 +106,20 @@ export default function ProjectsPage() {
 
   const handleSaveProject = async (projectData) => {
     try {
-      if (selectedProject && selectedProject.id) {
+    if (selectedProject && selectedProject.id) {
         await updateProject(selectedProject.id, projectData);
         toast({ 
           title: "Project Updated", 
           description: `"${projectData.name}" details have been updated.` 
         });
-      } else {
+    } else {
         await createProject(projectData);
         toast({ 
           title: "Project Added", 
           description: `"${projectData.name}" has been added.` 
         });
-      }
-      handleDialogClose();
+    }
+    handleDialogClose();
     } catch (error) {
       toast({
         title: "Error",
@@ -237,7 +236,7 @@ export default function ProjectsPage() {
             ) : (
               <>
                 <Plus className="mr-2 h-5 w-5" />
-                Add New Project
+            Add New Project
               </>
             )}
           </Button>
@@ -276,41 +275,41 @@ export default function ProjectsPage() {
                             ? `${project.projectManager.name} (${project.projectManager.email}, ${project.projectManager.role})`
                             : 'N/A'}
                         </TableCell>
-                        <TableCell>
-                          {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", {
-                            year: "numeric", month: "short", day: "numeric",
-                          }) : "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", {
-                            year: "numeric", month: "short", day: "numeric",
-                          }) : "N/A"}
-                        </TableCell>
-                        <TableCell>
+                    <TableCell>
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString("en-IN", {
+                        year: "numeric", month: "short", day: "numeric",
+                      }) : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString("en-IN", {
+                        year: "numeric", month: "short", day: "numeric",
+                      }) : "N/A"}
+                    </TableCell>
+                    <TableCell>
                           <Badge className={getStatusColor(project.status)}>
                             {project.status || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
                           <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="mr-1 hover:bg-accent/20"
-                              onClick={() => handleEditProjectOpen(project)}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mr-1 hover:bg-accent/20"
+                        onClick={() => handleEditProjectOpen(project)}
                               disabled={loading}
-                            >
-                              <Edit className="h-4 w-4 text-primary" />
+                      >
+                        <Edit className="h-4 w-4 text-primary" />
                               <span className="sr-only">Edit {project.name || 'project'}</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="hover:bg-destructive/20"
-                              onClick={() => handleDeleteProjectOpen(project)}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-destructive/20"
+                        onClick={() => handleDeleteProjectOpen(project)}
                               disabled={loading}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                               <span className="sr-only">Delete {project.name || 'project'}</span>
                             </Button>
                             <Button
@@ -325,10 +324,10 @@ export default function ProjectsPage() {
                             >
                               <Users className="h-4 w-4 text-primary" />
                               <span className="sr-only">Manage Team</span>
-                            </Button>
+                      </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                    </TableCell>
+                  </TableRow>
                     );
                   })
                 )}

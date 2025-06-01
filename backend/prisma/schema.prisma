@@ -333,6 +333,7 @@ model Applicant {
   resumeLink        String?
   offeredSalary     String?
   offeredStartDate  DateTime?
+  offerExpiryDate   DateTime?   // Added field for offer expiry date
   offerLetterHtml   String?     @db.Text
   offerLetterUrl    String?
   notes             Json?      // Array of notes (optional)

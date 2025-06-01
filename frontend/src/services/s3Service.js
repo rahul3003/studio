@@ -9,6 +9,7 @@ export const s3Service = {
                 contentType,
                 folder
             });
+            console.log("response", response.data);
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.error || 'Failed to get upload URL');

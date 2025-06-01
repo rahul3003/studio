@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { FileText, UploadCloud, XCircle } from "lucide-react";
+import api from '@/services/api';
 
 const applicantFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -38,6 +39,7 @@ export function ApplicantForm({
 
   const fileInputRef = React.useRef(null);
   const [selectedFile, setSelectedFile] = React.useState(null);
+  const [uploading, setUploading] = React.useState(false);
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
@@ -53,12 +55,42 @@ export function ApplicantForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  function handleFormSubmit(values) {
-    // Pass file object and all values to parent
+  async function handleFileUpload(file) {
+    // Step 1: Get presigned URL from backend
+    const { data: presignedData } = await api.post('/s3/presigned-url', {
+      fileName: file.name,
+      contentType: file.type,
+    });
+    console.log("presignedData-----", presignedData);
+    // Step 2: Upload file to S3 using the presigned URL
+    await fetch(presignedData.data.presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+    // Step 3: Use presignedData.url as the resumeLink
+    return presignedData.url || presignedData.data.url;
+  }
+
+  async function handleFormSubmit(values) {
+    setUploading(true);
+    let resumeLink = null;
+    if (selectedFile) {
+      try {
+        resumeLink = await handleFileUpload(selectedFile);
+      } catch (err) {
+        setUploading(false);
+        alert('Resume upload failed. Please try again.');
+        return;
+      }
+    }
+    setUploading(false);
     onSubmit({
       ...values,
-      resumeFile: selectedFile || values.resume,
-      resumeLink: selectedFile ? URL.createObjectURL(selectedFile) : (typeof values.resume === "string" ? values.resume : undefined),
+      resumeFile: null, // Not needed anymore
+      resumeLink: resumeLink || (typeof values.resume === "string" ? values.resume : null),
     });
   }
 
