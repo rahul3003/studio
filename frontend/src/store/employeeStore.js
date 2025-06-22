@@ -6,6 +6,8 @@ const initialState = {
   employees: [],
   loading: false,
   error: null,
+  personalData: {},
+  secondaryData: {},
 };
 
 export const useEmployeeStore = create(
@@ -14,11 +16,16 @@ export const useEmployeeStore = create(
       ...initialState,
 
       // Initialize employees from API
-      initializeEmployees: async () => {
+      initializeEmployees: async (page = 1, limit = 50) => {
         set({ loading: true, error: null });
         try {
-          const response = await employeeService.getAllEmployees();
-          const employees = Array.isArray(response) ? response : [];
+          const response = await employeeService.getAllEmployees(page, limit);
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to fetch employees');
+          }
+
+          const employees = Array.isArray(response.data) ? response.data : [];
           
           // Transform the data to match our frontend structure
           const transformedEmployees = employees.map(emp => ({
@@ -45,15 +52,30 @@ export const useEmployeeStore = create(
             jwtToken: emp.jwtToken
           }));
 
-          set({ employees: transformedEmployees, loading: false, error: null });
-          return { success: true, employees: transformedEmployees };
+          set({ 
+            employees: transformedEmployees, 
+            loading: false, 
+            error: null,
+            pagination: response.pagination
+          });
+          
+          return { 
+            success: true, 
+            employees: transformedEmployees,
+            pagination: response.pagination
+          };
         } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch employees.';
           set({ 
             employees: [], 
             loading: false, 
-            error: err.response?.data?.error || 'Failed to fetch employees.' 
+            error: errorMessage,
+            pagination: null
           });
-          return { success: false, error: err.response?.data?.error || 'Failed to fetch employees.' };
+          return { 
+            success: false, 
+            error: errorMessage 
+          };
         }
       },
 
@@ -196,6 +218,424 @@ export const useEmployeeStore = create(
 
       // Reset store to initial state
       reset: () => set(initialState),
+
+      fetchEmployeeById: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.getEmployeeById(id);
+          if (!response.success) {
+            throw new Error(response.message || 'Employee not found');
+          }
+          set(state => ({
+            employees: [
+              ...state.employees.filter(e => e.id !== id),
+              response.data
+            ],
+            loading: false,
+            error: null
+          }));
+          return { success: true, employee: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch employee.';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      fetchEmployeePersonal: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.getEmployeePersonal(id);
+          set(state => ({
+            personalData: { ...(state.personalData || {}), [id]: response.data },
+            loading: false,
+            error: null
+          }));
+          return { success: true, personal: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch personal info.';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      fetchEmployeeSecondary: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.getEmployeeSecondary(id);
+          set(state => ({
+            secondaryData: { ...(state.secondaryData || {}), [id]: response.data },
+            loading: false,
+            error: null
+          }));
+          return { success: true, secondary: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch secondary data.';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update employee personal data
+      updateEmployeePersonal: async (id, data) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateEmployeePersonal(id, data);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update personal information');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: response.data
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update personal information';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update employee secondary data
+      updateEmployeeSecondary: async (id, data) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateEmployeeSecondary(id, data);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update secondary information');
+          }
+          
+          set(state => ({
+            secondaryData: {
+              ...state.secondaryData,
+              [id]: response.data
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update secondary information';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update document status
+      updateDocumentStatus: async (id, documentName, status, url = null, number = null) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateDocumentStatus(id, documentName, status, url, number);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update document status');
+          }
+          
+          // Update the document in personal data
+          set(state => {
+            const personalData = state.personalData[id];
+            if (!personalData) return state;
+
+            const updatedDocuments = personalData.documents.map(doc => 
+              doc.name === documentName ? { ...doc, status, url: url || doc.url, number: number || doc.number } : doc
+            );
+
+            return {
+              personalData: {
+                ...state.personalData,
+                [id]: {
+                  ...personalData,
+                  documents: updatedDocuments
+                }
+              },
+              loading: false,
+              error: null
+            };
+          });
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update document status';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update bank details
+      updateBankDetails: async (id, bankDetails) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateEmployeePersonal(id, {
+            bankDetails
+          });
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update bank details');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                bankDetails: response.data.bankDetails
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update bank details';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Add document
+      addDocument: async (id, document) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateEmployeePersonal(id, {
+            documents: [
+              ...(get().personalData[id]?.documents || []),
+              document
+            ]
+          });
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to add document');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: response.data.documents
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to add document';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Upload profile picture
+      uploadProfile: async (id, file, fileType) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.uploadProfile(id, file, fileType);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to upload profile picture');
+          }
+          
+          set(state => ({
+            employees: state.employees.map(emp => 
+              emp.id === id ? { ...emp, avatarUrl: response.data.avatarUrl } : emp
+            ),
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to upload profile picture';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Get bank details
+      getBankDetails: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.getBankDetails(id);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to fetch bank details');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                bankDetails: response.data
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch bank details';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Get documents
+      getDocuments: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.getDocuments(id);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to fetch documents');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: response.data
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch documents';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Upload document
+      uploadDocument: async (id, document) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.uploadDocument(id, document);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to upload document');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: [...(state.personalData[id]?.documents || []), response.data]
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to upload document';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update document
+      updateDocument: async (id, documentId, document) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateDocument(id, documentId, document);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update document');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: state.personalData[id]?.documents.map(doc => 
+                  doc.id === documentId ? response.data : doc
+                )
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update document';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Delete document
+      deleteDocument: async (id, documentId) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.deleteDocument(id, documentId);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to delete document');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: state.personalData[id]?.documents.filter(doc => doc.id !== documentId)
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to delete document';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update document status
+      updateDocumentStatus: async (id, documentId, status, remarks) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await employeeService.updateDocumentStatus(id, documentId, status, remarks);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update document status');
+          }
+          
+          set(state => ({
+            personalData: {
+              ...state.personalData,
+              [id]: {
+                ...state.personalData[id],
+                documents: state.personalData[id]?.documents.map(doc => 
+                  doc.id === documentId ? { ...doc, status, remarks } : doc
+                )
+              }
+            },
+            loading: false,
+            error: null
+          }));
+          
+          return { success: true, data: response.data };
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to update document status';
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      }
     }),
     {
       name: 'employee-storage',

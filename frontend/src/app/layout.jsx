@@ -1,8 +1,9 @@
-
 import { Inter, Roboto_Mono } from 'next/font/google'; // Changed Geist_Mono to Roboto_Mono, and 'Inter as Geist' to 'Inter'
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
+import { EmailProvider } from "@/context/email-context"
+import { EmailComposer } from "@/components/email/email-composer"
 
 const fontInter = Inter({ // Renamed from geistSans to fontInter
   variable: '--font-inter', // Changed variable name to --font-inter
@@ -28,15 +29,18 @@ export default function RootLayout({
         className={`${fontInter.variable} ${fontRobotoMono.variable} font-sans antialiased`} // Updated font variables
         suppressHydrationWarning // Added suppressHydrationWarning to body
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <EmailProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <EmailComposer />
+            <Toaster />
+          </ThemeProvider>
+        </EmailProvider>
       </body>
     </html>
   );

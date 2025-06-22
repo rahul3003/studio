@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -8,6 +7,7 @@ import { OfferLetterForm } from "@/components/document/offer-letter-form";
 import { EmployeeContractForm } from "@/components/document/employee-contract-form";
 import { ExperienceLetterForm } from "@/components/document/experience-letter-form";
 import { PaySlipForm } from "@/components/document/pay-slip-form";
+import SalaryManagement from "@/components/salary/salary-management";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { sendEmail } from '@/services/emailService'; 
@@ -27,6 +27,7 @@ const DOCUMENT_TYPES = {
   EMPLOYEE_CONTRACT: 'employee-contract',
   EXPERIENCE_LETTER: 'experience-letter',
   PAY_SLIP: 'pay-slip',
+  SALARY_MANAGEMENT: 'salary-management',
 };
 
 export default function DocumentsPage() {
@@ -203,6 +204,7 @@ export default function DocumentsPage() {
       case DOCUMENT_TYPES.EMPLOYEE_CONTRACT: return "Employee Contract";
       case DOCUMENT_TYPES.EXPERIENCE_LETTER: return "Experience Letter";
       case DOCUMENT_TYPES.PAY_SLIP: return "Pay Slip";
+      case DOCUMENT_TYPES.SALARY_MANAGEMENT: return "Salary Management";
       default: return "Document";
     }
   };
@@ -224,11 +226,12 @@ export default function DocumentsPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
               <TabsTrigger value={DOCUMENT_TYPES.OFFER_LETTER}>Offer Letter</TabsTrigger>
               <TabsTrigger value={DOCUMENT_TYPES.EMPLOYEE_CONTRACT}>Contract</TabsTrigger>
               <TabsTrigger value={DOCUMENT_TYPES.EXPERIENCE_LETTER}>Experience Letter</TabsTrigger>
               <TabsTrigger value={DOCUMENT_TYPES.PAY_SLIP}>Pay Slip</TabsTrigger>
+              <TabsTrigger value={DOCUMENT_TYPES.SALARY_MANAGEMENT}>Salary Mgmt</TabsTrigger>
             </TabsList>
             
             {[DOCUMENT_TYPES.OFFER_LETTER, DOCUMENT_TYPES.EMPLOYEE_CONTRACT, DOCUMENT_TYPES.EXPERIENCE_LETTER, DOCUMENT_TYPES.PAY_SLIP].map(docType => (
@@ -281,6 +284,10 @@ export default function DocumentsPage() {
                 </div>
               </TabsContent>
             ))}
+
+            <TabsContent value={DOCUMENT_TYPES.SALARY_MANAGEMENT} className="mt-6">
+              <SalaryManagement />
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

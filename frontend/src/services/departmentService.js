@@ -4,7 +4,7 @@ export const departmentService = {
   // Get all departments
   getAllDepartments: async () => {
     try {
-      const response = await api.get('/departments');
+      const response = await api.get('/api/departments');
       return response.data;
     } catch (error) {
       throw error;
@@ -14,7 +14,7 @@ export const departmentService = {
   // Create new department
   createDepartment: async (departmentData) => {
     try {
-      const response = await api.post('/departments', departmentData);
+      const response = await api.post('/api/departments', departmentData);
       return response.data;
     } catch (error) {
       throw error;
@@ -24,7 +24,7 @@ export const departmentService = {
   // Update department
   updateDepartment: async (departmentId, departmentData) => {
     try {
-      const response = await api.put(`/departments/${departmentId}`, departmentData);
+      const response = await api.put(`/api/departments/${departmentId}`, departmentData);
       return response.data;
     } catch (error) {
       throw error;
@@ -34,7 +34,7 @@ export const departmentService = {
   // Delete department
   deleteDepartment: async (departmentId) => {
     try {
-      const response = await api.delete(`/departments/${departmentId}`);
+      const response = await api.delete(`/api/departments/${departmentId}`);
       return response.data;
     } catch (error) {
       throw error;

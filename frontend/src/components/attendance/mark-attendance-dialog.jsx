@@ -55,9 +55,9 @@ export function MarkAttendanceDialog({
 
   const [status, setStatus] = React.useState(STATUS_OPTIONS_GENERAL[0]);
   const [notes, setNotes] = React.useState("");
-  const [checkInTimeCategory, setCheckInTimeCategory] = React.useState(null);
-  const [workLocation, setWorkLocation] = React.useState(null);
-  const [checkOutTimeCategory, setCheckOutTimeCategory] = React.useState(null);
+  const [checkInTimeCategory, setCheckInTimeCategory] = React.useState("not-set");
+  const [workLocation, setWorkLocation] = React.useState("not-set");
+  const [checkOutTimeCategory, setCheckOutTimeCategory] = React.useState("not-set");
   // userCoordinates (for check-in) and checkOutCoordinates are view-only here, usually set by their respective dialogs.
 
   React.useEffect(() => {
@@ -65,16 +65,16 @@ export function MarkAttendanceDialog({
       if (currentAttendance) {
         setStatus(currentAttendance.status || STATUS_OPTIONS_GENERAL[0]);
         setNotes(currentAttendance.notes || "");
-        setCheckInTimeCategory(currentAttendance.checkInTimeCategory || null);
-        setWorkLocation(currentAttendance.workLocation || null);
-        setCheckOutTimeCategory(currentAttendance.checkOutTimeCategory || null);
+        setCheckInTimeCategory(currentAttendance.checkInTimeCategory || "not-set");
+        setWorkLocation(currentAttendance.workLocation || "not-set");
+        setCheckOutTimeCategory(currentAttendance.checkOutTimeCategory || "not-set");
       } else {
         // Defaults for a new entry via this dialog
         setStatus(STATUS_OPTIONS_GENERAL[0]);
         setNotes("");
-        setCheckInTimeCategory(null);
-        setWorkLocation(null);
-        setCheckOutTimeCategory(null);
+        setCheckInTimeCategory("not-set");
+        setWorkLocation("not-set");
+        setCheckOutTimeCategory("not-set");
       }
     }
   }, [currentAttendance, isOpen, selectedDate]);
@@ -83,9 +83,9 @@ export function MarkAttendanceDialog({
     const attendanceData = {
       status,
       notes,
-      checkInTimeCategory: status === "Present" ? checkInTimeCategory : null,
-      workLocation: status === "Present" ? workLocation : null,
-      checkOutTimeCategory: status === "Present" ? checkOutTimeCategory : null,
+      checkInTimeCategory: status === "Present" ? (checkInTimeCategory === "not-set" ? null : checkInTimeCategory) : null,
+      workLocation: status === "Present" ? (workLocation === "not-set" ? null : workLocation) : null,
+      checkOutTimeCategory: status === "Present" ? (checkOutTimeCategory === "not-set" ? null : checkOutTimeCategory) : null,
       userCoordinates: currentAttendance?.userCoordinates || null, // Preserve check-in coords
       checkOutCoordinates: currentAttendance?.checkOutCoordinates || null, // Preserve check-out coords
     };
@@ -129,12 +129,12 @@ export function MarkAttendanceDialog({
             <>
               <div className="space-y-2">
                 <Label htmlFor="checkInTimeEdit">Check-In Time Category</Label>
-                <Select value={checkInTimeCategory || ""} onValueChange={setCheckInTimeCategory}>
+                <Select value={checkInTimeCategory || "not-set"} onValueChange={setCheckInTimeCategory}>
                   <SelectTrigger id="checkInTimeEdit">
                     <SelectValue placeholder="Select check-in time" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Not Set</SelectItem>
+                    <SelectItem value="not-set">Not Set</SelectItem>
                     {CHECK_IN_TIME_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
@@ -146,12 +146,12 @@ export function MarkAttendanceDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="workLocationEdit">Work Location</Label>
-                <Select value={workLocation || ""} onValueChange={setWorkLocation}>
+                <Select value={workLocation || "not-set"} onValueChange={setWorkLocation}>
                   <SelectTrigger id="workLocationEdit">
                     <SelectValue placeholder="Select work location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Not Set</SelectItem>
+                    <SelectItem value="not-set">Not Set</SelectItem>
                     {Object.entries(WORK_LOCATION_OPTIONS).map(([key, value]) => (
                       <SelectItem key={key} value={key}>
                         {value}
@@ -171,12 +171,12 @@ export function MarkAttendanceDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="checkOutTimeEdit">Check-Out Time Category</Label>
-                <Select value={checkOutTimeCategory || ""} onValueChange={setCheckOutTimeCategory}>
+                <Select value={checkOutTimeCategory || "not-set"} onValueChange={setCheckOutTimeCategory}>
                   <SelectTrigger id="checkOutTimeEdit">
                     <SelectValue placeholder="Select check-out time" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="">Not Set</SelectItem>
+                     <SelectItem value="not-set">Not Set</SelectItem>
                     {CHECK_OUT_TIME_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}

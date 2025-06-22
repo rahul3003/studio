@@ -60,6 +60,7 @@ const workLocationLabels = {
 export default function AttendancePage() {
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
+  const currentRole = useAuthStore((state) => state.currentRole);
 
   const allUsersAttendance = useAttendanceStore((state) => state.allUsersAttendance);
   const saveUserAttendance = useAttendanceStore((state) => state.saveAttendance); 
@@ -84,8 +85,8 @@ export default function AttendancePage() {
   }, [initializeAttendance]);
 
   const isAdminView = React.useMemo(() => {
-    return user && (user.currentRole.value === 'admin' || user.currentRole.value === 'superadmin' || user.currentRole.value === 'manager');
-  }, [user]);
+    return user && currentRole && (currentRole === 'ADMIN' || currentRole === 'SUPERADMIN' || currentRole === 'MANAGER');
+  }, [user, currentRole]);
 
   React.useEffect(() => {
     if (user) {

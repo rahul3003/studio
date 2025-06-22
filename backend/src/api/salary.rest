@@ -1,0 +1,102 @@
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImYzZjhmMTQ2LTczY2QtNDY5Mi05YWQ0LWU4OTg4YzlmYzY5MyIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDg4NDM2MDUsImV4cCI6MTc0ODkzMDAwNX0.Fd6PdvlMyVLwNDIZfNXVX7gz3MVrnwSLdlHitADRZGs
+@employeeId = f3f8f146-73cd-4692-9ad4-e8988c9fc693
+@baseUrl = http://localhost:5000/api
+
+### Create a new monthly salary record
+POST {{baseUrl}}/salaries/employees/{{employeeId}}/monthly-salaries
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "year": 2024,
+  "month": 12,
+  "payPeriodStart": "2024-11-25T00:00:00.000Z",
+  "payPeriodEnd": "2024-12-25T00:00:00.000Z",
+  "paymentDate": "2025-01-06T00:00:00.000Z",
+  "basicSalary": 50000,
+  "hra": 20000,
+  "da": 5000,
+  "conveyanceAllowance": 1600,
+  "medicalAllowance": 1250,
+  "specialAllowance": 10000,
+  "otherAllowances": 0,
+  "bonus": 0,
+  "incentives": 0,
+  "overtime": 0,
+  "otherEarnings": 0,
+  "providentFund": 6000,
+  "professionalTax": 200,
+  "tds": 5000,
+  "otherDeductions": 0,
+  "workingDays": 22,
+  "paidDays": 22,
+  "leaveDays": 0,
+  "holidays": 0,
+  "remarks": "December 2024 salary"
+}
+
+### Get monthly salary by ID
+GET {{baseUrl}}/salaries/monthly-salaries/{salaryId}
+Authorization: Bearer {{jwt}}
+
+### Get monthly salary by employee and month
+GET {{baseUrl}}/salaries/employees/{{employeeId}}/monthly-salaries/2024/12
+Authorization: Bearer {{jwt}}
+
+### Get all monthly salaries for an employee
+GET {{baseUrl}}/salaries/employees/{{employeeId}}/monthly-salaries
+Authorization: Bearer {{jwt}}
+
+### Get all monthly salaries for an employee (specific year)
+GET {{baseUrl}}/salaries/employees/{{employeeId}}/monthly-salaries?year=2024
+Authorization: Bearer {{jwt}}
+
+### Get all monthly salaries with filters
+GET {{baseUrl}}/salaries/monthly-salaries?year=2024&month=12&status=PENDING&page=1&limit=10
+Authorization: Bearer {{jwt}}
+
+### Update monthly salary
+PUT {{baseUrl}}/salaries/monthly-salaries/{salaryId}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "basicSalary": 55000,
+  "hra": 22000,
+  "remarks": "Updated salary for December 2024"
+}
+
+### Approve monthly salary
+PATCH {{baseUrl}}/salaries/monthly-salaries/{salaryId}/approve
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "approvedBy": "admin@example.com",
+  "remarks": "Salary approved for December 2024"
+}
+
+### Mark salary as paid
+PATCH {{baseUrl}}/salaries/monthly-salaries/{salaryId}/mark-paid
+Authorization: Bearer {{jwt}}
+
+### Update payslip URL
+PATCH {{baseUrl}}/salaries/monthly-salaries/{salaryId}/payslip
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "payslipUrl": "https://example.com/payslips/dec-2024-payslip.pdf"
+}
+
+### Delete monthly salary
+DELETE {{baseUrl}}/salaries/monthly-salaries/{salaryId}
+Authorization: Bearer {{jwt}}
+
+### Get salary statistics
+GET {{baseUrl}}/salaries/monthly-salaries/statistics?year=2024&month=12
+Authorization: Bearer {{jwt}}
+
+### Get salary statistics for entire year
+GET {{baseUrl}}/salaries/monthly-salaries/statistics?year=2024
+Authorization: Bearer {{jwt}} 

@@ -49,6 +49,7 @@ model Employee {
   rewardNominationsReceived  RewardNomination[] @relation("NominationsReceived")
   approvedNominations        RewardNomination[] @relation("ApprovedNominations")
   attendanceRecords          AttendanceRecord[]
+  monthlySalaries            MonthlySalary[]
 
   jwtToken                   String?
 
@@ -71,9 +72,8 @@ model PersonalInformation {
   address              String
   personalEmail        String?
   profilePhotoUrl      String?
-  profilePhotoFileName String?
-  idProofFileName      String?
-  addressProofFileName String?
+  documents            Json?    @default("[{\"name\":\"Aadhaar\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true,\"number\":\"\"},{\"name\":\"PAN Card\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true,\"number\":\"\"},{\"name\":\"Address Proof\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Passport\",\"url\":\"\",\"status\":\"PENDING\",\"required\":false,\"number\":\"\"},{\"name\":\"Voter ID\",\"url\":\"\",\"status\":\"PENDING\",\"required\":false,\"number\":\"\"},{\"name\":\"Driving License\",\"url\":\"\",\"status\":\"PENDING\",\"required\":false,\"number\":\"\"},{\"name\":\"Educational Certificates\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Previous Employment Documents\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Bank Statement\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Salary Slips\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Form 16\",\"url\":\"\",\"status\":\"PENDING\",\"required\":true},{\"name\":\"Medical Insurance\",\"url\":\"\",\"status\":\"PENDING\",\"required\":false,\"number\":\"\"},{\"name\":\"Professional Certifications\",\"url\":\"\",\"status\":\"PENDING\",\"required\":false}]")
+  bankDetails          Json?    @default("{\"accountHolderName\":\"\",\"accountNumber\":\"\",\"ifsc\":\"\",\"bankName\":\"\",\"branch\":\"\"}")
   city                 String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -172,6 +172,69 @@ model PayChange {
   updatedAt           DateTime     @updatedAt
 
   @@index([remunerationId])
+}
+
+model MonthlySalary {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  employee              Employee @relation(fields: [employeeId], references: [id])
+  year                  Int
+  month                 Int      // 1-12
+  payPeriodStart        DateTime // e.g., 25th of previous month
+  payPeriodEnd          DateTime // e.g., 25th of current month
+  paymentDate           DateTime // e.g., 6th of next month
+  
+  // Basic salary components
+  basicSalary           Float
+  hra                   Float    @default(0)
+  da                    Float    @default(0) // Dearness Allowance
+  conveyanceAllowance   Float    @default(0)
+  medicalAllowance      Float    @default(0)
+  specialAllowance      Float    @default(0)
+  otherAllowances       Float    @default(0)
+  
+  // Additional earnings
+  bonus                 Float    @default(0)
+  incentives            Float    @default(0)
+  overtime              Float    @default(0)
+  otherEarnings         Float    @default(0)
+  
+  // Deductions
+  providentFund         Float    @default(0)
+  professionalTax       Float    @default(0)
+  tds                   Float    @default(0) // Tax Deducted at Source
+  otherDeductions       Float    @default(0)
+  
+  // Totals
+  grossEarnings         Float
+  totalDeductions       Float
+  netSalary             Float
+  
+  // Additional details
+  workingDays           Int
+  paidDays              Int
+  leaveDays             Int
+  holidays              Int
+  
+  // Status and approval
+  status                SalaryStatus @default(PENDING)
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  remarks               String?
+  
+  // Document generation
+  payslipUrl            String?
+  payslipGeneratedAt    DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([employeeId, year, month]) // Ensure one salary record per employee per month
+  @@index([employeeId])
+  @@index([year, month])
+  @@index([status])
 }
 
 model EmployeeReports { // Renamed from Reports to avoid conflict
@@ -523,5 +586,13 @@ enum WorkLocationType {
 enum HolidayType {
   COMPANY
   RESTRICTED
+}
+
+enum SalaryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
 }
 

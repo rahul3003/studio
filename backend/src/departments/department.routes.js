@@ -1,22 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('./department.controller');
-const requireAuth = require('../auth/auth.middleware');
-const { requireAdminOrSuperadmin } = require('../auth/auth.middleware');
+const { authenticateToken } = require('../middleware/auth');
 
-// All routes require authentication
-router.use(requireAuth);
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
 
-// Get all departments (any authenticated user can view)
-router.get('/departments', controller.getDepartments);
+// Get all departments
+router.get('/', controller.getDepartments);
 
-// Create department (admin/superadmin only)
-router.post('/departments', requireAdminOrSuperadmin, controller.createDepartment);
+// Create new department
+router.post('/', controller.createDepartment);
 
-// Update department (admin/superadmin only)
-router.put('/departments/:id', requireAdminOrSuperadmin, controller.updateDepartment);
+// Update department
+router.put('/:id', controller.updateDepartment);
 
-// Delete department (admin/superadmin only)
-router.delete('/departments/:id', requireAdminOrSuperadmin, controller.deleteDepartment);
+// Delete department
+router.delete('/:id', controller.deleteDepartment);
 
 module.exports = router; 

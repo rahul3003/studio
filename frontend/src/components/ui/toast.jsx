@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -30,6 +29,8 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        success: "border-green-500 bg-green-500 text-white",
+        warning: "border-yellow-500 bg-yellow-500 text-white",
       },
     },
     defaultVariants: {
@@ -93,7 +94,6 @@ const ToastDescription = React.forwardRef(({ className, ...props }, ref) => (
   />
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
-
 
 export {
   ToastProvider,

@@ -1,4 +1,4 @@
-import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText, Calculator, UserCircle2, Award, DollarSign, CalendarDays, Mail } from "lucide-react";
+import { ShieldCheck, UserCog, Briefcase, Users, User, Crown, LayoutDashboard, Building2, FolderKanban, ListTodo, Receipt, BriefcaseBusiness, CalendarCheck, Settings, FileText, Calculator, UserCircle2, Award, DollarSign, CalendarDays, Mail, CreditCard } from "lucide-react";
 
 /**
  * @typedef {object} Role
@@ -52,6 +52,7 @@ const commonManagementNavItems = [
   { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
   { href: "/dashboard/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/dashboard/attendance", label: "Attendance Mgmt", icon: CalendarCheck },
+  { href: "/dashboard/salary", label: "Salary Management", icon: CreditCard },
   { href: "/dashboard/documents", label: "Document Generation", icon: FileText },
 ];
 
@@ -104,6 +105,7 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/attendance", label: "Team Attendance", icon: CalendarCheck },
     { href: "/dashboard/reimbursements", label: "Approve Claims", icon: Receipt },
     { href: "/dashboard/jobs", label: "Job Openings", icon: BriefcaseBusiness },
+    { href: "/dashboard/salary", label: "Salary Management", icon: CreditCard },
     { href: "/dashboard/documents", label: "Generate Docs", icon: FileText },
   ],
   HR: [
@@ -119,6 +121,7 @@ export const ROLE_NAV_CONFIG = {
     { href: "/dashboard/jobs", label: "Manage Jobs", icon: BriefcaseBusiness },
     { href: "/dashboard/offers", label: "Manage Offers", icon: Mail },
     { href: "/dashboard/attendance", label: "Attendance Records", icon: CalendarCheck },
+    { href: "/dashboard/salary", label: "Salary Management", icon: CreditCard },
     { href: "/dashboard/documents", label: "HR Documents", icon: FileText },
     { href: "/dashboard/reimbursements", label: "Reimbursements", icon: Receipt },
   ],
@@ -130,6 +133,7 @@ export const ROLE_NAV_CONFIG = {
       href:"/dashboard/profile",
       children: employeeProfileNavItems.map(item => ({...item, href: item.href}))
     },
+    { href: "/dashboard/salary", label: "Salary Management", icon: CreditCard },
     { href: "/dashboard/reimbursements", label: "Manage Reimbursements", icon: Receipt },
     { href: "/dashboard/documents", label: "Generate Pay Slips", icon: FileText },
     { href: "/dashboard/employees", label: "Employee List (View)", icon: Users },

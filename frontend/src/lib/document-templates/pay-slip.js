@@ -1,21 +1,48 @@
-
 import { format } from "date-fns";
 
 export const generatePlaceholderPaySlipHtml = (data) => {
   const currentDate = format(new Date(), "MMMM d, yyyy");
-  const formatCurrency = (num) => typeof num === 'number' ? num.toFixed(2) : '0.00';
+  const formatCurrency = (num) => {
+    if (typeof num === 'number') {
+      return num.toLocaleString('en-IN', { 
+        style: 'currency', 
+        currency: 'INR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+    }
+    return '₹0';
+  };
   
+  // Parse allowances and deductions from the text format
   let allowancesHtml = '';
   let totalAllowances = 0;
+  let basicSalary = 0;
+  let grossSalary = 0;
+  
   if (data.allowancesStr) {
     data.allowancesStr.split('\n').forEach(line => {
       const parts = line.split(':');
       if (parts.length === 2) {
         const name = parts[0].trim();
-        const amount = parseFloat(parts[1].trim());
+        const amountStr = parts[1].trim().replace(/[₹,]/g, '');
+        const amount = parseFloat(amountStr);
+        
         if (name && !isNaN(amount)) {
-          allowancesHtml += `<tr><td style="padding: 8px; border: 1px solid #dee2e6;">${name}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${formatCurrency(amount)}</td><td></td><td></td></tr>`;
-          totalAllowances += amount;
+          if (name.includes('Basic Salary')) {
+            basicSalary = amount;
+            allowancesHtml += `<tr><td style="padding: 8px; border: 1px solid #dee2e6;"><strong>${name}</strong></td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;"><strong>${formatCurrency(amount)}</strong></td><td></td><td></td></tr>`;
+          } else if (name.includes('Total Allowances') || name.includes('Gross Salary')) {
+            if (name.includes('Gross Salary')) {
+              grossSalary = amount;
+            }
+            // Skip these summary rows as they'll be shown separately
+          } else {
+            allowancesHtml += `<tr><td style="padding: 8px; border: 1px solid #dee2e6;">${name}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${formatCurrency(amount)}</td><td></td><td></td></tr>`;
+            if (!name.includes('Total') && !name.includes('Gross')) {
+              totalAllowances += amount;
+            }
+          }
         }
       }
     });
@@ -23,24 +50,48 @@ export const generatePlaceholderPaySlipHtml = (data) => {
 
   let deductionsHtml = '';
   let totalDeductions = 0;
+  let netSalary = 0;
+  let netSalaryInWords = '';
+  
   if (data.deductionsStr) {
     data.deductionsStr.split('\n').forEach(line => {
       const parts = line.split(':');
       if (parts.length === 2) {
         const name = parts[0].trim();
-        const amount = parseFloat(parts[1].trim());
+        const amountStr = parts[1].trim().replace(/[₹,]/g, '');
+        const amount = parseFloat(amountStr);
+        
         if (name && !isNaN(amount)) {
-          deductionsHtml += `<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">${name}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${formatCurrency(amount)}</td></tr>`;
-          totalDeductions += amount;
+          if (name.includes('Net Salary')) {
+            netSalary = amount;
+            // Skip this as it will be shown separately
+          } else if (name.includes('Rupees Only')) {
+            netSalaryInWords = line.trim();
+            // Skip this as it will be shown separately
+          } else {
+            deductionsHtml += `<tr><td></td><td></td><td style="padding: 8px; border: 1px solid #dee2e6;">${name}</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${formatCurrency(amount)}</td></tr>`;
+            totalDeductions += amount;
+          }
         }
       }
     });
   }
 
-  const grossSalary = (data.basicSalary || 0) + totalAllowances;
-  const netSalary = grossSalary - totalDeductions;
-  const companyLogo = data.companyLogoUrl || 'https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png';
+  // Fallback calculations if parsing fails
+  if (grossSalary === 0 && data.grossSalary) {
+    grossSalary = data.grossSalary;
+  }
+  if (netSalary === 0 && data.netSalary) {
+    netSalary = data.netSalary;
+  }
+  if (basicSalary === 0 && data.basicSalary) {
+    basicSalary = data.basicSalary;
+  }
+  if (!netSalaryInWords && data.netSalaryInWords) {
+    netSalaryInWords = data.netSalaryInWords + ' Rupees Only';
+  }
 
+  const companyLogo = data.companyLogoUrl || 'https://www.pesuventurelabs.com/static/media/PVL%20Logo.9cc047dd.png';
 
   return `
 <div class="payslip-container" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 700px; margin: 20px auto; padding: 25px; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); background-color: #fff; font-size: 12px;">
@@ -71,7 +122,6 @@ export const generatePlaceholderPaySlipHtml = (data) => {
       </tr>
     </thead>
     <tbody>
-      <tr><td style="padding: 8px; border: 1px solid #dee2e6;">Basic Salary</td><td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${formatCurrency(data.basicSalary)}</td><td></td><td></td></tr>
       ${allowancesHtml}
       ${deductionsHtml}
       <tr>
@@ -85,6 +135,7 @@ export const generatePlaceholderPaySlipHtml = (data) => {
   
   <div style="text-align: right; margin-top: 10px; padding: 15px; background-color: #e9ecef; border-radius: 4px;">
     <strong style="font-size: 1.1em; color: #343a40;">Net Salary (INR): ${formatCurrency(netSalary)}</strong>
+    ${netSalaryInWords ? `<br><span style="font-size: 0.9em; color: #6c757d; font-style: italic;">${netSalaryInWords}</span>` : ''}
   </div>
   <p style="font-size: 0.75em; color: #6c757d; text-align: center; margin-top: 25px;">This is a system-generated pay slip and does not require a signature. Generated on: ${currentDate}</p>
 </div>

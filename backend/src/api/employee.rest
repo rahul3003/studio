@@ -1,7 +1,9 @@
-@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYTI3MTUwLTBiZTYtNDhkMS04ZmZlLTk5MzRmZmVkY2E5ZiIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDcyNjMyODEsImV4cCI6MTc0NzM0OTY4MX0.7mVvSmNbKEgktCccpYbyqrQ4NaxWtUCj5m8prkEUY1I
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImYzZjhmMTQ2LTczY2QtNDY5Mi05YWQ0LWU4OTg4YzlmYzY5MyIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDg4NDM2MDUsImV4cCI6MTc0ODkzMDAwNX0.Fd6PdvlMyVLwNDIZfNXVX7gz3MVrnwSLdlHitADRZGs
 # Replace with a real employee UUID from your database
-@employeeId = b0a27150-0be6-48d1-8ffe-9934ffedca9f
+@employeeId = f3f8f146-73cd-4692-9ad4-e8988c9fc693
 @baseUrl = http://localhost:5000/api/employees
+
+@documentId = 123456789012
 
 ### Get all employees
 GET {{baseUrl}}
@@ -11,7 +13,7 @@ Authorization: Bearer {{jwt}}
 GET {{baseUrl}}/{{employeeId}}
 Authorization: Bearer {{jwt}}
 
-### Create employee
+### Create employee with personal and secondary data
 POST {{baseUrl}}
 Authorization: Bearer {{jwt}}
 Content-Type: application/json
@@ -27,7 +29,34 @@ Content-Type: application/json
   "gender": "MALE",
   "employeeType": "FULL_TIME",
   "salary": "500000",
-  "reportingManagerId":"b0a27150-0be6-48d1-8ffe-9934ffedca9f"
+  "reportingManagerId": "b0a27150-0be6-48d1-8ffe-9934ffedca9f",
+  
+  // Personal Information
+  "phone": "9876543210",
+  "address": "123 Tech Park, Bangalore",
+  "personalEmail": "anil.personal@gmail.com",
+  "city": "Bangalore",
+  "documents": [
+    {
+      "name": "Aadhaar",
+      "number": "123456789012",
+      "url": "https://example.com/aadhaar.pdf",
+      "status": "PENDING"
+    },
+    {
+      "name": "PAN Card",
+      "number": "ABCDE1234F",
+      "url": "https://example.com/pan.pdf",
+      "status": "PENDING"
+    }
+  ],
+  "bankDetails": {
+    "accountHolderName": "Anil Jayaprakash",
+    "accountNumber": "1234567890",
+    "ifsc": "SBIN0001234",
+    "bankName": "State Bank of India",
+    "branch": "Bangalore Main Branch"
+  }
 }
 
 ### Update employee (by UUID)
@@ -36,11 +65,119 @@ Authorization: Bearer {{jwt}}
 Content-Type: application/json
 
 {
-  "reportingManagerId":"30957daa-3516-4fdd-a784-e6a017a8cb3f",
+  "reportingManagerId": "30957daa-3516-4fdd-a784-e6a017a8cb3f",
   "currentRole": "ADMIN",
   "baseRole": "ADMIN"
 }
 
 ### Delete employee (by UUID)
 DELETE {{baseUrl}}/{{employeeId}}
-Authorization: Bearer {{jwt}} 
+Authorization: Bearer {{jwt}}
+
+### Get Personal Information
+GET {{baseUrl}}/{{employeeId}}/personal
+Authorization: Bearer {{jwt}}
+
+### Create/Update Personal Information
+POST {{baseUrl}}/{{employeeId}}/personal
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "phone": "9876543210",
+  "address": "123 Tech Park, Bangalore",
+  "personalEmail": "anil.personal@gmail.com",
+  "city": "Bangalore"
+}
+
+### Upload Profile Picture
+POST {{baseUrl}}/{{employeeId}}/profile
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "file": "base64_encoded_image_string",
+  "fileType": "image/jpeg"
+}
+
+### Get Bank Details
+GET {{baseUrl}}/{{employeeId}}/bank
+Authorization: Bearer {{jwt}}
+
+### Update Bank Details
+POST {{baseUrl}}/{{employeeId}}/bank
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "accountHolderName": "Anil Jayaprakash",
+  "accountNumber": "1234567890",
+  "ifsc": "SBIN0001234",
+  "bankName": "State Bank of India",
+  "branch": "Bangalore Main Branch"
+}
+
+### Get Documents
+GET {{baseUrl}}/{{employeeId}}/documents
+Authorization: Bearer {{jwt}}
+
+### Upload Document
+POST {{baseUrl}}/{{employeeId}}/documents
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "PAN Card",
+  "number": "ABCDE1234F",
+  "url": "https://example.com/documents/pan-card.pdf",
+  "fileType": "application/pdf"
+}
+
+### Update Document
+PUT {{baseUrl}}/{{employeeId}}/documents/{{documentId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "Updated Aadhaar",
+  "number": "123456789012",
+  "url": "https://example.com/documents/updated-aadhaar.pdf",
+  "fileType": "application/pdf"
+}
+
+### Delete Document
+DELETE {{baseUrl}}/{{employeeId}}/documents/{{documentId}}
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "reason": "Document no longer required"
+}
+
+### Update Document Status
+PUT {{baseUrl}}/{{employeeId}}/documents/{{documentId}}/status
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "status": "VERIFIED",
+  "remarks": "Document verified successfully"
+}
+
+### Get Secondary Data
+GET {{baseUrl}}/{{employeeId}}/secondary
+Authorization: Bearer {{jwt}}
+
+### Create/Update Secondary Data
+POST {{baseUrl}}/{{employeeId}}/secondary
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "currentPosition": "Senior Developer",
+  "currentRemuneration": "₹15,00,000",
+  "annualLeaveBalance": 20,
+  "sickLeaveBalance": 10,
+  "totalAnnualLeave": 20,
+  "totalSickLeave": 10
+} 
